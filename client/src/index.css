@@ -1,0 +1,384 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(215 16% 46%);
+  --card: hsl(180 6.6667% 97.0588%);
+  --card-foreground: hsl(215 16% 46%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(215 16% 46%);
+  --primary: hsl(214 100% 40%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(215 16% 46%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(240 1.9608% 90%);
+  --muted-foreground: hsl(215 16% 46%);
+  --accent: hsl(214 30% 95%);
+  --accent-foreground: hsl(214 100% 40%);
+  --destructive: hsl(356.3033 90.5579% 54.3137%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(214 32% 91%);
+  --input: hsl(214 32% 97%);
+  --ring: hsl(214 100% 40%);
+  --chart-1: hsl(214 100% 40%);
+  --chart-2: hsl(159.7826 100% 36.0784%);
+  --chart-3: hsl(42.0290 92.8251% 56.2745%);
+  --chart-4: hsl(147.1429 78.5047% 41.9608%);
+  --chart-5: hsl(341.4894 75.2000% 50.9804%);
+  --sidebar: hsl(180 6.6667% 97.0588%);
+  --sidebar-foreground: hsl(215 16% 46%);
+  --sidebar-primary: hsl(214 100% 40%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(214 30% 95%);
+  --sidebar-accent-foreground: hsl(214 100% 40%);
+  --sidebar-border: hsl(214 32% 91%);
+  --sidebar-ring: hsl(214 100% 40%);
+  --font-sans: Inter, system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 0.5rem;
+  --primary-50: hsl(214 100% 97%);
+  --primary-100: hsl(214 95% 93%);
+  --primary-500: hsl(214 100% 40%);
+  --primary-600: hsl(214 84% 32%);
+  --primary-700: hsl(214 69% 27%);
+  --ocean-50: hsl(158 100% 96%);
+  --ocean-100: hsl(158 84% 86%);
+  --ocean-500: hsl(158 64% 52%);
+  --ocean-600: hsl(158 64% 42%);
+  --ocean-700: hsl(158 84% 32%);
+  --yellow-50: hsl(54 100% 96%);
+  --yellow-100: hsl(54 92% 88%);
+  --yellow-600: hsl(43 96% 56%);
+  --yellow-700: hsl(36 90% 48%);
+  --green-50: hsl(138 76% 97%);
+  --green-100: hsl(141 84% 93%);
+  --green-600: hsl(142 71% 45%);
+  --green-700: hsl(142 81% 36%);
+  --red-600: hsl(356 90% 54%);
+  --red-700: hsl(356 85% 45%);
+}
+
+.dark {
+  --background: hsl(0 0% 0%);
+  --foreground: hsl(200 6.6667% 91.1765%);
+  --card: hsl(228 9.8039% 10%);
+  --card-foreground: hsl(0 0% 85.0980%);
+  --popover: hsl(0 0% 0%);
+  --popover-foreground: hsl(200 6.6667% 91.1765%);
+  --primary: hsl(214 100% 50%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(195.0000 15.3846% 94.9020%);
+  --secondary-foreground: hsl(215 16% 46%);
+  --muted: hsl(0 0% 9.4118%);
+  --muted-foreground: hsl(210 3.3898% 46.2745%);
+  --accent: hsl(214 70% 7%);
+  --accent-foreground: hsl(214 100% 50%);
+  --destructive: hsl(356 90% 54%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(210 5.2632% 14.9020%);
+  --input: hsl(207 27% 18%);
+  --ring: hsl(214 100% 50%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    /* Improve touch interactions on mobile */
+    -webkit-tap-highlight-color: rgba(0, 102, 204, 0.1);
+    touch-action: manipulation;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  /* Touch-friendly button sizes on mobile */
+  @media (max-width: 768px) {
+    button, a[role="button"], [role="button"], .btn, a.button {
+      min-height: 44px !important; /* Apple's recommended touch target size */
+      min-width: 44px !important;
+      padding: 0.75rem 1.25rem !important;
+      font-size: 1rem !important;
+      -webkit-tap-highlight-color: rgba(0, 102, 204, 0.1);
+    }
+    
+    /* Ensure all interactive elements are touch-friendly */
+    input[type="button"],
+    input[type="submit"],
+    input[type="reset"],
+    select {
+      min-height: 44px !important;
+      font-size: 16px !important; /* Prevents zoom on iOS */
+    }
+    
+    /* Better spacing for mobile */
+    .space-y-2 > * + * {
+      margin-top: 0.75rem;
+    }
+    
+    .space-y-3 > * + * {
+      margin-top: 1rem;
+    }
+    
+    .space-y-4 > * + * {
+      margin-top: 1.25rem;
+    }
+    
+    .space-y-6 > * + * {
+      margin-top: 1.5rem;
+    }
+    
+    /* Improved text sizing for mobile readability */
+    h1 {
+      font-size: 1.875rem;
+      line-height: 2.25rem;
+      margin-bottom: 1rem;
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+      line-height: 2rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    h3 {
+      font-size: 1.25rem;
+      line-height: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    /* Better padding for mobile containers */
+    .container, main {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    
+    /* Improved card spacing on mobile */
+    .card, [class*="rounded"] {
+      margin-bottom: 1rem;
+    }
+    
+    /* Better grid gaps on mobile */
+    .grid {
+      gap: 1rem;
+    }
+    
+    /* Prevent text overflow */
+    p, span, div, h1, h2, h3, h4, h5, h6 {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    
+    /* Better table handling on mobile */
+    table {
+      font-size: 0.875rem;
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  /* Prevent text size adjustment on iOS */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Prevent horizontal scroll */
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  /* Smooth scrolling for better mobile UX */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Improve form inputs on mobile */
+  input, textarea, select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  @media (max-width: 768px) {
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+    
+    /* Larger touch targets for interactive elements */
+    button, a[role="button"], [role="button"] {
+      min-height: 48px;
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+    }
+    
+    /* Better spacing for navigation items */
+    nav a, nav button {
+      padding: 0.875rem 1rem;
+      margin: 0.25rem 0;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+    
+    /* Improved mobile menu spacing */
+    [data-mobile="true"] nav a,
+    [data-mobile="true"] nav button {
+      padding: 1rem 1.25rem;
+      margin: 0.375rem 0;
+      font-size: 1rem;
+      border-radius: 0.5rem;
+      min-height: 48px;
+    }
+    
+    /* Fix for fixed position elements on mobile */
+    [class*="fixed"] {
+      z-index: 50;
+    }
+    
+    /* Better scroll behavior */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+    
+    /* Better text line height for readability */
+    p, span, div {
+      line-height: 1.6;
+    }
+    
+    /* Improved section spacing */
+    section {
+      margin-bottom: 2rem;
+      padding: 1.5rem 0;
+    }
+    
+    /* Better card padding on mobile */
+    [class*="Card"] {
+      padding: 1.25rem;
+    }
+    
+    /* Improved button groups */
+    .flex.gap-4 {
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+  }
+  
+  /* Extra small mobile devices */
+  @media (max-width: 375px) {
+    h1 {
+      font-size: 1.5rem;
+      line-height: 2rem;
+    }
+    
+    h2 {
+      font-size: 1.25rem;
+      line-height: 1.75rem;
+    }
+    
+    button, a[role="button"] {
+      font-size: 0.9375rem;
+      padding: 0.625rem 1rem;
+      min-height: 44px;
+    }
+    
+    /* Reduce padding on very small screens */
+    .container, main {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+  }
+  
+  /* iPhone specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    /* iOS Safari specific */
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
+}
+
+.primary-50 { background-color: var(--primary-50); }
+.primary-100 { background-color: var(--primary-100); }
+.primary-500 { background-color: var(--primary-500); }
+.primary-600 { background-color: var(--primary-600); }
+.primary-700 { background-color: var(--primary-700); }
+.ocean-50 { background-color: var(--ocean-50); }
+.ocean-100 { background-color: var(--ocean-100); }
+.ocean-500 { background-color: var(--ocean-500); }
+.ocean-600 { background-color: var(--ocean-600); }
+.ocean-700 { background-color: var(--ocean-700); }
+.yellow-50 { background-color: var(--yellow-50); }
+.yellow-100 { background-color: var(--yellow-100); }
+.yellow-600 { background-color: var(--yellow-600); }
+.yellow-700 { background-color: var(--yellow-700); }
+.green-50 { background-color: var(--green-50); }
+.green-100 { background-color: var(--green-100); }
+.green-600 { background-color: var(--green-600); }
+.green-700 { background-color: var(--green-700); }
+
+.text-primary-50 { color: var(--primary-50); }
+.text-primary-100 { color: var(--primary-100); }
+.text-primary-500 { color: var(--primary-500); }
+.text-primary-600 { color: var(--primary-600); }
+.text-primary-700 { color: var(--primary-700); }
+.text-ocean-50 { color: var(--ocean-50); }
+.text-ocean-100 { color: var(--ocean-100); }
+.text-ocean-500 { color: var(--ocean-500); }
+.text-ocean-600 { color: var(--ocean-600); }
+.text-ocean-700 { color: var(--ocean-700); }
+.text-yellow-50 { color: var(--yellow-50); }
+.text-yellow-100 { color: var(--yellow-100); }
+.text-yellow-600 { color: var(--yellow-600); }
+.text-yellow-700 { color: var(--yellow-700); }
+.text-green-50 { color: var(--green-50); }
+.text-green-100 { color: var(--green-100); }
+.text-green-600 { color: var(--green-600); }
+.text-green-700 { color: var(--green-700); }
+
+.border-primary-50 { border-color: var(--primary-50); }
+.border-primary-100 { border-color: var(--primary-100); }
+.border-primary-200 { border-color: hsl(214 90% 85%); }
+.border-primary-500 { border-color: var(--primary-500); }
+.border-primary-600 { border-color: var(--primary-600); }
+.border-primary-700 { border-color: var(--primary-700); }
+.border-ocean-50 { border-color: var(--ocean-50); }
+.border-ocean-100 { border-color: var(--ocean-100); }
+.border-ocean-500 { border-color: var(--ocean-500); }
+.border-ocean-600 { border-color: var(--ocean-600); }
+.border-ocean-700 { border-color: var(--ocean-700); }
+
+.bg-primary-50 { background-color: var(--primary-50); }
+.bg-primary-100 { background-color: var(--primary-100); }
+.bg-primary-500 { background-color: var(--primary-500); }
+.bg-primary-600 { background-color: var(--primary-600); }
+.bg-primary-700 { background-color: var(--primary-700); }
+.bg-ocean-50 { background-color: var(--ocean-50); }
+.bg-ocean-100 { background-color: var(--ocean-100); }
+.bg-ocean-500 { background-color: var(--ocean-500); }
+.bg-ocean-600 { background-color: var(--ocean-600); }
+.bg-ocean-700 { background-color: var(--ocean-700); }
+.bg-yellow-50 { background-color: var(--yellow-50); }
+.bg-yellow-100 { background-color: var(--yellow-100); }
+.bg-yellow-600 { background-color: var(--yellow-600); }
+.bg-yellow-700 { background-color: var(--yellow-700); }
+.bg-green-50 { background-color: var(--green-50); }
+.bg-green-100 { background-color: var(--green-100); }
+.bg-green-600 { background-color: var(--green-600); }
+.bg-green-700 { background-color: var(--green-700); }
+
+.hover\:bg-primary-600:hover { background-color: var(--primary-600); }
+.hover\:bg-ocean-600:hover { background-color: var(--ocean-600); }
+.hover\:text-primary-700:hover { color: var(--primary-700); }
+.hover\:text-ocean-700:hover { color: var(--ocean-700); }
+.hover\:border-primary-400:hover { border-color: hsl(214 80% 60%); }
