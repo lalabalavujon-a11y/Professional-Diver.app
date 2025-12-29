@@ -12,7 +12,8 @@ node -e "
 const fs = require('fs');
 const path = require('path');
 
-const backupFile = path.join(__dirname, '..', 'backups', 'tracks-lessons-latest.json');
+const scriptDir = process.cwd();
+const backupFile = path.join(scriptDir, 'backups', 'tracks-lessons-latest.json');
 const backup = JSON.parse(fs.readFileSync(backupFile, 'utf8'));
 
 console.log('📊 Backup info:');
@@ -39,7 +40,7 @@ for (const track of backup.tracks) {
 }
 
 // Write to SQL file
-const sqlFile = path.join(__dirname, '..', 'restore-d1.sql');
+const sqlFile = path.join(scriptDir, 'restore-d1.sql');
 fs.writeFileSync(sqlFile, sql.join('\\n\\n'), 'utf8');
 console.log('✅ SQL generated and saved to:', sqlFile);
 console.log('📝 Total statements:', sql.length);
@@ -49,9 +50,10 @@ echo ""
 echo "🚀 Executing SQL on D1 production database..."
 echo ""
 
-# Execute SQL on D1
+# Execute SQL on D1 (remote production database)
 if [ -f "restore-d1.sql" ]; then
-  wrangler d1 execute professionaldiver-db --file=./restore-d1.sql --env production
+  echo "⚠️  Note: Executing on REMOTE production database"
+  wrangler d1 execute professionaldiver-db --remote --file=./restore-d1.sql --env production
   echo ""
   echo "✅ Lessons restored to D1 production database!"
   echo ""
