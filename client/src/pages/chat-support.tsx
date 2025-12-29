@@ -653,7 +653,19 @@ What would you like help with today? Feel free to ask me anything or use the mic
             <Card className="h-[600px] flex flex-col">
               <CardHeader className="border-b border-slate-200">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-slate-900">Chat with Laura</CardTitle>
+                  <div className="flex items-center space-x-3">
+                    <CardTitle className="text-slate-900">Chat with Laura</CardTitle>
+                    {voiceToVoiceMode && isListening && (
+                      <div className="flex items-end space-x-1 h-5">
+                        <div className="w-1 bg-green-600 rounded-full sound-wave-bar" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-1 bg-green-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="w-1 bg-green-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.4s' }}></div>
+                        <div className="w-1 bg-green-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.6s' }}></div>
+                        <div className="w-1 bg-green-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.8s' }}></div>
+                        <span className="text-xs text-green-600 font-medium ml-2">Live Voice Chat</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-slate-500">
                       {currentUser?.name || 'User'}

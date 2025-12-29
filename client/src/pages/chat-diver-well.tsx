@@ -604,7 +604,19 @@ export default function ChatDiverWell() {
             <Card className="h-[600px] flex flex-col">
               <CardHeader className="border-b border-slate-200">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-slate-900">Chat with Diver Well</CardTitle>
+                  <div className="flex items-center space-x-3">
+                    <CardTitle className="text-slate-900">Chat with Diver Well</CardTitle>
+                    {voiceToVoiceMode && isListening && (
+                      <div className="flex items-end space-x-1 h-5">
+                        <div className="w-1 bg-green-600 rounded-full sound-wave-bar" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-1 bg-green-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="w-1 bg-green-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.4s' }}></div>
+                        <div className="w-1 bg-green-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.6s' }}></div>
+                        <div className="w-1 bg-green-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.8s' }}></div>
+                        <span className="text-xs text-green-600 font-medium ml-2">Live Voice Chat</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant="secondary" className="bg-teal-100 text-teal-700">
                       <Shield className="w-3 h-3 mr-1" />
