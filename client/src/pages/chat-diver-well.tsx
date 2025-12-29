@@ -51,23 +51,50 @@ export default function ChatDiverWell() {
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'en-US';
+      if (!recognitionRef.current) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.lang = 'en-US';
+      }
+      // Update recognition settings based on voice-to-voice mode
+      recognitionRef.current.continuous = voiceToVoiceMode;
+      recognitionRef.current.interimResults = voiceToVoiceMode; // Show interim results in voice-to-voice mode
 
       recognitionRef.current.onresult = async (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInputText(transcript);
-        setIsListening(false);
-        setUsedVoiceInput(true); // Mark that voice input was used
+        let finalTranscript = '';
+        let interimTranscript = '';
         
-        // In voice-to-voice mode, automatically send the message
-        if (voiceToVoiceMode && transcript.trim() && handleSendMessageRef.current) {
-          // Small delay to ensure state is updated
-          setTimeout(() => {
-            handleSendMessageRef.current?.(transcript);
-          }, 100);
+        // Handle continuous results
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + ' ';
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        
+        // Update input with final or interim transcript
+        const displayText = finalTranscript.trim() || interimTranscript;
+        if (displayText) {
+          setInputText(displayText);
+        }
+        
+        // Only process final results
+        if (finalTranscript.trim()) {
+          setUsedVoiceInput(true); // Mark that voice input was used
+          
+          // In voice-to-voice mode, automatically send the message
+          if (voiceToVoiceMode && handleSendMessageRef.current) {
+            // Small delay to ensure state is updated
+            setTimeout(() => {
+              handleSendMessageRef.current?.(finalTranscript.trim());
+            }, 100);
+          }
+        }
+        
+        // Don't stop listening in voice-to-voice mode
+        if (!voiceToVoiceMode) {
+          setIsListening(false);
         }
       };
 
@@ -112,11 +139,12 @@ export default function ChatDiverWell() {
       };
 
       recognitionRef.current.onend = () => {
-        setIsListening(false);
-        // In voice-to-voice mode, restart listening after speech ends (if not playing audio)
+        // In continuous mode (voice-to-voice), onend shouldn't fire unless stopped
+        // But if it does, restart if we're still in voice-to-voice mode
         if (voiceToVoiceMode && !isPlaying) {
+          setIsListening(false);
           setTimeout(() => {
-            if (recognitionRef.current) {
+            if (recognitionRef.current && voiceToVoiceMode) {
               try {
                 recognitionRef.current.start();
                 setIsListening(true);
@@ -125,6 +153,8 @@ export default function ChatDiverWell() {
               }
             }
           }, 500);
+        } else {
+          setIsListening(false);
         }
       };
     }
@@ -661,7 +691,20 @@ export default function ChatDiverWell() {
                       }`}
                       title={isListening ? 'Stop recording' : 'Start voice input'}
                     >
-                      {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                      {voiceToVoiceMode && isListening ? (
+                        // Sound wave animation for voice-to-voice mode
+                        <div className="flex items-end space-x-0.5 h-4">
+                          <div className="w-1 bg-red-600 rounded-full sound-wave-bar" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-1 bg-red-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-1 bg-red-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.4s' }}></div>
+                          <div className="w-1 bg-red-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.6s' }}></div>
+                          <div className="w-1 bg-red-600 rounded-full sound-wave-bar" style={{ animationDelay: '0.8s' }}></div>
+                        </div>
+                      ) : isListening ? (
+                        <MicOff className="w-4 h-4" />
+                      ) : (
+                        <Mic className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
                   <Button 
