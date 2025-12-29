@@ -1,50 +1,56 @@
-# Fix Railway with Railpack - Manual Configuration
+# Fix Railway Railpack Install Step
 
-Since Nixpacks is still using npm, let's use Railpack and configure it manually:
+## The Problem
 
-## Step 1: Select Railpack Builder
+Railway's Railpack is running `npm ci` in the **install step** (before build), which fails due to dependency conflicts.
 
-1. In Railway Dashboard → Service → Settings → Build
-2. **Select "Railpack (Default)"** from the Builder dropdown
+The logs show:
+```
+Steps     
+──────────
+▸ install
+  $ npm ci          ← FAILS HERE!
+     
+▸ build
+  $ npm ci --legacy-peer-deps  ← Never reaches this
+```
 
-## Step 2: Configure Build Commands
+## Solution: Override Install Command
 
-In the same Build settings section, you should see fields for:
+I've updated `railway.json` to use RAILPACK with a custom buildCommand. But Railway might still use the install step.
+
+## Option 1: Set Build Command in Railway Dashboard
+
+**In Railway Dashboard → Settings → Build:**
 
 **Build Command:**
 ```
-pnpm install --frozen-lockfile --legacy-peer-deps
+npm install --legacy-peer-deps
 ```
 
-**Start Command:**
-```
-NODE_ENV=production node --import tsx/esm server/index.ts
-```
+This should override both install and build steps.
 
-## Step 3: Ensure pnpm is Available
+## Option 2: Ensure package-lock.json is Deleted on GitHub
 
-Railpack should auto-detect pnpm from `pnpm-lock.yaml`, but if it doesn't, you might need to add a setup step.
+The logs show Railway is still detecting `package-lock.json`. Make sure it's deleted and pushed:
 
-## Alternative: Use npm with legacy-peer-deps
-
-If pnpm still doesn't work, you can use npm with the legacy flag:
-
-**Build Command:**
-```
-npm ci --legacy-peer-deps
+```bash
+git rm package-lock.json
+git commit -m "Remove package-lock.json"
+git push
 ```
 
-**Start Command:**
+## Option 3: Use .railwayignore
+
+Create `.railwayignore` file:
 ```
-NODE_ENV=production node --import tsx/esm server/index.ts
+package-lock.json
 ```
 
-## Recommended: Try pnpm First
+## Recommended: Do All Three
 
-1. Set Builder to "Railpack (Default)"
-2. Set Build Command: `pnpm install --frozen-lockfile --legacy-peer-deps`
-3. Set Start Command: `NODE_ENV=production node --import tsx/esm server/index.ts`
-4. Deploy
+1. **Push the updated railway.json** (already committed)
+2. **Set Build Command in Railway:** `npm install --legacy-peer-deps`
+3. **Verify package-lock.json is deleted** on GitHub
 
-If that fails, fall back to npm with `--legacy-peer-deps`.
-
+Then deploy again!
