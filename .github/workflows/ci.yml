@@ -14,6 +14,11 @@ jobs:
         node-version: [20.9.0, 22.x] # Test against stable + latest
     env:
       CI: true
+      # Optional: enable real AI pipeline checks when secrets are configured.
+      # (Secrets are not exposed to forks; workflow still passes in dev-mode.)
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+      LANGSMITH_PROJECT: ${{ secrets.LANGSMITH_PROJECT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

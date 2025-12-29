@@ -78,7 +78,8 @@ export default function DualAIAssistant() {
                 onClick={() => {
                   setIsOpen(false);
                   // Open embedded chat or redirect to internal Laura chat
-                  window.open('/chat/laura', '_blank');
+                  const w = window.open('/chat/laura', '_blank');
+                  if (!w) window.location.href = '/chat/laura';
                 }}
                 data-testid="button-chat-laura"
               >
@@ -137,7 +138,9 @@ export default function DualAIAssistant() {
                 onClick={() => {
                   setIsOpen(false);
                   // Platform-exclusive access to ChatGPT consultant
-                  window.open('https://chatgpt.com/g/g-6897d42d3ba48191b48883a4839c09bf-diver-well-commercial-diver-ai-consultant', '_blank');
+                  const url = 'https://chatgpt.com/g/g-6897d42d3ba48191b48883a4839c09bf-diver-well-commercial-diver-ai-consultant';
+                  const w = window.open(url, '_blank');
+                  if (!w) window.location.href = url;
                 }}
                 data-testid="button-chat-diver-well"
               >

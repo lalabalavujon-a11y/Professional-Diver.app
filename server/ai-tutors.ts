@@ -312,7 +312,12 @@ ${context}
       }
 
       // Get relevant content for the discipline
-      const relevantContent = await this.vectorStore.getContentByDiscipline(discipline);
+      let relevantContent: Document[] = [];
+      try {
+        relevantContent = await this.vectorStore.getContentByDiscipline(discipline);
+      } catch (error) {
+        console.log('Vector store not available for learning path, using baseline recommendations');
+      }
 
       const context = relevantContent
         .map(doc => doc.pageContent)
@@ -342,18 +347,57 @@ Focus on industry standards, safety protocols, and professional development oppo
         new HumanMessage(`Create a learning path for ${userLevel} level ${discipline} professional with goals: ${goals.join(', ')}`)
       ];
 
-      const response = await this.chatModel.invoke(messages);
-      const responseText = response.content as string;
+      try {
+        const response = await this.chatModel.invoke(messages);
+        const responseText = response.content as string;
 
-      // Parse response into structured format
-      const recommendations = this.parseLearningPathResponse(responseText);
-
-      return recommendations;
+        // Parse response into structured format
+        const recommendations = this.parseLearningPathResponse(responseText);
+        return recommendations;
+      } catch (error) {
+        console.log('OpenAI API not available for learning path, using deterministic fallback');
+        return this.generateFallbackLearningPath(tutor, discipline, userLevel, goals);
+      }
 
     } catch (error) {
       console.error('❌ Error generating learning path:', error);
       throw error;
     }
+  }
+
+  private generateFallbackLearningPath(
+    tutor: DivingTutor,
+    discipline: string,
+    userLevel: 'beginner' | 'intermediate' | 'advanced',
+    goals: string[]
+  ): { recommendations: string[]; nextSteps: string[]; resources: string[] } {
+    const levelFocus =
+      userLevel === 'beginner'
+        ? 'foundational theory + safe procedures'
+        : userLevel === 'intermediate'
+          ? 'task-level competence + documentation'
+          : 'leadership, complex problem solving, and quality assurance';
+
+    return {
+      recommendations: [
+        `Focus area (${userLevel}): ${levelFocus} for ${discipline}.`,
+        `Study the core standards and checklists relevant to your discipline (IMCA/ADCI/OSHA where applicable).`,
+        `Practice scenario-based decisions: planning, hazard identification, controls, and post-job reporting.`,
+        ...(goals?.length ? [`Tie weekly study sessions to your stated goals: ${goals.join(', ')}.`] : []),
+        `Use ${tutor.name}'s specialty (${tutor.specialty}) as your anchor topic when revising.`,
+      ],
+      nextSteps: [
+        `List your top 5 weak topics and schedule 30–45 minutes/day for 7 days.`,
+        `Complete a short quiz after each topic and record errors with the “why”.`,
+        `Ask the tutor targeted questions (one concept at a time) to verify understanding.`,
+      ],
+      resources: [
+        `IMCA guidance notes relevant to ${discipline}`,
+        `ADCI consensus standards relevant to your role`,
+        `OSHA regulations applicable to commercial diving operations`,
+        `Employer/contractor procedures and job hazard analysis templates`,
+      ],
+    };
   }
 
   // Parse learning path response
@@ -420,11 +464,16 @@ Focus on industry standards, safety protocols, and professional development oppo
       }
 
       // Get relevant content for the topic
-      const relevantContent = await this.vectorStore.searchContent(
-        `${topic} ${discipline}`,
-        discipline,
-        5
-      );
+      let relevantContent: Document[] = [];
+      try {
+        relevantContent = await this.vectorStore.searchContent(
+          `${topic} ${discipline}`,
+          discipline,
+          5
+        );
+      } catch (error) {
+        console.log('Vector store not available for assessment generation, using baseline questions');
+      }
 
       const context = relevantContent
         .map(doc => doc.pageContent)
@@ -455,18 +504,56 @@ Focus on industry standards, safety protocols, and practical knowledge.`;
         new HumanMessage(`Generate ${count} ${difficulty} level questions about ${topic} in ${discipline}`)
       ];
 
-      const response = await this.chatModel.invoke(messages);
-      const responseText = response.content as string;
+      try {
+        const response = await this.chatModel.invoke(messages);
+        const responseText = response.content as string;
 
-      // Parse questions from response
-      const questions = this.parseAssessmentQuestions(responseText);
-
-      return { questions };
+        // Parse questions from response
+        const questions = this.parseAssessmentQuestions(responseText);
+        return { questions };
+      } catch (error) {
+        console.log('OpenAI API not available for assessment generation, using deterministic fallback');
+        return { questions: this.generateFallbackAssessmentQuestions(discipline, difficulty, topic, count) };
+      }
 
     } catch (error) {
       console.error('❌ Error generating assessment questions:', error);
       throw error;
     }
+  }
+
+  private generateFallbackAssessmentQuestions(
+    discipline: string,
+    difficulty: 'beginner' | 'intermediate' | 'advanced',
+    topic: string,
+    count: number
+  ): Array<{
+    question: string;
+    options: string[];
+    correctAnswer: string;
+    explanation: string;
+    difficulty: string;
+  }> {
+    const mk = (idx: number) => {
+      const question = `(${discipline}) ${topic}: Which option best reflects correct professional practice? (Q${idx})`;
+      const options = [
+        `A) Follow the relevant procedure/standard, confirm hazards/controls, and document the outcome`,
+        `B) Proceed based on memory to save time and document later if needed`,
+        `C) Skip verification steps if conditions appear stable`,
+        `D) Defer all checks to another role without confirming responsibilities`,
+      ];
+      return {
+        question,
+        options,
+        correctAnswer: options[0],
+        explanation:
+          `Correct practice aligns with industry standards: verify requirements, apply hazard controls, and document decisions/outcomes. ` +
+          `The other options introduce avoidable risk and reduce traceability.`,
+        difficulty,
+      };
+    };
+
+    return Array.from({ length: Math.max(1, Math.min(20, count)) }, (_v, i) => mk(i + 1));
   }
 
   // Parse assessment questions from response

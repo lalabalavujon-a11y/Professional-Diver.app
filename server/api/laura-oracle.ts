@@ -153,8 +153,10 @@ export async function generateVoiceResponse(req: Request, res: Response) {
     const audioBuffer = await lauraOracle.generateVoiceResponse(text);
 
     if (!audioBuffer) {
-      return res.status(500).json({
-        error: 'Failed to generate voice response'
+      // Voice is optional; return a non-OK status so the client can skip playback silently.
+      return res.status(501).json({
+        error: 'Voice response unavailable',
+        message: 'Voice is disabled or not configured on this deployment'
       });
     }
 

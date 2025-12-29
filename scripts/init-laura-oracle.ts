@@ -13,6 +13,7 @@
 
 import '../server/bootstrap/env';
 import LauraOracleService from '../server/laura-oracle-service';
+import { fileURLToPath } from 'url';
 
 async function initializeLauraOracle() {
   console.log('🚀 Initializing Laura Super Platform Oracle...');
@@ -64,7 +65,8 @@ async function initializeLauraOracle() {
 }
 
 // Run initialization
-if (require.main === module) {
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] === __filename) {
   initializeLauraOracle()
     .then(() => process.exit(0))
     .catch((error) => {

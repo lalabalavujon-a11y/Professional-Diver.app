@@ -11,7 +11,9 @@ export default function AIAssistant() {
   const consultantUrl = "https://chatgpt.com/g/g-6897d42d3ba48191b48883a4839c09bf-diver-well-commercial-diver-ai-consultant";
 
   const handleOpenConsultant = () => {
-    window.open(consultantUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+    // iOS/Safari can block popups even on click; fall back to same-tab navigation.
+    const w = window.open(consultantUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+    if (!w) window.location.href = consultantUrl;
   };
 
   const handleEmbedConsultant = () => {
