@@ -2,15 +2,16 @@
 # Railway will auto-detect Node.js 22.x and install dependencies
 
 [phases.setup]
-nixPkgs = ["nodejs-22_x", "pnpm"]
+nixPkgs = ["nodejs-22_x"]
 
 [phases.install]
-# Use pnpm with legacy peer deps to handle dependency conflicts
-cmds = ["pnpm install --frozen-lockfile --legacy-peer-deps"]
+# Use npm with legacy peer deps to handle dependency conflicts
+# This avoids the npm ci issue in Railpack
+cmds = ["npm install --legacy-peer-deps"]
 
 # Build phase - ensure tsx is available
 [phases.build]
-cmds = ["pnpm install --frozen-lockfile --legacy-peer-deps"]
+cmds = ["echo 'Build complete'"]
 
 # Start command - Express server runs TypeScript directly with tsx
 [start]
