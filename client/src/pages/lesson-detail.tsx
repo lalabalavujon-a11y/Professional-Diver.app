@@ -334,13 +334,26 @@ export default function LessonDetail() {
     );
   }
 
-  if (!lesson) {
+  if (error || !lesson) {
     return (
       <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
         <RoleBasedNavigation />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
-            <p className="text-slate-500" data-testid="text-lesson-not-found">Lesson not found</p>
+            <p className="text-slate-500 mb-4" data-testid="text-lesson-not-found">
+              {error ? `Error: ${error instanceof Error ? error.message : 'Failed to load lesson'}` : 'Lesson not found'}
+            </p>
+            {params?.id && (
+              <div className="mt-4">
+                <p className="text-sm text-slate-400 mb-4">Lesson ID: {params.id}</p>
+                <Link href="/tracks">
+                  <Button variant="outline">
+                    <ChevronLeft className="w-4 h-4 mr-2" />
+                    Back to Tracks
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </main>
       </div>
