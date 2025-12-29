@@ -466,7 +466,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tracks", async (req, res) => {
     try {
       const tracks = await tempStorage.getAllTracks();
-      res.json(tracks);
+      
+      // Auto-populate lessons for tracks that don't have any
+      for (const track of tracks) {
+        if (!track.lessonCount || track.lessonCount === 0) {
+          try {
+            await populateLessonsForTrack(track);
+          } catch (popError) {
+            console.error(`Failed to auto-populate lessons for track ${track.slug}:`, popError);
+            // Continue with other tracks even if one fails
+          }
+        }
+      }
+      
+      // Fetch tracks again to get updated lesson counts
+      const updatedTracks = await tempStorage.getAllTracks();
+      res.json(updatedTracks);
     } catch (error) {
       console.error('Tracks API error:', error);
       res.status(500).json({ error: "Failed to fetch tracks" });
@@ -479,32 +494,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if track already has lessons
       const trackWithLessons = await tempStorage.getTrackBySlug(track.slug);
       if (trackWithLessons && trackWithLessons.lessons && trackWithLessons.lessons.length > 0) {
+        console.log(`Track ${track.slug} already has ${trackWithLessons.lessons.length} lessons, skipping population`);
         return; // Lessons already exist
       }
 
+      console.log(`🔄 Auto-populating lessons for track: ${track.title} (${track.slug})`);
+
       // Import lesson templates
-      const { getLessonsForTrack } = await import('./lesson-templates.js');
+      let getLessonsForTrack;
+      try {
+        const lessonTemplates = await import('./lesson-templates.js');
+        getLessonsForTrack = lessonTemplates.getLessonsForTrack;
+      } catch (importError) {
+        console.error(`Failed to import lesson-templates for ${track.slug}:`, importError);
+        // Try to restore from backup as fallback
+        await restoreLessonsFromBackup(track);
+        return;
+      }
       
       // Get 12 lessons for this track
       const lessonsToAdd = getLessonsForTrack(track.slug);
-
-      // Insert all 12 lessons
-      for (let i = 0; i < lessonsToAdd.length; i++) {
-        const lesson = lessonsToAdd[i];
-        await tempStorage.createLesson({
-          trackId: track.id,
-          title: lesson.title,
-          order: i + 1,
-          content: lesson.content,
-          estimatedMinutes: 60,
-          isRequired: true,
-        });
+      
+      if (!lessonsToAdd || lessonsToAdd.length === 0) {
+        console.warn(`No lesson templates found for track ${track.slug}, trying backup restore`);
+        await restoreLessonsFromBackup(track);
+        return;
       }
 
-      console.log(`✅ Auto-populated ${lessonsToAdd.length} lessons for track: ${track.title}`);
+      // Insert all lessons
+      let successCount = 0;
+      for (let i = 0; i < lessonsToAdd.length; i++) {
+        const lesson = lessonsToAdd[i];
+        try {
+          await tempStorage.createLesson({
+            trackId: track.id,
+            title: lesson.title,
+            order: i + 1,
+            content: lesson.content,
+            estimatedMinutes: 60,
+            isRequired: true,
+          });
+          successCount++;
+        } catch (lessonError) {
+          console.error(`Failed to create lesson ${i + 1} for track ${track.slug}:`, lessonError);
+          // Continue with other lessons
+        }
+      }
+
+      console.log(`✅ Auto-populated ${successCount}/${lessonsToAdd.length} lessons for track: ${track.title}`);
     } catch (error) {
-      console.error(`Error populating lessons for track ${track.slug}:`, error);
-      // Don't throw - allow the request to continue even if population fails
+      console.error(`❌ Error populating lessons for track ${track.slug}:`, error);
+      // Try backup restore as last resort
+      try {
+        await restoreLessonsFromBackup(track);
+      } catch (backupError) {
+        console.error(`❌ Backup restore also failed for ${track.slug}:`, backupError);
+      }
+    }
+  }
+
+  // Fallback function to restore lessons from backup
+  async function restoreLessonsFromBackup(track: any) {
+    try {
+      console.log(`📦 Attempting to restore lessons from backup for track: ${track.slug}`);
+      // This would require reading the backup file and restoring lessons
+      // For now, we'll just log - the backup restore script should be run manually
+      console.log(`⚠️  Backup restore not implemented in runtime. Please run restore script manually.`);
+    } catch (error) {
+      console.error(`Failed to restore from backup for ${track.slug}:`, error);
     }
   }
 
@@ -534,22 +591,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tracks/:slug/lessons", async (req, res) => {
     try {
       const { slug } = req.params;
-      const { db } = await import('./db.js');
-      const { tracks, lessons } = await import('@shared/schema-sqlite');
       
-      // First get the track
-      const track = await db.select().from(tracks).where(eq(tracks.slug, slug)).limit(1);
-      if (!track || track.length === 0) {
+      // Get track with lessons using tempStorage
+      let track = await tempStorage.getTrackBySlug(slug);
+      if (!track) {
         return res.status(404).json({ error: "Track not found" });
       }
       
-      // Then get all lessons for this track
-      const trackLessons = await db.select().from(lessons).where(eq(lessons.trackId, track[0].id)).orderBy(lessons.order);
+      // Auto-populate lessons if they don't exist
+      if (!track.lessons || track.lessons.length === 0) {
+        console.log(`🔄 No lessons found for track ${slug}, auto-populating...`);
+        await populateLessonsForTrack(track);
+        // Fetch the track again to get the newly populated lessons
+        track = await tempStorage.getTrackBySlug(slug);
+      }
       
-      res.json({
-        ...track[0],
-        lessons: trackLessons
-      });
+      // Return lessons array
+      res.json(track.lessons || []);
     } catch (error) {
       console.error('Track lessons API error:', error);
       res.status(500).json({ error: "Failed to fetch track lessons" });
