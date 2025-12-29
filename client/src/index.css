@@ -245,29 +245,6 @@
       -webkit-overflow-scrolling: touch;
     }
   }
-    
-    /* Better text line height for readability */
-    p, span, div {
-      line-height: 1.6;
-    }
-    
-    /* Improved section spacing */
-    section {
-      margin-bottom: 2rem;
-      padding: 1.5rem 0;
-    }
-    
-    /* Better card padding on mobile */
-    [class*="Card"] {
-      padding: 1.25rem;
-    }
-    
-    /* Improved button groups */
-    .flex.gap-4 {
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-  }
   
   /* Extra small mobile devices */
   @media (max-width: 375px) {
