@@ -1,0 +1,13 @@
+# Nixpacks configuration for Railway
+# Railway will auto-detect Node.js 22.x and install dependencies
+
+[phases.setup]
+nixPkgs = ["nodejs-22_x", "pnpm"]
+
+[phases.install]
+cmds = ["pnpm install --frozen-lockfile"]
+
+# No build phase needed - Express server runs TypeScript directly with tsx
+
+[start]
+cmd = "NODE_ENV=production node --import tsx/esm server/index.ts"
