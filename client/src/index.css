@@ -319,6 +319,34 @@
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
     }
+    
+    /* Prevent text truncation on mobile */
+    button, .badge, [class*="Badge"] {
+      white-space: normal !important;
+      word-wrap: break-word !important;
+      overflow-wrap: break-word !important;
+      text-overflow: clip !important;
+    }
+    
+    /* Better dialog/modal spacing on mobile */
+    [role="dialog"], [class*="Dialog"] {
+      padding: 1rem !important;
+      max-width: 95vw !important;
+    }
+    
+    /* Better card spacing */
+    [class*="Card"] {
+      padding: 1rem !important;
+      margin-bottom: 1rem;
+    }
+    
+    /* Ensure badges don't truncate */
+    [class*="Badge"] {
+      white-space: nowrap;
+      overflow: visible;
+      text-overflow: clip;
+      max-width: fit-content;
+    }
   }
   
   /* Extra small mobile devices */
