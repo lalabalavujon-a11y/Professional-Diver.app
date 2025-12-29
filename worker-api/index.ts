@@ -13,6 +13,9 @@ interface Env {
   DB?: D1Database; // D1 database binding
   DATA?: KVNamespace; // KV namespace for caching
   API_URL?: string; // Fallback to Express server if needed
+  DATABASE_URL?: string; // Supabase PostgreSQL connection string
+  SUPABASE_URL?: string; // Supabase project URL (e.g., https://uiafnaelixatqgwprsvc.supabase.co)
+  SUPABASE_ANON_KEY?: string; // Supabase anon key for REST API
   ENVIRONMENT?: string;
   NODE_ENV?: string;
 }
@@ -731,13 +734,6 @@ export default {
     // Get lesson by ID endpoint
     if (url.pathname.startsWith('/api/lessons/') && request.method === 'GET') {
       try {
-        if (!env.DB) {
-          return new Response(JSON.stringify({ error: 'Database not configured' }), {
-            status: 503,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders },
-          });
-        }
-
         const lessonId = url.pathname.split('/api/lessons/')[1]?.split('/')[0]?.split('?')[0];
         if (!lessonId) {
           return new Response(JSON.stringify({ error: 'Lesson ID is required' }), {
@@ -746,49 +742,91 @@ export default {
           });
         }
 
-        const db = getDatabase(env.DB);
-        
-        // Get lesson with track information
-        const lessonResults = await db.select({
-          id: lessons.id,
-          trackId: lessons.trackId,
-          title: lessons.title,
-          order: lessons.order,
-          content: lessons.content,
-          estimatedMinutes: lessons.estimatedMinutes,
-          isRequired: lessons.isRequired,
-          createdAt: lessons.createdAt,
-          updatedAt: lessons.updatedAt,
-          trackSlug: tracks.slug,
-          trackTitle: tracks.title,
-        }).from(lessons)
-          .leftJoin(tracks, eq(lessons.trackId, tracks.id))
-          .where(eq(lessons.id, lessonId))
-          .limit(1);
-
-        if (lessonResults.length === 0) {
-          return new Response(JSON.stringify({ error: 'Lesson not found' }), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders },
-          });
+        // PRIORITY 1: Proxy to Railway Express server if API_URL is set (has Supabase access)
+        if (env.API_URL) {
+          try {
+            const apiUrl = `${env.API_URL}/api/lessons/${lessonId}${url.search}`;
+            console.log(`🔗 Proxying lesson request to Railway: ${apiUrl}`);
+            const proxyRequest = new Request(apiUrl, {
+              method: 'GET',
+              headers: request.headers,
+            });
+            const proxyResponse = await fetch(proxyRequest);
+            
+            if (proxyResponse.ok) {
+              const responseBody = await proxyResponse.text();
+              return new Response(responseBody, {
+                status: proxyResponse.status,
+                statusText: proxyResponse.statusText,
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...corsHeaders,
+                },
+              });
+            }
+            // If Railway returns error, fall through to D1 fallback
+            console.warn(`⚠️ Railway returned ${proxyResponse.status}, trying D1 fallback`);
+          } catch (proxyError) {
+            console.error('Error proxying to Railway:', proxyError);
+            // Fall through to D1 fallback
+          }
         }
 
-        const lesson = lessonResults[0];
+        // PRIORITY 2: Fallback to D1 if available (for development/testing)
+        if (env.DB) {
+          try {
+            const db = getDatabase(env.DB);
+            
+            // Get lesson with track information
+            const lessonResults = await db.select({
+              id: lessons.id,
+              trackId: lessons.trackId,
+              title: lessons.title,
+              order: lessons.order,
+              content: lessons.content,
+              estimatedMinutes: lessons.estimatedMinutes,
+              isRequired: lessons.isRequired,
+              createdAt: lessons.createdAt,
+              updatedAt: lessons.updatedAt,
+              trackSlug: tracks.slug,
+              trackTitle: tracks.title,
+            }).from(lessons)
+              .leftJoin(tracks, eq(lessons.trackId, tracks.id))
+              .where(eq(lessons.id, lessonId))
+              .limit(1);
 
-        // Get total lessons in track for proper lesson numbering
-        const trackLessons = await db.select({ count: count() })
-          .from(lessons)
-          .where(eq(lessons.trackId, lesson.trackId));
-        
-        const totalLessons = trackLessons[0]?.count || 0;
+            if (lessonResults.length > 0) {
+              const lesson = lessonResults[0];
 
-        const lessonResponse = {
-          ...lesson,
-          totalLessons,
-        };
+              // Get total lessons in track for proper lesson numbering
+              const trackLessons = await db.select({ count: count() })
+                .from(lessons)
+                .where(eq(lessons.trackId, lesson.trackId));
+              
+              const totalLessons = trackLessons[0]?.count || 0;
 
-        return new Response(JSON.stringify(lessonResponse), {
-          status: 200,
+              const lessonResponse = {
+                ...lesson,
+                totalLessons,
+              };
+
+              return new Response(JSON.stringify(lessonResponse), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', ...corsHeaders },
+              });
+            }
+          } catch (dbError) {
+            console.error('Error fetching from D1:', dbError);
+            // Fall through to error response
+          }
+        }
+
+        // If both Railway and D1 fail, return error
+        return new Response(JSON.stringify({ 
+          error: 'Lesson not found',
+          note: 'Please ensure Railway Express server is running and API_URL is configured'
+        }), {
+          status: 404,
           headers: { 'Content-Type': 'application/json', ...corsHeaders },
         });
       } catch (error) {
