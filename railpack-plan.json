@@ -1,0 +1,9 @@
+{
+  "install": {
+    "cmd": "npm install --legacy-peer-deps"
+  },
+  "build": {
+    "cmd": "echo 'Build complete'"
+  }
+}
+
