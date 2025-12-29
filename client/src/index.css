@@ -97,6 +97,12 @@
     /* Prevent horizontal scroll on mobile */
     overflow-x: hidden;
     width: 100%;
+    /* Crisp text rendering on mobile */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1;
+    font-kerning: normal;
   }
 
   /* Touch-friendly button sizes on mobile */
@@ -106,7 +112,12 @@
       min-width: 44px !important;
       padding: 0.75rem 1.25rem !important;
       font-size: 1rem !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.01em !important;
       -webkit-tap-highlight-color: rgba(0, 102, 204, 0.1);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
     }
     
     /* Ensure all interactive elements are touch-friendly */
@@ -135,23 +146,45 @@
       margin-top: 1.5rem;
     }
     
-    /* Improved text sizing for mobile readability */
+    /* Improved text sizing for mobile readability - CRISP */
     h1 {
       font-size: 1.875rem;
       line-height: 2.25rem;
       margin-bottom: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
     }
     
     h2 {
       font-size: 1.5rem;
       line-height: 2rem;
       margin-bottom: 0.75rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
     }
     
     h3 {
       font-size: 1.25rem;
       line-height: 1.75rem;
       margin-bottom: 0.5rem;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    
+    /* Crisp text for all content */
+    p, span, div, li, td, th {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
     }
     
     /* Better padding for mobile containers */
@@ -160,9 +193,24 @@
       padding-right: 1rem;
     }
     
-    /* Improved card spacing on mobile */
-    .card, [class*="rounded"] {
+    /* Improved card spacing on mobile - CRISP */
+    .card, [class*="rounded"], [class*="Card"] {
       margin-bottom: 1rem;
+      /* Crisp rendering for cards */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      transform: translateZ(0);
+      will-change: transform;
+    }
+    
+    /* Better card padding on mobile */
+    [class*="CardHeader"], [class*="CardContent"] {
+      padding: 1rem !important;
+    }
+    
+    /* Crisp borders and shadows */
+    [class*="border"], [class*="shadow"] {
+      transform: translateZ(0);
     }
     
     /* Better grid gaps on mobile */
@@ -192,6 +240,9 @@
     /* Prevent horizontal scroll */
     overflow-x: hidden;
     width: 100%;
+    /* Crisp rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Smooth scrolling for better mobile UX */
@@ -244,6 +295,30 @@
     * {
       -webkit-overflow-scrolling: touch;
     }
+    
+    /* Better text line height for readability - CRISP */
+    p, span, div, li {
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    
+    /* Better spacing between elements */
+    .space-y-4 > * + * {
+      margin-top: 1.25rem;
+    }
+    
+    .space-y-6 > * + * {
+      margin-top: 1.5rem;
+    }
+    
+    /* Crisp button text */
+    button, a {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
   }
   
   /* Extra small mobile devices */
@@ -271,16 +346,54 @@
     }
   }
   
-  /* iPhone specific fixes */
+  /* iPhone specific fixes - CRISP RENDERING */
   @supports (-webkit-touch-callout: none) {
-    /* iOS Safari specific */
+    /* iOS Safari specific - Ultra crisp text */
+    * {
+      -webkit-font-smoothing: antialiased !important;
+      -moz-osx-font-smoothing: grayscale !important;
+      text-rendering: optimizeLegibility !important;
+    }
+    
     body {
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      font-feature-settings: "kern" 1;
+      font-kerning: normal;
+    }
+    
+    /* Crisp text for all text elements */
+    h1, h2, h3, h4, h5, h6, p, span, div, li, a, button, label {
+      -webkit-font-smoothing: antialiased !important;
+      -moz-osx-font-smoothing: grayscale !important;
+      text-rendering: optimizeLegibility !important;
+    }
+    
+    /* Better font weights for crispness */
+    h1, h2, h3 {
+      font-weight: 600 !important;
+      letter-spacing: -0.01em !important;
     }
     
     input, textarea, select {
       font-size: 16px !important;
+      -webkit-font-smoothing: antialiased !important;
+      -moz-osx-font-smoothing: grayscale !important;
+    }
+    
+    /* Crisp card rendering */
+    [class*="Card"], [class*="card"] {
+      transform: translateZ(0);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+    }
+    
+    /* Better button rendering */
+    button {
+      transform: translateZ(0);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
     }
   }
 }
