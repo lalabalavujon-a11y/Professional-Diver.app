@@ -92,6 +92,13 @@ export class TempDatabaseStorage {
 
   async getLessonById(id: string) {
     try {
+      console.log(`[TempStorage] Fetching lesson with ID: ${id}`);
+      
+      if (!id) {
+        console.error('[TempStorage] Lesson ID is missing');
+        return undefined;
+      }
+
       const [lesson] = await db.select({
         id: lessons.id,
         trackId: lessons.trackId,
@@ -112,7 +119,12 @@ export class TempDatabaseStorage {
       .leftJoin(tracks, eq(lessons.trackId, tracks.id))
       .where(eq(lessons.id, id));
       
-      if (!lesson) return undefined;
+      if (!lesson) {
+        console.error(`[TempStorage] Lesson not found for ID: ${id}`);
+        return undefined;
+      }
+
+      console.log(`[TempStorage] Found lesson: ${lesson.title} (Track ID: ${lesson.trackId})`);
       
       // Get all lessons in track ordered by order
       const trackLessons = await db.select({
@@ -121,13 +133,14 @@ export class TempDatabaseStorage {
       }).from(lessons).where(eq(lessons.trackId, lesson.trackId)).orderBy(lessons.order);
       
       const totalLessons = trackLessons.length;
+      console.log(`[TempStorage] Track has ${totalLessons} lessons`);
       
       // Find previous and next lesson IDs
       const currentIndex = trackLessons.findIndex((l: { id: string; order: number }) => l.id === id);
       
       // Ensure we found the current lesson
       if (currentIndex === -1) {
-        console.error(`Lesson ${id} not found in track ${lesson.trackId}`);
+        console.error(`[TempStorage] Lesson ${id} not found in track ${lesson.trackId} lesson list`);
         return {
           ...lesson,
           totalLessons,
@@ -138,15 +151,19 @@ export class TempDatabaseStorage {
       
       const previousLesson = currentIndex > 0 ? trackLessons[currentIndex - 1] : null;
       const nextLesson = currentIndex < trackLessons.length - 1 ? trackLessons[currentIndex + 1] : null;
-      
-      return {
+
+      const result = {
         ...lesson,
         totalLessons,
         previousLessonId: previousLesson?.id || null,
         nextLessonId: nextLesson?.id || null,
       };
+
+      console.log(`[TempStorage] Successfully fetched lesson with navigation: Previous=${result.previousLessonId}, Next=${result.nextLessonId}`);
+      return result;
     } catch (error) {
-      console.error('Error fetching lesson:', error);
+      console.error('[TempStorage] Error fetching lesson:', error);
+      console.error('[TempStorage] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   }

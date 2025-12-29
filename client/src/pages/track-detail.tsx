@@ -10,9 +10,22 @@ type TrackWithLessons = Track & { lessons: Lesson[] };
 
 export default function TrackDetail() {
   const [, params] = useRoute("/tracks/:slug");
-  const { data: track, isLoading } = useQuery<TrackWithLessons>({
+  const { data: track, isLoading, error } = useQuery<TrackWithLessons>({
     queryKey: ["/api/tracks", params?.slug],
     enabled: !!params?.slug,
+    queryFn: async () => {
+      if (!params?.slug) throw new Error('Track slug is required');
+      const response = await fetch(`/api/tracks/${params.slug}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Track not found');
+        }
+        throw new Error(`Failed to fetch track: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    retry: 2,
+    retryDelay: 1000,
   });
 
   if (isLoading) {
@@ -35,6 +48,27 @@ export default function TrackDetail() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
+        <RoleBasedNavigation />
+        <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-12">
+            <p className="text-red-600 font-medium" data-testid="text-track-error">
+              Error loading track: {error instanceof Error ? error.message : 'Unknown error'}
+            </p>
+            <Link href="/tracks">
+              <Button variant="outline" className="mt-4">
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Back to Tracks
+              </Button>
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (!track) {
     return (
       <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
@@ -42,6 +76,12 @@ export default function TrackDetail() {
         <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <p className="text-slate-500" data-testid="text-track-not-found">Track not found</p>
+            <Link href="/tracks">
+              <Button variant="outline" className="mt-4">
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Back to Tracks
+              </Button>
+            </Link>
           </div>
         </main>
       </div>

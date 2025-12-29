@@ -2811,14 +2811,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/lessons/:id", async (req, res) => {
     try {
       const { id } = req.params;
+      console.log(`[API] Fetching lesson with ID: ${id}`);
+      
+      if (!id) {
+        console.error('[API] Lesson ID is missing');
+        return res.status(400).json({ error: "Lesson ID is required" });
+      }
+
       const lesson = await tempStorage.getLessonById(id);
+      
       if (!lesson) {
+        console.error(`[API] Lesson not found for ID: ${id}`);
+        // Try to check if lesson exists in database
+        try {
+          const { db } = await import('./db');
+          const { lessons } = await import('@shared/schema-sqlite');
+          const { eq } = await import('drizzle-orm');
+          const [lessonCheck] = await db.select().from(lessons).where(eq(lessons.id, id));
+          if (lessonCheck) {
+            console.log(`[API] Lesson exists in DB but getLessonById returned undefined. Lesson data:`, lessonCheck);
+          } else {
+            console.log(`[API] Lesson does not exist in database for ID: ${id}`);
+          }
+        } catch (dbError) {
+          console.error('[API] Error checking database:', dbError);
+        }
         return res.status(404).json({ error: "Lesson not found" });
       }
+      
+      console.log(`[API] Successfully fetched lesson: ${lesson.title} (ID: ${lesson.id})`);
       res.json(lesson);
     } catch (error) {
-      console.error('Lesson API error:', error);
-      res.status(500).json({ error: "Failed to fetch lesson" });
+      console.error('[API] Lesson API error:', error);
+      console.error('[API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ error: "Failed to fetch lesson", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
