@@ -1,0 +1,59 @@
+# SUPER DEBUG BACKGROUND AGENT - CURSOR AI RULES
+
+## Code Quality Standards
+- Follow ESLint rules strictly
+- Use TypeScript for all new code
+- Implement proper error handling
+- Write meaningful variable and function names
+- Add JSDoc comments for complex functions
+
+## React Best Practices
+- Use functional components with hooks
+- Implement proper prop validation
+- Follow React Hooks rules
+- Use React.memo for performance optimization
+- Implement proper state management
+
+## TypeScript Guidelines
+- Define proper types for all variables
+- Use interfaces for object shapes
+- Avoid 'any' type - use proper typing
+- Implement proper error types
+- Use generics where appropriate
+
+## File Organization
+- Group related functionality together
+- Use consistent file naming conventions
+- Separate concerns into different files
+- Implement proper module exports
+- Use index files for clean imports
+
+## Testing Considerations
+- Write testable code
+- Use dependency injection where possible
+- Implement proper error boundaries
+- Add logging for debugging
+- Consider edge cases
+
+## Performance Guidelines
+- Implement proper memoization
+- Use lazy loading where appropriate
+- Optimize bundle size
+- Implement proper caching strategies
+- Monitor memory usage
+
+## Security Best Practices
+- Validate all inputs
+- Sanitize data before rendering
+- Use HTTPS in production
+- Implement proper authentication
+- Follow OWASP guidelines
+
+## Debugging Support
+- Add comprehensive logging
+- Implement proper error tracking
+- Use source maps in development
+- Add debugging information
+- Implement health checks
+
+Remember: The Super Debug Background Agent is monitoring your code quality in real-time. Write clean, maintainable, and professional code! 🚀

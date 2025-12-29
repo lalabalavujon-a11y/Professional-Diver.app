@@ -1,0 +1,1465 @@
+Replit Turbo Starter — Diver Well Training (Next.js + Prisma + Neon)
+
+Zero-to-running in Replit with Next.js (App Router) + Prisma + Postgres (Neon/Supabase). Brand‑neutral. Paste these files/commands and you’ll have Tracks → Lessons → Auth live in minutes.
+
+⸻
+
+0) Create the Repl
+	1.	In Replit, click Create Repl → Templates → Next.js (TypeScript). Name it diver-well-training.
+	2.	Open the Shell tab (bottom) for commands below.
+
+⸻
+
+1) Install deps
+
+npm i @prisma/client next-auth bcryptjs zod
+npm i -D prisma tsx @types/bcryptjs
+
+
+⸻
+
+2) Configure package.json
+
+Add/merge scripts to force Prisma client generation and run Next on Replit’s port.
+
+{
+  "scripts": {
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "dev": "next dev -H 0.0.0.0 -p $PORT",
+    "build": "prisma generate && next build",
+    "start": "next start -H 0.0.0.0 -p $PORT"
+  }
+}
+
+Replit uses $PORT and requires -H 0.0.0.0 so the app is reachable.
+
+⸻
+
+3) Environment variables (Replit Secrets)
+
+In Tools → Secrets add:
+	•	DATABASE_URL = postgresql://USER:PASSWORD@HOST:5432/DB_NAME?sslmode=require
+	•	NEXTAUTH_SECRET = (generate a random 32+ char string)
+	•	NEXTAUTH_URL = your Repl URL (appears after first run), e.g. https://diver-well-training.username.repl.co
+	•	NEXT_PUBLIC_SITE_URL = same as above
+
+For DATABASE_URL, create a quick Neon or Supabase Postgres. Copy the connection string and append ?sslmode=require if missing. If the password has special chars, URL‑encode it.
+
+⸻
+
+4) Prisma schema — prisma/schema.prisma
+
+generator client { provider = "prisma-client-js" }
+
+datasource db {
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "foreignKeys"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  attempts  Attempt[]
+}
+
+enum Role { USER ADMIN }
+
+model Track {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  summary   String?
+  createdAt DateTime @default(now())
+  lessons   Lesson[]
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  trackId   String
+  title     String
+  order     Int      @default(0)
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+}
+
+model Quiz {
+  id        String    @id @default(cuid())
+  lessonId  String
+  title     String
+  questions Question[]
+  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model Question {
+  id        String  @id @default(cuid())
+  quizId    String
+  prompt    String
+  a         String
+  b         String
+  c         String
+  d         String
+  answer    String
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+model Attempt {
+  id        String   @id @default(cuid())
+  userId    String
+  quizId    String
+  score     Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+
+⸻
+
+5) Prisma client helper — src/lib/prisma.ts
+
+import { PrismaClient } from "@prisma/client"
+
+declare global { var prisma: PrismaClient | undefined }
+export const prisma = global.prisma ?? new PrismaClient()
+if (process.env.NODE_ENV !== "production") global.prisma = prisma
+
+
+⸻
+
+6) Seed data — prisma/seed.ts
+
+import { prisma } from "@/lib/prisma"
+
+async function main() {
+  const tracks = [
+    { title: "Physiology Basics", slug: "physiology", summary: "Core physiology concepts (brand‑neutral)" },
+    { title: "Decompression", slug: "decompression", summary: "Theory & practice (brand‑neutral)" },
+  ]
+  for (const t of tracks) {
+    const track = await prisma.track.upsert({ where: { slug: t.slug }, update: {}, create: t })
+    await prisma.lesson.upsert({
+      where: { id: `${track.id}-intro` },
+      update: {},
+      create: { id: `${track.id}-intro`, trackId: track.id, title: `${t.title} — Intro`, order: 1, content: "Welcome to Diver Well Training." },
+    })
+  }
+  const bcrypt = await import("bcryptjs")
+  const hash = await bcrypt.hash("admin123", 12)
+  await prisma.user.upsert({
+    where: { email: "admin@diverwell.app" },
+    update: {},
+    create: { email: "admin@diverwell.app", password: hash, role: "ADMIN", name: "Admin" },
+  })
+}
+
+main().then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)})
+
+Run:
+
+npm run db:push && npm run db:seed
+
+
+⸻
+
+7) App shell
+
+src/app/layout.tsx
+
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+import "./globals.css"
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en"><body className="min-h-screen bg-white text-slate-900">{children}</body></html>
+  )
+}
+
+src/app/page.tsx — list tracks
+
+import { prisma } from "@/lib/prisma"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export default async function Home() {
+  const tracks = await prisma.track.findMany({ orderBy: { title: "asc" } })
+  return (
+    <main className="max-w-3xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-4">Diver Well Training</h1>
+      <ul className="space-y-3">
+        {tracks.map(t => (
+          <li key={t.id}><a className="underline" href={`/tracks/${t.slug}`}>{t.title}</a></li>
+        ))}
+      </ul>
+    </main>
+  )
+}
+
+src/app/tracks/[slug]/page.tsx — track details
+
+import { prisma } from "@/lib/prisma"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export default async function TrackPage({ params }: { params: { slug: string } }) {
+  const track = await prisma.track.findUnique({ where: { slug: params.slug }, include: { lessons: { orderBy: { order: "asc" } } } })
+  if (!track) return <div className="p-6">Not found</div>
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <a className="underline text-sm" href="/">← Back</a>
+      <h1 className="text-2xl font-bold">{track.title}</h1>
+      <p className="mt-2 text-slate-600">{track.summary}</p>
+      <ul className="mt-6 space-y-2">
+        {track.lessons.map(l => (<li key={l.id}><a className="underline" href={`/lessons/${l.id}`}>{l.title}</a></li>))}
+      </ul>
+    </div>
+  )
+}
+
+src/app/lessons/[id]/page.tsx — lesson viewer
+
+import { prisma } from "@/lib/prisma"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export default async function Lesson({ params }: { params: { id: string } }) {
+  const lesson = await prisma.lesson.findUnique({ where: { id: params.id } })
+  if (!lesson) return <div className="p-6">Not found</div>
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <a className="underline text-sm" href="/">← Back</a>
+      <h1 className="text-2xl font-bold mt-2">{lesson.title}</h1>
+      <article className="prose mt-6 whitespace-pre-wrap">{lesson.content}</article>
+    </div>
+  )
+}
+
+
+⸻
+
+8) Auth (Credentials) — minimal
+
+src/app/api/auth/[...nextauth]/route.ts
+
+import NextAuth from "next-auth"
+import Credentials from "next-auth/providers/credentials"
+import { prisma } from "@/lib/prisma"
+import bcrypt from "bcryptjs"
+
+const auth = NextAuth({
+  session: { strategy: "jwt" },
+  providers: [
+    Credentials({
+      name: "Credentials",
+      credentials: { email: {}, password: {} },
+      async authorize(c) {
+        if (!c?.email || !c?.password) return null
+        const user = await prisma.user.findUnique({ where: { email: c.email } })
+        if (!user) return null
+        const ok = await bcrypt.compare(c.password, user.password)
+        if (!ok) return null
+        return { id: user.id, email: user.email, name: user.name, role: user.role }
+      },
+    }),
+  ],
+})
+
+export const GET = auth.handlers.GET
+export const POST = auth.handlers.POST
+export const runtime = "nodejs"
+
+src/app/(auth)/signin/page.tsx
+
+"use client"
+import { signIn } from "next-auth/react"
+import { useState } from "react"
+
+export default function SignIn() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  return (
+    <div className="max-w-md mx-auto py-10">
+      <h1 className="text-2xl font-bold mb-4">Sign in</h1>
+      <form onSubmit={(e)=>{e.preventDefault(); signIn("credentials", { email, password, callbackUrl: "/dashboard" })}}>
+        <input className="border p-2 w-full mb-2" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
+        <input className="border p-2 w-full mb-4" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+        <button className="border px-4 py-2">Sign in</button>
+      </form>
+    </div>
+  )
+}
+
+src/app/dashboard/page.tsx
+
+import { getServerSession } from "next-auth"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export default async function Dashboard() {
+  const session = await getServerSession()
+  if (!session?.user) return <div className="p-6">Please sign in</div>
+  return <div className="p-6">Welcome, {session.user.email}</div>
+}
+
+
+⸻
+
+9) Health & error helpers (debug fast)
+
+src/app/api/health/route.ts
+
+export const runtime = "nodejs"
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+export async function GET() {
+  try { await prisma.$queryRaw`SELECT 1`; return NextResponse.json({ ok: true }) }
+  catch (e: any) { console.error("HEALTH ERROR", e?.message); return NextResponse.json({ ok: false }, { status: 500 }) }
+}
+
+src/app/error.tsx
+
+"use client"
+import { useEffect } from "react"
+export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
+  useEffect(() => console.error("GlobalError", error), [error])
+  return <html><body><h1>Something went wrong</h1><p>Digest: {error?.digest}</p></body></html>
+}
+
+
+⸻
+
+10) Run it
+
+npm run dev
+
+Open the Replit preview URL → Home shows Tracks, click into a Track → Lesson renders.
+
+Sign in with the seeded admin: admin@diverwell.app / admin123 (change after first login).
+
+⸻
+
+11) Next steps (fast follow)
+	•	Add quizzes UI at /lessons/[id]/quiz (use Quiz + Question models).
+	•	Add brand‑neutral linter in Replit via simple Node script if desired.
+	•	Later: export this repo to GitHub and wire the previous CI + ClickUp automations.
+
+⸻
+
+Troubleshooting quickies
+	•	Prisma Client not generated → open Shell: npx prisma generate.
+	•	DB errors → verify DATABASE_URL (must include ?sslmode=require), then npm run db:push.
+	•	Auth callback errors in Replit → set NEXTAUTH_URL to the exact Repl URL, redeploy/run.
+	•	Port closed → ensure dev/start scripts include -H 0.0.0.0 -p $PORT.
+
+⸻
+
+Phase 6.1 — Quizzes UI & Results (Drop‑in for Replit)
+
+This adds a working quiz experience: /lessons/[id]/quiz renders MCQs, submits answers to an API, stores an Attempt, and shows score. It also enhances the dashboard with recent results.
+
+A) Add client component — src/components/QuizForm.tsx
+
+"use client"
+import { useState } from "react"
+
+type Question = { id: string; prompt: string; a: string; b: string; c: string; d: string }
+export default function QuizForm({ quizId, questions }: { quizId: string; questions: Question[] }) {
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [result, setResult] = useState<{ score: number; total: number } | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  const onChange = (qid: string, value: string) => setAnswers((s) => ({ ...s, [qid]: value }))
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const resp = await fetch("/api/quiz/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quizId, answers })
+      })
+      if (!resp.ok) throw new Error("Submit failed")
+      const data = await resp.json()
+      setResult({ score: data.score, total: data.total })
+    } catch (e) {
+      alert("There was a problem submitting the quiz.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (result) {
+    return (
+      <div className="mt-6">
+        <h2 className="text-xl font-semibold">Your score</h2>
+        <p className="mt-2">{result.score} / {result.total}</p>
+        <a className="underline mt-4 inline-block" href="/dashboard">View dashboard</a>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-6">
+      {questions.map((q, i) => (
+        <div key={q.id} className="border rounded p-4">
+          <div className="font-medium">{i + 1}. {q.prompt}</div>
+          <div className="mt-2 grid gap-2">
+            {["a","b","c","d"].map((k) => (
+              <label key={k} className="flex gap-2 items-center">
+                <input
+                  type="radio"
+                  name={q.id}
+                  value={k}
+                  checked={answers[q.id] === k}
+                  onChange={() => onChange(q.id, k)}
+                />
+                <span>{(q as any)[k]}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button disabled={submitting} className="border px-4 py-2">
+        {submitting ? "Submitting…" : "Submit"}
+      </button>
+    </form>
+  )
+}
+
+B) Quiz page — src/app/lessons/[id]/quiz/page.tsx
+
+import { prisma } from "@/lib/prisma"
+import QuizForm from "@/components/QuizForm"
+
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+
+export default async function LessonQuiz({ params }: { params: { id: string } }) {
+  const lesson = await prisma.lesson.findUnique({ where: { id: params.id } })
+  if (!lesson) return <div className="p-6">Not found</div>
+
+  const quiz = await prisma.quiz.findFirst({ where: { lessonId: lesson.id }, include: { questions: true } })
+  if (!quiz) return (
+    <div className="max-w-3xl mx-auto p-6">
+      <a className="underline text-sm" href={`/lessons/${lesson.id}`}>← Back to lesson</a>
+      <h1 className="text-2xl font-bold mt-2">No quiz available</h1>
+    </div>
+  )
+
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <a className="underline text-sm" href={`/lessons/${lesson.id}`}>← Back to lesson</a>
+      <h1 className="text-2xl font-bold mt-2">{lesson.title} — Quiz</h1>
+      <QuizForm quizId={quiz.id} questions={quiz.questions as any} />
+    </div>
+  )
+}
+
+C) Submit API — src/app/api/quiz/submit/route.ts
+
+export const runtime = "nodejs"
+import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { prisma } from "@/lib/prisma"
+
+export async function POST(req: Request) {
+  const session = await getServerSession()
+  if (!session?.user?.email) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 })
+
+  const body = await req.json().catch(() => null) as { quizId?: string; answers?: Record<string,string> } | null
+  if (!body?.quizId || !body.answers) return NextResponse.json({ error: "BAD_REQUEST" }, { status: 400 })
+
+  const quiz = await prisma.quiz.findUnique({ where: { id: body.quizId }, include: { questions: true } })
+  if (!quiz) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 })
+
+  // Score
+  const total = quiz.questions.length
+  let score = 0
+  for (const q of quiz.questions) {
+    const picked = body.answers[q.id]
+    if (picked && picked === q.answer) score++
+  }
+
+  // Resolve user
+  const user = await prisma.user.findUnique({ where: { email: session.user.email! } })
+  if (!user) return NextResponse.json({ error: "NO_USER" }, { status: 401 })
+
+  await prisma.attempt.create({ data: { userId: user.id, quizId: quiz.id, score } })
+
+  return NextResponse.json({ score, total })
+}
+
+D) Link quizzes from the UI
+
+Update src/app/tracks/[slug]/page.tsx to show a Quiz link under each lesson:
+
+// inside the lessons list map
+<li key={l.id}>
+  <a className="underline" href={`/lessons/${l.id}`}>{l.title}</a>
+  {" "}
+  <a className="text-sm underline ml-2" href={`/lessons/${l.id}/quiz`}>Take quiz</a>
+</li>
+
+E) Enhance dashboard with recent attempts — src/app/dashboard/page.tsx
+
+import { getServerSession } from "next-auth"
+import { prisma } from "@/lib/prisma"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export default async function Dashboard() {
+  const session = await getServerSession()
+  if (!session?.user?.email) return <div className="p-6">Please sign in</div>
+  const user = await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } })
+  if (!user) return <div className="p-6">Please sign in</div>
+  const attempts = await prisma.attempt.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    include: { quiz: { include: { lesson: { select: { title: true } } } } }
+  })
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <h2 className="mt-6 text-lg font-semibold">Recent Results</h2>
+      <ul className="mt-2 space-y-1">
+        {attempts.map(a => (
+          <li key={a.id}>
+            {a.quiz.lesson.title}: {a.score} pts — {new Date(a.createdAt).toLocaleString()}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+F) Seed a sample quiz (replace your prisma/seed.ts with this)
+
+import { prisma } from "@/lib/prisma"
+
+async function main() {
+  const tracks = [
+    { title: "Physiology Basics", slug: "physiology", summary: "Core physiology concepts (brand‑neutral)" },
+    { title: "Decompression", slug: "decompression", summary: "Theory & practice (brand‑neutral)" },
+  ]
+  for (const t of tracks) {
+    const track = await prisma.track.upsert({ where: { slug: t.slug }, update: {}, create: t })
+    const lessonId = `${track.id}-intro`
+    await prisma.lesson.upsert({
+      where: { id: lessonId },
+      update: {},
+      create: { id: lessonId, trackId: track.id, title: `${t.title} — Intro`, order: 1, content: "Welcome to Diver Well Training." },
+    })
+    // One quiz per intro lesson
+    const quiz = await prisma.quiz.upsert({
+      where: { id: `${lessonId}-quiz` },
+      update: {},
+      create: { id: `${lessonId}-quiz`, lessonId, title: `${t.title} — Quick Check` }
+    })
+    await prisma.question.upsert({
+      where: { id: `${quiz.id}-q1` },
+      update: {},
+      create: {
+        id: `${quiz.id}-q1`, quizId: quiz.id,
+        prompt: "Which statement best describes gas laws relevance to diving?",
+        a: "They are unrelated to depth.",
+        b: "They affect gas volume and pressure with depth.",
+        c: "They only matter above water.",
+        d: "Only relevant for non‑compressed gases.",
+        answer: "b"
+      }
+    })
+    await prisma.question.upsert({
+      where: { id: `${quiz.id}-q2` },
+      update: {},
+      create: {
+        id: `${quiz.id}-q2`, quizId: quiz.id,
+        prompt: "What is a safe practice before ascent?",
+        a: "Rapid ascent to minimize time.",
+        b: "Ignore stop plans if feeling fine.",
+        c: "Follow planned stops and ascent rate.",
+        d: "Hold breath to conserve air.",
+        answer: "c"
+      }
+    })
+  }
+
+  const bcrypt = await import("bcryptjs")
+  const hash = await bcrypt.hash("admin123", 12)
+  await prisma.user.upsert({
+    where: { email: "admin@diverwell.app" },
+    update: {},
+    create: { email: "admin@diverwell.app", password: hash, role: "ADMIN", name: "Admin" },
+  })
+}
+
+main().then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)})
+
+G) Run it (Replit Shell)
+
+npm run db:push   # ensures schema is applied
+npm run db:seed   # loads the sample quiz and admin
+npm run dev       # open the Repl URL
+
+	•	Go to a Track → open a Lesson → click Take quiz → answer → see score → check /dashboard for the attempt.
+
+Everything remains brand‑neutral. The quiz copy is generic and safe.
+
+⸻
+
+Phase 6.2 — Tiny Admin Quiz Editor (create/edit MCQs)
+
+Adds an admin-only editor at /admin/lessons/[id]/quiz to create/update/delete questions. Uses API routes with role check.
+
+A) Admin check helper — extend src/lib/auth.ts
+
+import { getServerSession } from "next-auth"
+import { prisma } from "@/lib/prisma"
+
+export async function requireUser() {
+  const session = await getServerSession()
+  if (!session?.user?.email) throw new Error("UNAUTHENTICATED")
+  const user = await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true, role: true, email: true } })
+  if (!user) throw new Error("UNAUTHENTICATED")
+  return user
+}
+
+export async function requireAdmin() {
+  const user = await requireUser()
+  if (user.role !== "ADMIN") throw new Error("FORBIDDEN")
+  return user
+}
+
+B) Admin API — src/app/api/admin/quiz/[lessonId]/route.ts
+
+export const runtime = "nodejs"
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+
+export async function GET(_: Request, { params }: { params: { lessonId: string } }) {
+  await requireAdmin()
+  const quiz = await prisma.quiz.findFirst({ where: { lessonId: params.lessonId }, include: { questions: { orderBy: { createdAt: "asc" } } } })
+  return NextResponse.json({ quiz })
+}
+
+export async function POST(req: Request, { params }: { params: { lessonId: string } }) {
+  await requireAdmin()
+  const body = await req.json().catch(() => null) as { title?: string } | null
+  const title = body?.title || "Lesson Quiz"
+  const quiz = await prisma.quiz.upsert({ where: { id: `${params.lessonId}-quiz` }, update: { title }, create: { id: `${params.lessonId}-quiz`, lessonId: params.lessonId, title } })
+  return NextResponse.json({ quiz })
+}
+
+C) Admin API (questions) — src/app/api/admin/quiz/[lessonId]/questions/route.ts
+
+export const runtime = "nodejs"
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+
+type Payload = {
+  action: "create" | "update" | "delete"
+  question?: { id?: string; prompt: string; a: string; b: string; c: string; d: string; answer: "a"|"b"|"c"|"d" }
+  id?: string
+}
+
+export async function POST(req: Request, { params }: { params: { lessonId: string } }) {
+  await requireAdmin()
+  const body = await req.json().catch(() => null) as Payload | null
+  if (!body) return NextResponse.json({ error: "BAD_REQUEST" }, { status: 400 })
+
+  const quiz = await prisma.quiz.upsert({ where: { id: `${params.lessonId}-quiz` }, update: {}, create: { id: `${params.lessonId}-quiz`, lessonId: params.lessonId, title: "Lesson Quiz" } })
+
+  if (body.action === "create" && body.question) {
+    const q = await prisma.question.create({ data: { ...body.question, quizId: quiz.id } })
+    return NextResponse.json({ ok: true, question: q })
+  }
+  if (body.action === "update" && body.question?.id) {
+    const q = await prisma.question.update({ where: { id: body.question.id }, data: { prompt: body.question.prompt, a: body.question.a, b: body.question.b, c: body.question.c, d: body.question.d, answer: body.question.answer } })
+    return NextResponse.json({ ok: true, question: q })
+  }
+  if (body.action === "delete" && body.id) {
+    await prisma.question.delete({ where: { id: body.id } })
+    return NextResponse.json({ ok: true })
+  }
+  return NextResponse.json({ error: "BAD_REQUEST" }, { status: 400 })
+}
+
+D) Admin editor UI — src/components/AdminQuizEditor.tsx
+
+"use client"
+import { useEffect, useState } from "react"
+
+type Q = { id: string; prompt: string; a: string; b: string; c: string; d: string; answer: "a"|"b"|"c"|"d" }
+
+export default function AdminQuizEditor({ lessonId }: { lessonId: string }) {
+  const [title, setTitle] = useState("Lesson Quiz")
+  const [questions, setQuestions] = useState<Q[]>([])
+  const [loading, setLoading] = useState(true)
+
+  async function load() {
+    setLoading(true)
+    const r = await fetch(`/api/admin/quiz/${lessonId}`)
+    const j = await r.json()
+    setTitle(j.quiz?.title || "Lesson Quiz")
+    setQuestions(j.quiz?.questions || [])
+    setLoading(false)
+  }
+  useEffect(() => { load() }, [lessonId])
+
+  async function saveTitle() {
+    await fetch(`/api/admin/quiz/${lessonId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title }) })
+  }
+
+  async function createQuestion() {
+    const q: Omit<Q, "id"> = { prompt: "", a: "", b: "", c: "", d: "", answer: "a" }
+    const r = await fetch(`/api/admin/quiz/${lessonId}/questions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create", question: q }) })
+    const j = await r.json(); setQuestions((s) => [...s, j.question])
+  }
+
+  async function updateQuestion(q: Q) {
+    await fetch(`/api/admin/quiz/${lessonId}/questions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update", question: q }) })
+  }
+
+  async function deleteQuestion(id: string) {
+    await fetch(`/api/admin/quiz/${lessonId}/questions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", id }) })
+    setQuestions((s) => s.filter(x => x.id !== id))
+  }
+
+  if (loading) return <div>Loading…</div>
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <input className="border p-2 flex-1" value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="Quiz title" />
+        <button className="border px-3 py-2" onClick={saveTitle}>Save title</button>
+        <button className="border px-3 py-2" onClick={createQuestion}>+ Add question</button>
+      </div>
+
+      <div className="space-y-4">
+        {questions.map((q, idx) => (
+          <div key={q.id} className="border rounded p-4">
+            <div className="font-semibold mb-2">Q{idx + 1}</div>
+            <input className="border p-2 w-full mb-2" value={q.prompt} onChange={e=>setQuestions(prev=>prev.map(x=>x.id===q.id?{...x,prompt:e.target.value}:x))} placeholder="Prompt" />
+            {(["a","b","c","d"] as const).map(k => (
+              <div key={k} className="flex items-center gap-2 mb-2">
+                <label className="w-6 uppercase">{k}.</label>
+                <input className="border p-2 flex-1" value={(q as any)[k]} onChange={e=>setQuestions(prev=>prev.map(x=>x.id===q.id?{...x,[k]:e.target.value}:x))} />
+                <label className="flex items-center gap-1 text-sm">
+                  <input type="radio" name={`ans-${q.id}`} checked={q.answer===k} onChange={()=>setQuestions(prev=>prev.map(x=>x.id===q.id?{...x,answer:k}:x))} /> correct
+                </label>
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <button className="border px-3 py-2" onClick={()=>updateQuestion(q)}>Save</button>
+              <button className="border px-3 py-2" onClick={()=>deleteQuestion(q.id)}>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+E) Admin page — src/app/admin/lessons/[id]/quiz/page.tsx
+
+import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+import AdminQuizEditor from "@/components/AdminQuizEditor"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+
+export default async function AdminLessonQuiz({ params }: { params: { id: string } }) {
+  await requireAdmin()
+  const lesson = await prisma.lesson.findUnique({ where: { id: params.id } })
+  if (!lesson) return <div className="p-6">Not found</div>
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <a className="underline text-sm" href={`/lessons/${lesson.id}`}>← Back</a>
+      <h1 className="text-2xl font-bold mt-2">Admin: {lesson.title} — Quiz Editor</h1>
+      <AdminQuizEditor lessonId={lesson.id} />
+    </div>
+  )
+}
+
+F) Surface the editor link for admins
+
+In src/app/tracks/[slug]/page.tsx, under each lesson name:
+
+// after the "Take quiz" link
+{/* show admin link only if signed-in admin */}
+
+For a quick toggle without session wiring in this file, you can always navigate directly to /admin/lessons/<lessonId>/quiz as an admin. (Optionally, enhance with a server-side role check to render the link.)
+
+⸻
+
+Phase 6.3 — Progress Bar per Track
+
+Shows the % of quizzes attempted by the signed-in user per track.
+
+A) Progress component — src/components/ProgressBar.tsx
+
+export default function ProgressBar({ value }: { value: number }) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)))
+  return (
+    <div className="h-3 w-full bg-slate-200 rounded">
+      <div className="h-3 bg-slate-800 rounded" style={{ width: `${pct}%` }} />
+    </div>
+  )
+}
+
+B) Compute & display on Home — update src/app/page.tsx
+
+import { prisma } from "@/lib/prisma"
+import { getServerSession } from "next-auth"
+import ProgressBar from "@/components/ProgressBar"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const session = await getServerSession()
+  const user = session?.user?.email ? await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } }) : null
+  const tracks = await prisma.track.findMany({ orderBy: { title: "asc" } })
+
+  async function trackProgress(trackId: string) {
+    const total = await prisma.quiz.count({ where: { lesson: { trackId } } })
+    if (!user || total === 0) return 0
+    const completed = await prisma.attempt.findMany({ where: { userId: user.id, quiz: { lesson: { trackId } } }, distinct: ["quizId"], select: { quizId: true } })
+    return Math.round((completed.length / total) * 100)
+  }
+
+  const items = await Promise.all(tracks.map(async t => ({ t, pct: await trackProgress(t.id) })))
+
+  return (
+    <main className="max-w-3xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-4">Diver Well Training</h1>
+      <ul className="space-y-4">
+        {items.map(({ t, pct }) => (
+          <li key={t.id}>
+            <a className="underline" href={`/tracks/${t.slug}`}>{t.title}</a>
+            <div className="mt-2"><ProgressBar value={pct} /><div className="text-xs mt-1">{pct}% complete</div></div>
+          </li>
+        ))}
+      </ul>
+    </main>
+  )
+}
+
+C) Display on Track page — update src/app/tracks/[slug]/page.tsx
+
+import ProgressBar from "@/components/ProgressBar"
+import { getServerSession } from "next-auth"
+
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+
+export default async function TrackPage({ params }: { params: { slug: string } }) {
+  const track = await prisma.track.findUnique({ where: { slug: params.slug }, include: { lessons: { orderBy: { order: "asc" } } } })
+  if (!track) return <div className="p-6">Not found</div>
+  const session = await getServerSession()
+  const user = session?.user?.email ? await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } }) : null
+  const total = await prisma.quiz.count({ where: { lesson: { trackId: track.id } } })
+  let pct = 0
+  if (user && total > 0) {
+    const completed = await prisma.attempt.findMany({ where: { userId: user.id, quiz: { lesson: { trackId: track.id } } }, distinct: ["quizId"], select: { quizId: true } })
+    pct = Math.round((completed.length / total) * 100)
+  }
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <a className="underline text-sm" href="/">← Back</a>
+      <h1 className="text-2xl font-bold">{track.title}</h1>
+      <p className="mt-2 text-slate-600">{track.summary}</p>
+      <div className="mt-4"><ProgressBar value={pct} /><div className="text-xs mt-1">{pct}% complete</div></div>
+      <ul className="mt-6 space-y-2">
+        {track.lessons.map(l => (
+          <li key={l.id}>
+            <a className="underline" href={`/lessons/${l.id}`}>{l.title}</a>
+            {" "}
+            <a className="text-sm underline ml-2" href={`/lessons/${l.id}/quiz`}>Take quiz</a>
+            {/* Optional admin link: /admin/lessons/<id>/quiz */}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+D) Replit run steps
+
+npm run db:push   # apply schema (no changes from earlier schema)
+npm run db:seed   # seeds quizzes if using the Phase 6.1 seed
+npm run dev
+
+You now have:
+	•	Admin editor at /admin/lessons/[id]/quiz (requires ADMIN user)
+	•	User quiz flow at /lessons/[id]/quiz
+	•	Progress bars on Home and Track pages
+
+⸻
+
+Phase 6.4 — Admin Role Management (grant/revoke ADMIN)
+
+Add a simple admin panel to grant ADMIN to a user by email, revoke it, and list all users.
+
+A) API — set role
+
+Create src/app/api/admin/users/set-role/route.ts:
+
+export const runtime = "nodejs"
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+
+type Body = { email?: string; role?: "ADMIN" | "USER" }
+
+export async function POST(req: Request) {
+  await requireAdmin()
+  const body = (await req.json().catch(() => ({}))) as Body
+  const email = body.email?.trim().toLowerCase()
+  const role = body.role
+  if (!email || (role !== "ADMIN" && role !== "USER")) {
+    return NextResponse.json({ error: "BAD_REQUEST" }, { status: 400 })
+  }
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (!user) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 })
+  const updated = await prisma.user.update({ where: { id: user.id }, data: { role } })
+  return NextResponse.json({ ok: true, user: { id: updated.id, email: updated.email, role: updated.role } })
+}
+
+B) Admin Users page (UI)
+
+Create src/app/admin/users/page.tsx:
+
+import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+
+export default async function AdminUsers() {
+  await requireAdmin()
+  const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, email: true, role: true, createdAt: true } })
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <a className="underline text-sm" href="/dashboard">← Back</a>
+      <h1 className="text-2xl font-bold mt-2">Admin • Users</h1>
+      <GrantForm />
+      <table className="w-full text-sm border mt-6">
+        <thead className="bg-slate-100">
+          <tr><th className="p-2 text-left">Email</th><th className="p-2">Role</th><th className="p-2">Actions</th></tr>
+        </thead>
+        <tbody>
+          {users.map(u => (
+            <tr key={u.id} className="border-t">
+              <td className="p-2">{u.email}</td>
+              <td className="p-2">{u.role}</td>
+              <td className="p-2">
+                <RoleButtons email={u.email} role={u.role} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="mt-8">
+        <h2 className="font-semibold">Exports</h2>
+        <a className="underline" href="/api/admin/exports/attempts">Download Attempts CSV</a>
+      </div>
+    </div>
+  )
+}
+
+function GrantForm() {
+  return (
+    <form action={grantAction} className="mt-4 flex gap-2">
+      <input name="email" type="email" required placeholder="user@example.com" className="border p-2 flex-1" />
+      <select name="role" className="border p-2">
+        <option value="ADMIN">ADMIN</option>
+        <option value="USER">USER</option>
+      </select>
+      <button className="border px-3 py-2">Set Role</button>
+    </form>
+  )
+}
+
+async function grantAction(formData: FormData) {
+  "use server"
+  const email = String(formData.get("email") || "").trim()
+  const role = String(formData.get("role") || "USER") as "ADMIN" | "USER"
+  await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/admin/users/set-role`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, role })
+  })
+}
+
+function RoleButtons({ email, role }: { email: string; role: string }) {
+  return (
+    <form action={toggleAction.bind(null, email)} className="inline-flex gap-2">
+      <input type="hidden" name="email" value={email} />
+      <button name="role" value="ADMIN" className="border px-2 py-1" disabled={role === "ADMIN"}>Grant ADMIN</button>
+      <button name="role" value="USER" className="border px-2 py-1" disabled={role === "USER"}>Revoke ADMIN</button>
+    </form>
+  )
+}
+
+async function toggleAction(email: string, formData: FormData) {
+  "use server"
+  const role = String(formData.get("role") || "USER") as "ADMIN" | "USER"
+  await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/admin/users/set-role`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, role })
+  })
+}
+
+Note: In Replit, NEXT_PUBLIC_SITE_URL should be set to your Repl URL to allow the server action to call the API. Alternatively, convert the server actions to client-side fetch('/api/...') calls using a client component wrapper.
+
+⸻
+
+Phase 6.5 — CSV Export of Attempts
+
+Provide a downloadable CSV of quiz attempts with user, track, lesson, quiz, score, and timestamp. Admin-only.
+
+A) API — CSV export
+
+Create src/app/api/admin/exports/attempts/route.ts:
+
+export const runtime = "nodejs"
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+
+function csvEscape(v: any) {
+  const s = String(v ?? "")
+  if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"'
+  return s
+}
+
+export async function GET(req: Request) {
+  await requireAdmin()
+  const { searchParams } = new URL(req.url)
+  const from = searchParams.get("from") // YYYY-MM-DD
+  const to = searchParams.get("to")
+
+  const where: any = {}
+  if (from || to) {
+    where.createdAt = {}
+    if (from) where.createdAt.gte = new Date(from + "T00:00:00Z")
+    if (to) where.createdAt.lte = new Date(to + "T23:59:59Z")
+  }
+
+  const rows = await prisma.attempt.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: {
+      user: { select: { email: true } },
+      quiz: { include: { lesson: { include: { track: true } } } },
+    },
+  })
+
+  const header = ["email","track","lesson","quiz","score","createdAt"]
+  const data = rows.map(r => [
+    r.user?.email || "",
+    r.quiz.lesson.track.title,
+    r.quiz.lesson.title,
+    r.quiz.title,
+    r.score,
+    r.createdAt.toISOString(),
+  ])
+
+  const csv = [header, ...data].map(line => line.map(csvEscape).join(",")).join("\n")
+  return new NextResponse(csv, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="attempts.csv"`
+    }
+  })
+}
+
+B) Link from Admin Users page
+
+Already added a link to /api/admin/exports/attempts. You can filter by date range with query params, e.g.:
+
+/api/admin/exports/attempts?from=2025-08-01&to=2025-08-31
+
+C) (Optional) Add a tiny date filter UI on the Admin Users page
+
+Append under the Exports section:
+
+<form action="/api/admin/exports/attempts" method="get" className="mt-2 flex items-center gap-2">
+  <label className="text-sm">From</label>
+  <input type="date" name="from" className="border p-1" />
+  <label className="text-sm">To</label>
+  <input type="date" name="to" className="border p-1" />
+  <button className="border px-2 py-1">Download CSV</button>
+</form>
+
+
+⸻
+
+Run (Replit)
+
+npm run dev
+
+	•	Visit /admin/users as an ADMIN user to grant/revoke roles and export CSV.
+	•	Grant ADMIN to additional emails as needed.
+
+⸻
+
+Phase 6.6 — Email Invites + Magic Link Signup (Auth.js Email)
+
+This adds email-based magic links and an invite gate (only invited emails can sign up). Admins can create invite links; users click, enter email, receive a magic link, and sign in. We’ll keep Credentials for the seeded admin.
+
+0) Install deps
+
+npm i @auth/prisma-adapter nodemailer resend
+
+1) Prisma — add Auth Adapter & Invite models (prisma/schema.prisma)
+
+Append these models (keep your existing models):
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Invite {
+  id         String   @id @default(cuid())
+  email      String
+  role       Role     @default(USER)
+  token      String   @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+  createdBy  String?
+
+  @@index([email, expiresAt])
+}
+
+Then apply:
+
+npm run db:push
+
+2) Env vars (Replit Secrets)
+
+Add these in Tools → Secrets:
+	•	INVITES_REQUIRED = true  (force invite-only sign-in)
+	•	EMAIL_FROM = Diver Well <no-reply@diverwell.app>  (or your sender)
+	•	Either RESEND_API_KEY (recommended) or EMAIL_SERVER (SMTP URL)
+	•	Example SMTP: smtp://USER:PASSWORD@smtp.yourhost.com:587
+
+(Keep existing NEXTAUTH_URL, NEXTAUTH_SECRET and DB vars.)
+
+3) Replace NextAuth config with Email + Credentials + Adapter
+
+src/app/api/auth/[...nextauth]/route.ts
+
+import NextAuth from "next-auth"
+import Credentials from "next-auth/providers/credentials"
+import Email from "next-auth/providers/email"
+import { PrismaAdapter } from "@auth/prisma-adapter"
+import { prisma } from "@/lib/prisma"
+import bcrypt from "bcryptjs"
+import nodemailer from "nodemailer"
+import { Resend } from "resend"
+
+const useResend = Boolean(process.env.RESEND_API_KEY)
+const resend = useResend ? new Resend(process.env.RESEND_API_KEY) : null
+
+const auth = NextAuth({
+  adapter: PrismaAdapter(prisma) as any,
+  session: { strategy: "jwt" },
+  providers: [
+    Email({
+      from: process.env.EMAIL_FROM,
+      async sendVerificationRequest({ identifier, url, provider }) {
+        const subject = "Sign in to Diver Well"
+        const html = `<p>Click to sign in:</p><p><a href="${url}">Sign in</a></p>`
+        const text = `Sign in: ${url}`
+        if (useResend && resend) {
+          await resend.emails.send({ from: provider.from as string, to: [identifier], subject, html, text })
+        } else if (process.env.EMAIL_SERVER) {
+          const transporter = nodemailer.createTransport(process.env.EMAIL_SERVER)
+          await transporter.sendMail({ to: identifier, from: provider.from as string, subject, html, text })
+        } else {
+          throw new Error("No email provider configured (set RESEND_API_KEY or EMAIL_SERVER)")
+        }
+      },
+    }),
+    Credentials({
+      name: "Credentials",
+      credentials: { email: {}, password: {} },
+      async authorize(c) {
+        if (!c?.email || !c?.password) return null
+        const user = await prisma.user.findUnique({ where: { email: c.email } })
+        if (!user) return null
+        const ok = await bcrypt.compare(c.password, user.password)
+        return ok ? { id: user.id, email: user.email, name: user.name, role: user.role } : null
+      },
+    }),
+  ],
+  callbacks: {
+    async signIn({ user, account }) {
+      // Allow credentials (admin) always
+      if (account?.provider === "credentials") return true
+      // Email provider: enforce invites when INVITES_REQUIRED=true
+      if (process.env.INVITES_REQUIRED === "true") {
+        const invited = await prisma.invite.findFirst({
+          where: {
+            email: (user.email || "").toLowerCase(),
+            revokedAt: null,
+            expiresAt: { gt: new Date() },
+          },
+          orderBy: { createdAt: "desc" },
+        })
+        if (!invited) return false
+        // Upgrade role from invite on first sign-in
+        await prisma.user.update({ where: { id: user.id as string }, data: { role: invited.role } }).catch(() => {})
+        // Mark accepted
+        await prisma.invite.update({ where: { token: invited.token }, data: { acceptedAt: new Date() } }).catch(() => {})
+      }
+      return true
+    },
+  },
+})
+
+export const GET = auth.handlers.GET
+export const POST = auth.handlers.POST
+export const runtime = "nodejs"
+
+4) Admin: create & manage invites
+
+API — src/app/api/admin/invites/route.ts
+
+export const runtime = "nodejs"
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+import crypto from "crypto"
+
+export async function GET() {
+  await requireAdmin()
+  const rows = await prisma.invite.findMany({ orderBy: { createdAt: "desc" }, take: 100 })
+  return NextResponse.json({ invites: rows })
+}
+
+export async function POST(req: Request) {
+  await requireAdmin()
+  const { email, role, days } = await req.json().catch(() => ({}))
+  if (!email) return NextResponse.json({ error: "email required" }, { status: 400 })
+  const token = crypto.randomBytes(24).toString("hex")
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * (Number(days) || 7))
+  const inv = await prisma.invite.create({ data: { email: email.toLowerCase(), role: role === "ADMIN" ? "ADMIN" : "USER", token, expiresAt } })
+  return NextResponse.json({ invite: inv, link: `/invite/${token}` })
+}
+
+API revoke — src/app/api/admin/invites/[token]/route.ts
+
+export const runtime = "nodejs"
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+
+export async function POST(_req: Request, { params }: { params: { token: string } }) {
+  await requireAdmin()
+  await prisma.invite.update({ where: { token: params.token }, data: { revokedAt: new Date() } }).catch(() => {})
+  return NextResponse.json({ ok: true })
+}
+
+UI — src/app/admin/invites/page.tsx
+
+import { requireAdmin } from "@/lib/auth"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+
+export default async function AdminInvites() {
+  await requireAdmin()
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/admin/invites`, { cache: "no-store" })
+  const { invites } = await res.json()
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <a className="underline text-sm" href="/dashboard">← Back</a>
+      <h1 className="text-2xl font-bold mt-2">Admin • Invites</h1>
+      <form action={createAction} className="mt-4 flex gap-2">
+        <input name="email" type="email" required placeholder="user@example.com" className="border p-2 flex-1" />
+        <select name="role" className="border p-2"><option>USER</option><option>ADMIN</option></select>
+        <input name="days" type="number" min={1} defaultValue={7} className="border p-2 w-24" />
+        <button className="border px-3 py-2">Create Invite</button>
+      </form>
+      <ul className="mt-6 space-y-2">
+        {invites.map((i: any) => (
+          <li key={i.id} className="border p-3 flex items-center justify-between">
+            <div>
+              <div className="font-mono text-sm">{i.email} • {i.role}</div>
+              <div className="text-xs text-slate-600">/invite/{i.token} • Expires {new Date(i.expiresAt).toLocaleString()} {i.revokedAt?"(revoked)":""} {i.acceptedAt?"(accepted)":""}</div>
+            </div>
+            <form action={revokeAction.bind(null, i.token)}><button className="border px-2 py-1" disabled={!!i.revokedAt}>Revoke</button></form>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+async function createAction(formData: FormData) {
+  "use server"
+  const email = String(formData.get("email")||"").trim()
+  const role = String(formData.get("role")||"USER")
+  const days = String(formData.get("days")||"7")
+  await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/admin/invites`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, role, days }) })
+}
+
+async function revokeAction(token: string) {
+  "use server"
+  await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/admin/invites/${token}`, { method: "POST" })
+}
+
+Invite landing page — src/app/invite/[token]/page.tsx
+
+import { prisma } from "@/lib/prisma"
+import { redirect } from "next/navigation"
+import { signIn } from "next-auth/react"
+
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+
+export default async function Invite({ params }: { params: { token: string } }) {
+  const inv = await prisma.invite.findUnique({ where: { token: params.token } })
+  if (!inv || inv.revokedAt || inv.expiresAt < new Date()) return <div className="p-6">Invite invalid or expired.</div>
+  return (
+    <div className="max-w-md mx-auto p-6">
+      <h1 className="text-2xl font-bold">You’re invited</h1>
+      <p className="mt-2 text-slate-700">Sign in with <b>{inv.email}</b>. We’ll email you a one‑time link.</p>
+      <InviteForm email={inv.email} />
+    </div>
+  )
+}
+
+function InviteForm({ email }: { email: string }) {
+  return (
+    <form action={action.bind(null, email)} className="mt-4 flex gap-2">
+      <button className="border px-4 py-2">Send magic link</button>
+    </form>
+  )
+}
+
+async function action(email: string) {
+  "use server"
+  // Trigger email provider; redirect handled by next-auth
+  // Note: In App Router server actions, we can’t directly call signIn from next-auth/react.
+  // Instead, redirect the user to the built-in /api/auth/signin?email=…
+  return redirect(`/api/auth/signin?callbackUrl=/&email=${encodeURIComponent(email)}`)
+}
+
+You can also surface a simple link to /admin/invites from your /dashboard for admins.
+
+⸻
+
+Phase 6.7 — Lesson Content Editor (Admin Markdown)
+
+Create an admin editor to update a lesson’s title and content.
+
+A) API — update lesson
+
+src/app/api/admin/lessons/[id]/route.ts
+
+export const runtime = "nodejs"
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+
+export async function GET(_: Request, { params }: { params: { id: string } }) {
+  await requireAdmin()
+  const lesson = await prisma.lesson.findUnique({ where: { id: params.id } })
+  return NextResponse.json({ lesson })
+}
+
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+  await requireAdmin()
+  const body = await req.json().catch(() => ({})) as { title?: string; content?: string }
+  const updated = await prisma.lesson.update({ where: { id: params.id }, data: { title: body.title, content: body.content } })
+  return NextResponse.json({ lesson: updated })
+}
+
+B) Admin UI — edit page
+
+src/app/admin/lessons/[id]/page.tsx
+
+import { requireAdmin } from "@/lib/auth"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+
+export default async function EditLesson({ params }: { params: { id: string } }) {
+  await requireAdmin()
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/admin/lessons/${params.id}`, { cache: "no-store" })
+  const { lesson } = await res.json()
+  if (!lesson) return <div className="p-6">Not found</div>
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <a className="underline text-sm" href={`/lessons/${lesson.id}`}>← Back</a>
+      <h1 className="text-2xl font-bold mt-2">Edit Lesson</h1>
+      <EditorForm id={lesson.id} title={lesson.title} content={lesson.content} />
+    </div>
+  )
+}
+
+function EditorForm({ id, title, content }: { id: string; title: string; content: string }) {
+  return (
+    <form action={saveAction.bind(null, id)} className="mt-4 space-y-3">
+      <input name="title" defaultValue={title} className="border p-2 w-full" />
+      <textarea name="content" defaultValue={content} className="border p-2 w-full h-64 font-mono" />
+      <button className="border px-3 py-2">Save</button>
+    </form>
+  )
+}
+
+async function saveAction(id: string, formData: FormData) {
+  "use server"
+  const title = String(formData.get("title")||"")
+  const content = String(formData.get("content")||"")
+  await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/admin/lessons/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, content }) })
+}
+
+C) Link from Track/Lesson pages for admins (optional)
+
+On Track or Lesson pages, surface a small admin link:
+
+{/* e.g., under lesson title */}
+<a className="text-xs underline ml-2" href={`/admin/lessons/${lesson.id}`}>Edit</a>
+
+
+⸻
+
+Run steps (Replit)
+
+npm run db:push    # applies new models (Account/Session/VerificationToken/Invite)
+npm run dev
+
+	•	As ADMIN, open /admin/invites → create invite → share /invite/<token>.
+	•	Invitee clicks link → enters email → gets magic link → signs in.
+	•	Admin can edit lesson content at /admin/lessons/[id].

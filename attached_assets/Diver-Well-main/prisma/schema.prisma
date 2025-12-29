@@ -1,0 +1,136 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      String   @default("USER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Progress tracking
+  progress Progress[]
+  exams    ExamResult[]
+
+  @@map("users")
+}
+
+model Track {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  color       String
+  order       Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  lessons     Lesson[]
+  progress    Progress[]
+  examResults ExamResult[]
+
+  @@map("tracks")
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  order       Int
+  trackId     String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  track       Track        @relation(fields: [trackId], references: [id])
+  questions   Question[]
+  progress    Progress[]
+
+  @@map("lessons")
+}
+
+model Question {
+  id       String   @id @default(cuid())
+  question String
+  type     String
+  options  String   // JSON string for multiple choice options
+  answer   String
+  lessonId String
+  order    Int
+  isActive Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  lesson     Lesson       @relation(fields: [lessonId], references: [id])
+  examResults ExamQuestion[]
+
+  @@map("questions")
+}
+
+model Progress {
+  id        String   @id @default(cuid())
+  userId    String
+  trackId   String?
+  lessonId  String?
+  completed Boolean  @default(false)
+  score     Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  user   User   @relation(fields: [userId], references: [id])
+  track  Track? @relation(fields: [trackId], references: [id])
+  lesson Lesson? @relation(fields: [lessonId], references: [id])
+
+  @@unique([userId, trackId, lessonId])
+  @@map("progress")
+}
+
+model ExamResult {
+  id        String   @id @default(cuid())
+  userId    String
+  trackId   String
+  score     Int
+  total     Int
+  passed    Boolean
+  answers   ExamQuestion[]
+  createdAt DateTime @default(now())
+
+  // Relationships
+  user  User  @relation(fields: [userId], references: [id])
+  track Track @relation(fields: [trackId], references: [id])
+
+  @@map("exam_results")
+}
+
+model ExamQuestion {
+  id           String @id @default(cuid())
+  examResultId String
+  questionId   String
+  userAnswer   String
+  isCorrect    Boolean
+
+  // Relationships
+  examResult ExamResult @relation(fields: [examResultId], references: [id])
+  question   Question   @relation(fields: [questionId], references: [id])
+
+  @@map("exam_questions")
+}
+
+// SQLite doesn't support enums, so we use strings
+// Role: USER, ADMIN, INSTRUCTOR
+// QuestionType: MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER

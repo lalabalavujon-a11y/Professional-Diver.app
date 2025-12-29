@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Unregister Service Worker</title>
+</head>
+<body>
+  <h1>Unregistering Service Worker...</h1>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+          registration.unregister().then(function(success) {
+            if (success) {
+              console.log('Service Worker unregistered successfully');
+              document.body.innerHTML = '<h1>Service Worker Unregistered!</h1><p>You can now close this tab and refresh the main app.</p>';
+            }
+          });
+        }
+        if (registrations.length === 0) {
+          document.body.innerHTML = '<h1>No Service Workers Found</h1><p>You can close this tab.</p>';
+        }
+      });
+    } else {
+      document.body.innerHTML = '<h1>Service Workers Not Supported</h1>';
+    }
+  </script>
+</body>
+</html>
+
+
+
+
+

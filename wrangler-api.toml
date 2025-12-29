@@ -1,0 +1,33 @@
+name = "professionaldiver-api"
+main = "worker-api/index.ts"
+compatibility_date = "2024-11-20"
+compatibility_flags = ["nodejs_compat"]
+
+# Production environment
+[env.production]
+name = "professionaldiver-api-production"
+# No routes needed - will be accessed via service binding
+
+# Variables
+[env.production.vars]
+ENVIRONMENT = "production"
+NODE_ENV = "production"
+
+# IMPORTANT: Using Cloudflare D1 Database for data persistence
+# D1 is SQLite-based and runs natively in Cloudflare Workers
+#
+# To set up D1:
+# 1. Create D1 database: wrangler d1 create professionaldiver-db
+# 2. Update database_id below with the actual ID from the command output
+# 3. Run migrations: wrangler d1 execute professionaldiver-db --file=./migrations/0000_tricky_ezekiel_stane.sql --env production
+#
+# D1 Database binding for production
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "professionaldiver-db"
+database_id = "b3cd3cba-d951-4e25-b912-95b960acb27d"
+
+# KV namespaces for data storage (still used for caching)
+[[env.production.kv_namespaces]]
+binding = "DATA"
+id = "603a0c567ea54fc08925b7bd99839d18"

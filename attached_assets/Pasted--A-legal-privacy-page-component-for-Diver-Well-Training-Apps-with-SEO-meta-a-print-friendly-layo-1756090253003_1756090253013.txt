@@ -1,0 +1,296 @@
+
+A /legal/privacy page component for Diver Well Training Apps with SEO meta + a print-friendly layout.
+
+
+Src/app/legal/privacy/page· typescript
+
+
+import type { Metadata } from "next";
+
+export const runtime = "nodejs";
+export const dynamic = "force-static"; // static page
+export const revalidate = 60 * 60 * 24; // revalidate daily
+
+export const metadata: Metadata = {
+  title: "Privacy Policy — Diver Well Training",
+  description:
+    "Diver Well Training's brand-neutral privacy policy covering data collection, use, security, and user rights.",
+  robots: { index: true, follow: true },
+  alternates: { canonical: "/legal/privacy" },
+  openGraph: {
+    title: "Privacy Policy — Diver Well Training",
+    description:
+      "How Diver Well Training collects and protects your data. Brand-neutral, reworded content; no affiliation with third-party brands.",
+    type: "article",
+    url: "/legal/privacy",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Privacy Policy — Diver Well Training",
+    description:
+      "How Diver Well Training collects and protects your data. Brand-neutral, reworded content; no affiliation with third-party brands.",
+  },
+};
+
+export default function PrivacyPage() {
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://diverwell.app";
+  const effectiveDate = "24 August 2025";
+  const orgEmail = "privacy@diverwell.app";
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "Privacy Policy",
+    url: `${site}/legal/privacy`,
+    isPartOf: { "@type": "WebSite", name: "Diver Well Training", url: site },
+    inLanguage: "en-GB",
+    datePublished: "2025-08-24",
+    dateModified: "2025-08-24",
+    description:
+      "Privacy Policy for Diver Well Training — a brand-neutral commercial diving training platform with original, reworded content.",
+  };
+
+  return (
+    <main className="mx-auto max-w-3xl px-6 py-10 print:max-w-none print:px-0">
+      {/* JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      {/* Local print styles (kept tiny; complements Tailwind) */}
+      <style>{`
+        @page { size: A4; margin: 12mm; }
+        @media print {
+          .no-print { display: none !important; }
+          main { box-shadow: none !important; }
+          a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.9em; }
+        }
+      `}</style>
+
+      {/* Header */}
+      <header className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Privacy Policy</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Effective date: {effectiveDate}
+          </p>
+        </div>
+        <div className="no-print">
+          <button
+            id="printBtn"
+            className="inline-flex items-center rounded-lg border px-3 py-2 text-sm hover:bg-slate-50"
+            aria-label="Print this page"
+          >
+            Print
+          </button>
+        </div>
+      </header>
+
+      {/* Policy body */}
+      <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:underline">
+        <p>
+          Diver Well Training (the “Platform”, “we”, “our”, or “us”) provides
+          brand‑neutral training and revision tools for commercial diving
+          professionals. This Privacy Policy explains how we collect, use,
+          disclose, and safeguard personal information when you use the
+          Platform, and describes your choices and rights.
+        </p>
+        <blockquote>
+          <b>Brand neutrality & original content.</b> Diver Well Training is
+          <b> not affiliated with</b> and <b>does not represent</b> any
+          certification body or brand (e.g., industry associations or
+          regulators). All learning materials, multiple‑choice questions, and
+          explanations are <b>original and re‑worded</b> to remain
+          brand‑neutral while covering comparable knowledge areas. We do not
+          process or display third‑party marks, logos, or proprietary content.
+        </blockquote>
+
+        <h2 id="who-we-are">1) Who we are</h2>
+        <p>
+          <b>Controller:</b> Diver Well Training (UK)
+          <br />
+          <b>Contact:</b> <a href={`mailto:${orgEmail}`}>{orgEmail}</a>
+        </p>
+        <p>
+          If you are in the UK/EEA, we process personal data in accordance with
+          UK GDPR / EU GDPR and the Data Protection Act 2018. If you are outside
+          the UK/EEA, we apply comparable privacy safeguards and your rights may
+          vary per local law.
+        </p>
+
+        <h2 id="what-we-collect">2) What information we collect</h2>
+        <ul>
+          <li>
+            <b>Account & access:</b> email address; authentication artifacts
+            (e.g., session tokens, magic‑link verification tokens).
+          </li>
+          <li>
+            <b>Learning activity:</b> tracks/lessons viewed, quizzes taken,
+            scores, attempts, completion status, timestamps; admin/editor
+            actions with user/time attribution.
+          </li>
+          <li>
+            <b>Technical & security:</b> IP address, device/browser info,
+            basic diagnostic logs; session and CSRF cookies.
+          </li>
+          <li>
+            <b>Support & feedback:</b> messages you send us and related contact
+            details.
+          </li>
+        </ul>
+        <p>
+          We do <b>not</b> intentionally collect special category data and we do
+          <b> not</b> profile for advertising.
+        </p>
+
+        <h2 id="how-we-use">3) How we use information (purposes & legal bases)</h2>
+        <ul>
+          <li>
+            <b>Provide the service</b> (accounts, authentication, lessons,
+            quizzes, progress). <i>Legal basis: Contract.</i>
+          </li>
+          <li>
+            <b>Secure & maintain</b> the Platform (logging, abuse prevention,
+            uptime). <i>Legal basis: Legitimate Interests.</i>
+          </li>
+          <li>
+            <b>Improve content & UX</b> (aggregated, anonymised analytics;
+            quality checks on brand‑neutral coverage). <i>Legal basis:
+            Legitimate Interests.</i>
+          </li>
+          <li>
+            <b>Communicate</b> (service messages, account notices; optional
+            updates). <i>Legal basis: Contract / Consent.</i>
+          </li>
+          <li>
+            <b>Comply with law.</b> <i>Legal basis: Legal Obligation.</i>
+          </li>
+        </ul>
+        <p>We do not use your personal information for behavioural advertising.</p>
+
+        <h2 id="cookies">4) Cookies & similar technologies</h2>
+        <p>
+          We use strictly necessary cookies for authentication (session) and
+          security (e.g., CSRF). Optional analytics cookies, if any, are
+          disabled by default and presented with clear consent choices.
+        </p>
+
+        <h2 id="sharing">5) Data sharing & processors</h2>
+        <p>
+          We share personal data only with service providers who help us run the
+          Platform under data‑processing agreements, such as hosting,
+          email‑delivery, and error monitoring. We do not sell personal
+          information.
+        </p>
+
+        <h2 id="transfers">6) International transfers</h2>
+        <p>
+          Our processors may store data in the UK, EEA, and/or other
+          countries with adequate safeguards. Where required, we rely on
+          Standard Contractual Clauses or equivalent mechanisms.
+        </p>
+
+        <h2 id="retention">7) Data retention</h2>
+        <ul>
+          <li>
+            <b>Account & learning records:</b> retained while your account is
+            active; deleted or anonymised within 30–90 days of confirmed
+            deletion request.
+          </li>
+          <li>
+            <b>Operational logs:</b> typically ≤ 30 days for security and
+            troubleshooting.
+          </li>
+          <li>
+            <b>Legal/financial records:</b> retained as required by law.
+          </li>
+        </ul>
+
+        <h2 id="rights">8) Your rights</h2>
+        <p>
+          Depending on your location, you may have the right to access, rectify,
+          erase, restrict, object, or port your data, and to withdraw consent
+          where applicable. To exercise rights, email
+          {" "}
+          <a href={`mailto:${orgEmail}`}>{orgEmail}</a>.
+        </p>
+
+        <h2 id="children">9) Children</h2>
+        <p>
+          The Platform is intended for users 13+ (or the age required by your
+          jurisdiction). We do not knowingly collect personal data from children
+          under the applicable age.
+        </p>
+
+        <h2 id="security">10) Security</h2>
+        <p>
+          We maintain administrative, technical, and organisational measures
+          appropriate to risk (encryption in transit, access controls,
+          least‑privilege access, audit logging, secure credential management).
+          No system is 100% secure; we will notify users/authorities of
+          significant incidents as required by law.
+        </p>
+
+        <h2 id="brand-neutrality">11) Brand‑neutral content & intellectual property</h2>
+        <ul>
+          <li>
+            <b>Brand neutrality.</b> We vet materials to exclude third‑party
+            marks, logos, proprietary passages, or branded question banks. Our
+            content is re‑written to cover comparable knowledge domains without
+            reproducing protected text or implying endorsement.
+          </li>
+          <li>
+            <b>Your inputs.</b> If you submit suggestions/corrections, you
+            confirm you have rights to share them. We may use such inputs to
+            improve materials while maintaining neutrality.
+          </li>
+          <li>
+            <b>Takedown.</b> If you believe any content infringes rights or
+            includes unintended brand references, email
+            {" "}
+            <a href={`mailto:${orgEmail}`}>{orgEmail}</a> (subject: "Content
+            Review").
+          </li>
+        </ul>
+
+        <h2 id="third-parties">12) Third‑party links</h2>
+        <p>
+          The Platform may link to non‑affiliated sites. Their privacy practices
+          are their own; we encourage you to review their policies.
+        </p>
+
+        <h2 id="changes">13) Changes to this policy</h2>
+        <p>
+          We may update this policy to reflect operational, legal, or regulatory
+          changes. We will post the new version with an updated date and, where
+          appropriate, provide prominent notice.
+        </p>
+
+        <h2 id="contact">14) Contact</h2>
+        <p>
+          Questions or requests? Email {" "}
+          <a href={`mailto:${orgEmail}`}>{orgEmail}</a>.
+        </p>
+
+        <hr className="my-8" />
+        <h3 className="text-base font-semibold">Quick summary</h3>
+        <ul>
+          <li>We only collect what we need: email for login, session cookies, quiz progress.</li>
+          <li>No ads, no sale of data.</li>
+          <li>Content is brand‑neutral and re‑worded—no third‑party marks.</li>
+          <li>You control your data via access/deletion requests.</li>
+          <li>We use reputable processors under contracts and safeguards.</li>
+        </ul>
+      </article>
+
+      {/* Print enhancer (binds after hydration) */}
+      {/* eslint-disable @next/next/no-sync-scripts */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `document.getElementById('printBtn')?.addEventListener('click',function(e){e.preventDefault(); window.print();});`,
+        }}
+      />
+    </main>
+  );
+}

@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diver Well Training - Professional Diving Education Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/heroicons@2.0.18/24/outline/index.js" type="module"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#EFF6FF',
+                            500: '#0066CC',
+                            600: '#0052A3',
+                            700: '#1E3A8A'
+                        },
+                        ocean: {
+                            500: '#059669',
+                            600: '#047857'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="min-h-screen bg-gray-50 text-slate-900 font-sans">
+    <!-- @COMPONENT: Navigation -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                            </svg>
+                        </div>
+                        <h1 class="text-xl font-bold text-slate-900">Diver Well Training</h1>
+                    </div>
+                    <div class="hidden md:flex space-x-6">
+                        <a href="#tracks" class="text-slate-600 hover:text-slate-900 font-medium transition-colors">Tracks</a>
+                        <a href="#dashboard" class="text-slate-600 hover:text-slate-900 font-medium transition-colors">Dashboard</a>
+                        <a href="#progress" class="text-slate-600 hover:text-slate-900 font-medium transition-colors">Progress</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-slate-600 hover:text-slate-900 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5V7a4 4 0 11-8 0V17"/>
+                        </svg>
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                            <span class="text-primary-700 font-medium text-sm" data-bind="user.initials">JD</span>
+                        </div>
+                        <span class="text-sm font-medium text-slate-700" data-bind="user.name">John Diver</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- @END_COMPONENT: Navigation -->
+
+    <!-- @COMPONENT: MainContent -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Hero Section -->
+        <!-- @COMPONENT: HeroSection -->
+        <section class="bg-gradient-to-br from-primary-50 to-ocean-50 rounded-2xl p-8 mb-8">
+            <div class="flex flex-col lg:flex-row items-center justify-between">
+                <div class="lg:w-2/3 mb-6 lg:mb-0">
+                    <h2 class="text-3xl lg:text-4xl font-bold text-slate-900 mb-4">
+                        Professional Diving Education Platform
+                    </h2>
+                    <p class="text-lg text-slate-600 mb-6 max-w-2xl">
+                        Master diving physiology, decompression theory, and advanced techniques through comprehensive tracks designed by industry experts.
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <button class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                            Start Learning
+                        </button>
+                        <button class="border border-slate-300 hover:border-slate-400 text-slate-700 px-6 py-3 rounded-lg font-semibold transition-colors">
+                            View Progress
+                        </button>
+                    </div>
+                </div>
+                <div class="lg:w-1/3">
+                    <!-- A serene underwater scene showing a professional diver in clear blue water -->
+                    <img src="https://images.unsplash.com/photo-1583212292454-1fe6229603b7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600" alt="Professional diver underwater" class="rounded-xl shadow-lg w-full h-auto" />
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: HeroSection -->
+
+        <!-- Learning Tracks Section -->
+        <!-- @COMPONENT: LearningTracksSection -->
+        <section id="tracks" class="mb-12">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900 mb-2">Learning Tracks</h2>
+                    <p class="text-slate-600">Comprehensive courses designed for professional divers</p>
+                </div>
+                <div class="hidden md:flex items-center space-x-2">
+                    <span class="text-sm text-slate-500">View:</span>
+                    <button class="p-2 rounded-md bg-slate-100 text-slate-700">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 000 2h14a1 1 0 100-2H3zM3 10a1 1 0 000 2h14a1 1 0 100-2H3zM3 16a1 1 0 100 2h14a1 1 0 100-2H3z"/>
+                        </svg>
+                    </button>
+                    <button class="p-2 rounded-md text-slate-500 hover:bg-slate-100">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- @MAP: tracks.map(track => ( -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex-1">
+                                <h3 class="text-xl font-semibold text-slate-900 mb-2" data-bind="track.title">Physiology Basics</h3>
+                                <p class="text-slate-600 text-sm mb-4" data-bind="track.summary">Core physiology concepts for professional diving</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-1 bg-ocean-100 text-ocean-700 text-xs font-medium rounded-full">Active</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm text-slate-600">Progress</span>
+                                <span class="text-sm font-medium text-slate-900" data-bind="track.progress">3/5 lessons</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-primary-500 h-2 rounded-full" style="width: 60%"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4 text-sm text-slate-500">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                    </svg>
+                                    5 lessons
+                                </span>
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    3 quizzes
+                                </span>
+                            </div>
+                            <button class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm">
+                                Continue
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex-1">
+                                <h3 class="text-xl font-semibold text-slate-900 mb-2" data-bind="track.title">Decompression Theory</h3>
+                                <p class="text-slate-600 text-sm mb-4" data-bind="track.summary">Advanced decompression theory and practical applications</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">Locked</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm text-slate-600">Progress</span>
+                                <span class="text-sm font-medium text-slate-900" data-bind="track.progress">0/7 lessons</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-gray-300 h-2 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4 text-sm text-slate-500">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                    </svg>
+                                    7 lessons
+                                </span>
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    5 quizzes
+                                </span>
+                            </div>
+                            <button class="border border-slate-300 text-slate-400 px-4 py-2 rounded-lg font-medium cursor-not-allowed text-sm">
+                                Complete Prerequisites
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_MAP )) -->
+            </div>
+        </section>
+        <!-- @END_COMPONENT: LearningTracksSection -->
+
+        <!-- Individual Lesson View -->
+        <!-- @COMPONENT: LessonView -->
+        <section class="mb-12 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <button class="text-slate-500 hover:text-slate-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                            </svg>
+                        </button>
+                        <div>
+                            <h2 class="text-xl font-semibold text-slate-900" data-bind="lesson.title">Respiratory System Fundamentals</h2>
+                            <p class="text-sm text-slate-500" data-bind="lesson.track">Physiology Basics • Lesson 1 of 5</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <!-- @STATE: isAdmin:boolean = false -->
+                        <button class="text-sm text-primary-600 hover:text-primary-700 font-medium" data-event="click:editLesson" data-mock="true">
+                            Edit Content
+                        </button>
+                        <button class="p-2 text-slate-500 hover:text-slate-700 rounded-lg hover:bg-gray-100">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex">
+                <div class="flex-1 p-6">
+                    <article class="prose prose-slate max-w-none">
+                        <div data-bind="lesson.content" data-mock="true">
+                            <h3>Understanding Respiratory Mechanics</h3>
+                            <p>The human respiratory system is a complex network of organs and tissues that work together to facilitate gas exchange. For divers, understanding these fundamentals is crucial for safe diving practices.</p>
+                            
+                            <h4>Key Components</h4>
+                            <ul>
+                                <li><strong>Lungs:</strong> Primary organs for gas exchange</li>
+                                <li><strong>Diaphragm:</strong> Main muscle for breathing</li>
+                                <li><strong>Airways:</strong> Pathway for air movement</li>
+                                <li><strong>Alveoli:</strong> Sites of gas exchange</li>
+                            </ul>
+
+                            <h4>Breathing Process</h4>
+                            <p>During inspiration, the diaphragm contracts and moves downward, creating negative pressure that draws air into the lungs. Expiration typically occurs passively as the diaphragm relaxes.</p>
+                        </div>
+                    </article>
+
+                    <div class="mt-8 pt-6 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <button class="flex items-center text-slate-600 hover:text-slate-900">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                </svg>
+                                Previous Lesson
+                            </button>
+                            <button class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg font-medium">
+                                Take Quiz
+                            </button>
+                            <button class="flex items-center text-slate-600 hover:text-slate-900">
+                                Next Lesson
+                                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-80 border-l border-gray-200 bg-gray-50 p-6">
+                    <div class="mb-6">
+                        <h3 class="font-semibold text-slate-900 mb-3">Lesson Progress</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 bg-ocean-500 rounded-full flex items-center justify-center mr-3">
+                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                                    </svg>
+                                </div>
+                                <span class="text-sm text-slate-600">Content Reading</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 border-2 border-primary-500 rounded-full flex items-center justify-center mr-3">
+                                    <div class="w-2 h-2 bg-primary-500 rounded-full"></div>
+                                </div>
+                                <span class="text-sm text-slate-900 font-medium">Quiz Attempt</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 border-2 border-gray-300 rounded-full mr-3"></div>
+                                <span class="text-sm text-slate-400">Completion</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="font-semibold text-slate-900 mb-3">Track Outline</h3>
+                        <div class="space-y-2">
+                            <div class="flex items-center p-2 bg-primary-50 rounded-lg border border-primary-200">
+                                <div class="w-2 h-2 bg-primary-500 rounded-full mr-3"></div>
+                                <span class="text-sm font-medium text-primary-700">Respiratory System</span>
+                            </div>
+                            <div class="flex items-center p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                                <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
+                                <span class="text-sm text-slate-600">Circulatory System</span>
+                            </div>
+                            <div class="flex items-center p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                                <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
+                                <span class="text-sm text-slate-600">Gas Laws</span>
+                            </div>
+                            <div class="flex items-center p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                                <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
+                                <span class="text-sm text-slate-600">Pressure Effects</span>
+                            </div>
+                            <div class="flex items-center p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                                <div class="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
+                                <span class="text-sm text-slate-600">Final Assessment</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="font-semibold text-slate-900 mb-3">Resources</h3>
+                        <div class="space-y-2">
+                            <a href="#" class="flex items-center p-2 text-primary-600 hover:bg-primary-50 rounded-lg">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                                </svg>
+                                <span class="text-sm">Anatomy Diagrams</span>
+                            </a>
+                            <a href="#" class="flex items-center p-2 text-primary-600 hover:bg-primary-50 rounded-lg">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                                <span class="text-sm">Video Tutorial</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: LessonView -->
+
+        <!-- Quiz Interface -->
+        <!-- @COMPONENT: QuizInterface -->
+        <section class="mb-12 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-semibold text-slate-900">Respiratory System Quiz</h2>
+                        <p class="text-sm text-slate-500">5 questions • 10 minutes</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-slate-500">Time Remaining</div>
+                        <div class="text-lg font-mono font-semibold text-slate-900">08:42</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <!-- Progress indicator -->
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-slate-700">Question 2 of 5</span>
+                        <span class="text-sm text-slate-500">40% Complete</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-primary-500 h-2 rounded-full transition-all" style="width: 40%"></div>
+                    </div>
+                </div>
+
+                <!-- Question -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-4" data-bind="question.prompt">
+                        Which muscle is primarily responsible for inspiration during normal breathing?
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <!-- @MAP: question.options.map(option => ( -->
+                        <label class="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                            <input type="radio" name="question-2" value="a" class="sr-only" />
+                            <div class="flex items-center justify-center w-5 h-5 border-2 border-gray-300 rounded-full mr-4 group-checked:border-primary-500">
+                                <div class="w-2 h-2 bg-primary-500 rounded-full opacity-0 group-checked:opacity-100"></div>
+                            </div>
+                            <span class="text-slate-700" data-bind="option.text">Intercostal muscles</span>
+                        </label>
+                        
+                        <label class="flex items-center p-4 border border-primary-200 bg-primary-50 rounded-lg cursor-pointer">
+                            <input type="radio" name="question-2" value="b" class="sr-only" checked />
+                            <div class="flex items-center justify-center w-5 h-5 border-2 border-primary-500 rounded-full mr-4">
+                                <div class="w-2 h-2 bg-primary-500 rounded-full"></div>
+                            </div>
+                            <span class="text-slate-700 font-medium" data-bind="option.text">Diaphragm</span>
+                        </label>
+                        
+                        <label class="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                            <input type="radio" name="question-2" value="c" class="sr-only" />
+                            <div class="flex items-center justify-center w-5 h-5 border-2 border-gray-300 rounded-full mr-4">
+                                <div class="w-2 h-2 bg-primary-500 rounded-full opacity-0"></div>
+                            </div>
+                            <span class="text-slate-700" data-bind="option.text">Accessory breathing muscles</span>
+                        </label>
+                        
+                        <label class="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                            <input type="radio" name="question-2" value="d" class="sr-only" />
+                            <div class="flex items-center justify-center w-5 h-5 border-2 border-gray-300 rounded-full mr-4">
+                                <div class="w-2 h-2 bg-primary-500 rounded-full opacity-0"></div>
+                            </div>
+                            <span class="text-slate-700" data-bind="option.text">Pectoral muscles</span>
+                        </label>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="flex items-center justify-between">
+                    <button class="flex items-center text-slate-600 hover:text-slate-900 px-4 py-2 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Previous
+                    </button>
+                    <div class="flex space-x-2">
+                        <button class="w-8 h-8 bg-ocean-500 text-white rounded-full text-sm font-medium">1</button>
+                        <button class="w-8 h-8 bg-primary-500 text-white rounded-full text-sm font-medium">2</button>
+                        <button class="w-8 h-8 border border-gray-300 text-slate-600 rounded-full text-sm font-medium hover:border-gray-400">3</button>
+                        <button class="w-8 h-8 border border-gray-300 text-slate-600 rounded-full text-sm font-medium hover:border-gray-400">4</button>
+                        <button class="w-8 h-8 border border-gray-300 text-slate-600 rounded-full text-sm font-medium hover:border-gray-400">5</button>
+                    </div>
+                    <button class="flex items-center bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        Next
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: QuizInterface -->
+
+        <!-- Admin Dashboard -->
+        <!-- @COMPONENT: AdminDashboard -->
+        <section class="mb-12">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="border-b border-gray-200 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-semibold text-slate-900">Admin Dashboard</h2>
+                            <p class="text-sm text-slate-500">Manage invites, content, and user progress</p>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                                New Invite
+                            </button>
+                            <button class="border border-slate-300 hover:border-slate-400 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                                Export Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-primary-50 rounded-lg p-4">
+                            <div class="flex items-center">
+                                <div class="p-2 bg-primary-100 rounded-lg">
+                                    <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-primary-600">Active Users</p>
+                                    <p class="text-2xl font-bold text-primary-900">127</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-ocean-50 rounded-lg p-4">
+                            <div class="flex items-center">
+                                <div class="p-2 bg-ocean-100 rounded-lg">
+                                    <svg class="w-6 h-6 text-ocean-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-ocean-600">Lessons</p>
+                                    <p class="text-2xl font-bold text-ocean-900">23</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-yellow-50 rounded-lg p-4">
+                            <div class="flex items-center">
+                                <div class="p-2 bg-yellow-100 rounded-lg">
+                                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-yellow-600">Pending Invites</p>
+                                    <p class="text-2xl font-bold text-yellow-900">8</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <div class="flex items-center">
+                                <div class="p-2 bg-green-100 rounded-lg">
+                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-green-600">Completions</p>
+                                    <p class="text-2xl font-bold text-green-900">89</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Invites Management -->
+                    <div class="mb-8">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-slate-900">Recent Invites</h3>
+                            <button class="text-primary-600 hover:text-primary-700 font-medium text-sm">View All</button>
+                        </div>
+                        
+                        <div class="bg-gray-50 rounded-lg overflow-hidden">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <!-- @MAP: invites.map(invite => ( -->
+                                    <tr data-mock="true">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="text-sm font-medium text-slate-900" data-bind="invite.email">john.smith@email.com</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex px-2 py-1 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded-full">
+                                                Pending
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500" data-bind="invite.createdAt">
+                                            2 hours ago
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                            <button class="text-primary-600 hover:text-primary-900">Copy Link</button>
+                                            <button class="text-red-600 hover:text-red-900">Revoke</button>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr data-mock="true">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="text-sm font-medium text-slate-900" data-bind="invite.email">sarah.johnson@email.com</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
+                                                Accepted
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500" data-bind="invite.createdAt">
+                                            1 day ago
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <span class="text-slate-400">Completed</span>
+                                        </td>
+                                    </tr>
+                                    <!-- @END_MAP )) -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Content Management -->
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-slate-900">Content Management</h3>
+                            <button class="text-primary-600 hover:text-primary-700 font-medium text-sm">Manage All</button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-medium text-slate-900">Physiology Basics</h4>
+                                    <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">Published</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mb-4">5 lessons, 3 quizzes</p>
+                                <div class="flex space-x-2">
+                                    <button class="text-sm text-primary-600 hover:text-primary-700 font-medium">Edit</button>
+                                    <button class="text-sm text-slate-600 hover:text-slate-700">Preview</button>
+                                </div>
+                            </div>
+                            
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-medium text-slate-900">Decompression Theory</h4>
+                                    <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">Draft</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mb-4">7 lessons, 5 quizzes</p>
+                                <div class="flex space-x-2">
+                                    <button class="text-sm text-primary-600 hover:text-primary-700 font-medium">Edit</button>
+                                    <button class="text-sm text-ocean-600 hover:text-ocean-700">Publish</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: AdminDashboard -->
+
+        <!-- Lesson Content Editor -->
+        <!-- @COMPONENT: LessonEditor -->
+        <section class="mb-12 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-semibold text-slate-900">Edit Lesson: Respiratory System Fundamentals</h2>
+                        <p class="text-sm text-slate-500">Physiology Basics • Lesson 1</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button class="border border-slate-300 hover:border-slate-400 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                            Preview
+                        </button>
+                        <button class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <form class="space-y-6">
+                    <!-- Title Field -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Lesson Title</label>
+                        <input 
+                            type="text" 
+                            value="Respiratory System Fundamentals"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                            data-bind="lesson.title"
+                        />
+                    </div>
+
+                    <!-- Order Field -->
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Lesson Order</label>
+                            <input 
+                                type="number" 
+                                value="1"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                                data-bind="lesson.order"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Track</label>
+                            <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                                <option selected>Physiology Basics</option>
+                                <option>Decompression Theory</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Content Editor -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Lesson Content (Markdown)</label>
+                        <div class="border border-gray-300 rounded-lg overflow-hidden">
+                            <div class="bg-gray-50 border-b border-gray-200 px-4 py-2">
+                                <div class="flex space-x-2">
+                                    <button type="button" class="p-1 text-slate-600 hover:text-slate-900 hover:bg-gray-200 rounded">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 2l3 6 3-6M6 14l3 6 3-6M6 10h12M6 16h12"/>
+                                        </svg>
+                                    </button>
+                                    <button type="button" class="p-1 text-slate-600 hover:text-slate-900 hover:bg-gray-200 rounded">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 2l6 6-6 6M6 14l6-6-6-6"/>
+                                        </svg>
+                                    </button>
+                                    <button type="button" class="p-1 text-slate-600 hover:text-slate-900 hover:bg-gray-200 rounded">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                        </svg>
+                                    </button>
+                                    <div class="w-px bg-gray-300 mx-2"></div>
+                                    <button type="button" class="text-xs text-slate-600 hover:text-slate-900 px-2 py-1 hover:bg-gray-200 rounded">Preview</button>
+                                </div>
+                            </div>
+                            <textarea 
+                                rows="20"
+                                class="w-full px-4 py-3 border-0 focus:ring-0 font-mono text-sm resize-none"
+                                placeholder="Enter lesson content in Markdown format..."
+                                data-bind="lesson.content"
+                            ># Understanding Respiratory Mechanics
+
+The human respiratory system is a complex network of organs and tissues that work together to facilitate gas exchange. For divers, understanding these fundamentals is crucial for safe diving practices.
+
+## Key Components
+
+- **Lungs:** Primary organs for gas exchange
+- **Diaphragm:** Main muscle for breathing  
+- **Airways:** Pathway for air movement
+- **Alveoli:** Sites of gas exchange
+
+## Breathing Process
+
+During inspiration, the diaphragm contracts and moves downward, creating negative pressure that draws air into the lungs. Expiration typically occurs passively as the diaphragm relaxes.
+
+### Important for Divers
+
+Understanding normal respiratory mechanics is essential before learning about:
+1. Pressure effects on breathing
+2. Gas mixture considerations
+3. Emergency breathing techniques</textarea>
+                        </div>
+                        <p class="mt-2 text-sm text-slate-500">Supports Markdown formatting including headers, lists, bold, italic, and links.</p>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                        <button type="button" class="text-slate-600 hover:text-slate-900 font-medium">
+                            Cancel
+                        </button>
+                        <div class="space-x-3">
+                            <button type="button" class="border border-slate-300 hover:border-slate-400 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                                Save as Draft
+                            </button>
+                            <button type="submit" class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                                Publish Changes
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: LessonEditor -->
+
+        <!-- User Dashboard -->
+        <!-- @COMPONENT: UserDashboard -->
+        <section class="mb-12">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="border-b border-gray-200 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-semibold text-slate-900">Your Learning Dashboard</h2>
+                            <p class="text-sm text-slate-500">Track your progress and continue your diving education</p>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <div class="text-sm text-slate-500">Overall Progress</div>
+                                <div class="text-lg font-semibold text-slate-900">45%</div>
+                            </div>
+                            <div class="w-16 h-16 relative">
+                                <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 64 64">
+                                    <circle cx="32" cy="32" r="28" fill="none" stroke="#E5E7EB" stroke-width="8"/>
+                                    <circle cx="32" cy="32" r="28" fill="none" stroke="#0066CC" stroke-width="8" 
+                                            stroke-dasharray="175.929" stroke-dashoffset="96.76" stroke-linecap="round"/>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-sm font-semibold text-slate-700">45%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <!-- Quick Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-gradient-to-br from-primary-50 to-primary-100 rounded-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-primary-600 font-semibold">Lessons Completed</p>
+                                    <p class="text-3xl font-bold text-primary-900">8</p>
+                                    <p class="text-sm text-primary-700">of 12 total</p>
+                                </div>
+                                <div class="p-3 bg-primary-200 rounded-full">
+                                    <svg class="w-6 h-6 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-ocean-50 to-ocean-100 rounded-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-ocean-600 font-semibold">Quiz Average</p>
+                                    <p class="text-3xl font-bold text-ocean-900">87%</p>
+                                    <p class="text-sm text-ocean-700">across 5 quizzes</p>
+                                </div>
+                                <div class="p-3 bg-ocean-200 rounded-full">
+                                    <svg class="w-6 h-6 text-ocean-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-yellow-600 font-semibold">Study Streak</p>
+                                    <p class="text-3xl font-bold text-yellow-900">12</p>
+                                    <p class="text-sm text-yellow-700">days active</p>
+                                </div>
+                                <div class="p-3 bg-yellow-200 rounded-full">
+                                    <svg class="w-6 h-6 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Progress -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-slate-900 mb-4">Continue Learning</h3>
+                        <div class="bg-gradient-to-r from-primary-50 to-ocean-50 rounded-lg p-6 border border-primary-200">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h4 class="font-semibold text-slate-900">Physiology Basics</h4>
+                                    <p class="text-sm text-slate-600">Next: Circulatory System</p>
+                                </div>
+                                <button class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                                    Continue
+                                </button>
+                            </div>
+                            <div class="w-full bg-white/50 rounded-full h-2">
+                                <div class="bg-primary-500 h-2 rounded-full" style="width: 60%"></div>
+                            </div>
+                            <p class="text-sm text-slate-600 mt-2">3 of 5 lessons completed</p>
+                        </div>
+                    </div>
+
+                    <!-- Recent Quiz Results -->
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-slate-900">Recent Quiz Results</h3>
+                            <button class="text-primary-600 hover:text-primary-700 font-medium text-sm">View All</button>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <!-- @MAP: quizResults.map(result => ( -->
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg" data-mock="true">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-slate-900" data-bind="quiz.title">Respiratory System Quiz</h4>
+                                        <p class="text-sm text-slate-500" data-bind="quiz.date">2 days ago</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-lg font-semibold text-green-600" data-bind="quiz.score">90%</span>
+                                    <p class="text-sm text-slate-500" data-bind="quiz.attempts">1st attempt</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg" data-mock="true">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-slate-900" data-bind="quiz.title">Gas Laws Fundamentals</h4>
+                                        <p class="text-sm text-slate-500" data-bind="quiz.date">5 days ago</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-lg font-semibold text-yellow-600" data-bind="quiz.score">72%</span>
+                                    <p class="text-sm text-slate-500" data-bind="quiz.attempts">2nd attempt</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg" data-mock="true">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-slate-900" data-bind="quiz.title">Pressure Effects Quiz</h4>
+                                        <p class="text-sm text-slate-500" data-bind="quiz.date">1 week ago</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-lg font-semibold text-green-600" data-bind="quiz.score">95%</span>
+                                    <p class="text-sm text-slate-500" data-bind="quiz.attempts">1st attempt</p>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: UserDashboard -->
+
+    </main>
+    <!-- @END_COMPONENT: MainContent -->
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="flex items-center space-x-3 mb-4 md:mb-0">
+                    <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                        </svg>
+                    </div>
+                    <span class="font-semibold text-slate-900">Diver Well Training</span>
+                </div>
+                <div class="flex items-center space-x-6 text-sm text-slate-500">
+                    <a href="#" class="hover:text-slate-700">Privacy Policy</a>
+                    <a href="#" class="hover:text-slate-700">Terms of Service</a>
+                    <a href="#" class="hover:text-slate-700">Support</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        (function() {
+            // TODO: Implement business logic, API calls, or state management
+            
+            // Mock functionality for interactive elements
+            document.addEventListener('DOMContentLoaded', function() {
+                // Mock navigation state management
+                const currentPage = window.location.hash || '#tracks';
+                
+                // Mock quiz functionality
+                const quizOptions = document.querySelectorAll('input[type="radio"]');
+                quizOptions.forEach(option => {
+                    option.addEventListener('change', function() {
+                        // Reset all labels
+                        const labels = document.querySelectorAll('label');
+                        labels.forEach(label => {
+                            label.classList.remove('border-primary-200', 'bg-primary-50');
+                            label.classList.add('border-gray-200');
+                        });
+                        
+                        // Highlight selected option
+                        const selectedLabel = this.closest('label');
+                        selectedLabel.classList.remove('border-gray-200');
+                        selectedLabel.classList.add('border-primary-200', 'bg-primary-50');
+                    });
+                });
+
+                // Mock admin invite management
+                const copyButtons = document.querySelectorAll('button:contains("Copy Link")');
+                copyButtons.forEach(button => {
+                    button.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        // Mock copy functionality
+                        console.log('Invite link copied to clipboard');
+                    });
+                });
+
+                // Mock lesson editor functionality  
+                const editorTextarea = document.querySelector('textarea');
+                if (editorTextarea) {
+                    editorTextarea.addEventListener('input', function() {
+                        // Mock auto-save functionality
+                        console.log('Auto-saving content...');
+                    });
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

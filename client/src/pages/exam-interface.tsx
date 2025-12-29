@@ -186,9 +186,11 @@ export default function ExamInterface() {
               <p className="text-gray-600 mb-6">
                 No questions found for the exam: {currentSlug}
               </p>
-              <Button onClick={() => window.history.back()}>
-                Go Back
-              </Button>
+              <Link href="/exams">
+                <Button>
+                  Go Back to Exams
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

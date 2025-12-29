@@ -1,0 +1,67 @@
+name = "professionaldiver-app"
+main = "worker/index.ts"
+compatibility_date = "2024-11-20"
+compatibility_flags = ["nodejs_compat"]
+
+# Development environment
+[env.development]
+name = "diverwell-app-dev"
+
+# Assets configuration for development
+[env.development.assets]
+directory = "./dist/client"
+binding = "ASSETS"
+
+# Production environment for professionaldiver.app
+[env.production]
+name = "professionaldiver-app-production"
+routes = [
+  { pattern = "professionaldiver.app/*", zone_name = "professionaldiver.app" },
+  { pattern = "www.professionaldiver.app/*", zone_name = "professionaldiver.app" }
+]
+
+# Variables for the worker
+[env.production.vars]
+ENVIRONMENT = "production"
+NODE_ENV = "production"
+
+# Assets configuration for production
+[env.production.assets]
+directory = "./dist/client"
+binding = "ASSETS"
+
+# KV namespaces for caching and data storage
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "57528e506bd44c3a8967a69ae3743786"
+
+[[env.production.kv_namespaces]]
+binding = "DATA"
+id = "603a0c567ea54fc08925b7bd99839d18"
+
+# Service binding to API worker
+[[env.production.services]]
+binding = "API"
+service = "professionaldiver-api-production"
+
+# IMPORTANT: Data Persistence Configuration
+# 
+# Using PostgreSQL (Neon) for data persistence via DATABASE_URL environment variable
+# D1 Database bindings are commented out as we use external PostgreSQL
+#
+# To set up D1 (if needed in future):
+# 1. Create D1 database: wrangler d1 create professionaldiver-db
+# 2. Update database_id below with the actual ID from the command output
+# 3. Run migrations: wrangler d1 execute professionaldiver-db --file=./migrations/0000_tricky_ezekiel_stane.sql --env production
+#
+# D1 Database binding for production
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "professionaldiver-db"
+database_id = "b3cd3cba-d951-4e25-b912-95b960acb27d"
+
+# D1 Database binding for development (DISABLED - using SQLite locally)
+# [[env.development.d1_databases]]
+# binding = "DB"
+# database_name = "professionaldiver-db"
+# database_id = "your-d1-database-id"

@@ -1,0 +1,354 @@
+Replit Turbo Starter — Diver Well Training (Next.js + Prisma + Neon)
+
+Zero-to-running in Replit with Next.js (App Router) + Prisma + Postgres (Neon/Supabase). Brand‑neutral. Paste these files/commands and you’ll have Tracks → Lessons → Auth live in minutes.
+
+⸻
+
+0) Create the Repl
+	1.	In Replit, click Create Repl → Templates → Next.js (TypeScript). Name it diver-well-training.
+	2.	Open the Shell tab (bottom) for commands below.
+
+⸻
+
+1) Install deps
+
+npm i @prisma/client next-auth bcryptjs zod
+npm i -D prisma tsx @types/bcryptjs
+
+
+⸻
+
+2) Configure package.json
+
+Add/merge scripts to force Prisma client generation and run Next on Replit’s port.
+
+{
+  "scripts": {
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "dev": "next dev -H 0.0.0.0 -p $PORT",
+    "build": "prisma generate && next build",
+    "start": "next start -H 0.0.0.0 -p $PORT"
+  }
+}
+
+Replit uses $PORT and requires -H 0.0.0.0 so the app is reachable.
+
+⸻
+
+3) Environment variables (Replit Secrets)
+
+In Tools → Secrets add:
+	•	DATABASE_URL = postgresql://USER:PASSWORD@HOST:5432/DB_NAME?sslmode=require
+	•	NEXTAUTH_SECRET = (generate a random 32+ char string)
+	•	NEXTAUTH_URL = your Repl URL (appears after first run), e.g. https://diver-well-training.username.repl.co
+	•	NEXT_PUBLIC_SITE_URL = same as above
+
+For DATABASE_URL, create a quick Neon or Supabase Postgres. Copy the connection string and append ?sslmode=require if missing. If the password has special chars, URL‑encode it.
+
+⸻
+
+4) Prisma schema — prisma/schema.prisma
+
+generator client { provider = "prisma-client-js" }
+
+datasource db {
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "foreignKeys"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  attempts  Attempt[]
+}
+
+enum Role { USER ADMIN }
+
+model Track {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  summary   String?
+  createdAt DateTime @default(now())
+  lessons   Lesson[]
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  trackId   String
+  title     String
+  order     Int      @default(0)
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+}
+
+model Quiz {
+  id        String    @id @default(cuid())
+  lessonId  String
+  title     String
+  questions Question[]
+  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model Question {
+  id        String  @id @default(cuid())
+  quizId    String
+  prompt    String
+  a         String
+  b         String
+  c         String
+  d         String
+  answer    String
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+model Attempt {
+  id        String   @id @default(cuid())
+  userId    String
+  quizId    String
+  score     Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+
+⸻
+
+5) Prisma client helper — src/lib/prisma.ts
+
+import { PrismaClient } from "@prisma/client"
+
+declare global { var prisma: PrismaClient | undefined }
+export const prisma = global.prisma ?? new PrismaClient()
+if (process.env.NODE_ENV !== "production") global.prisma = prisma
+
+
+⸻
+
+6) Seed data — prisma/seed.ts
+
+import { prisma } from "@/lib/prisma"
+
+async function main() {
+  const tracks = [
+    { title: "Physiology Basics", slug: "physiology", summary: "Core physiology concepts (brand‑neutral)" },
+    { title: "Decompression", slug: "decompression", summary: "Theory & practice (brand‑neutral)" },
+  ]
+  for (const t of tracks) {
+    const track = await prisma.track.upsert({ where: { slug: t.slug }, update: {}, create: t })
+    await prisma.lesson.upsert({
+      where: { id: `${track.id}-intro` },
+      update: {},
+      create: { id: `${track.id}-intro`, trackId: track.id, title: `${t.title} — Intro`, order: 1, content: "Welcome to Diver Well Training." },
+    })
+  }
+  const bcrypt = await import("bcryptjs")
+  const hash = await bcrypt.hash("admin123", 12)
+  await prisma.user.upsert({
+    where: { email: "admin@diverwell.app" },
+    update: {},
+    create: { email: "admin@diverwell.app", password: hash, role: "ADMIN", name: "Admin" },
+  })
+}
+
+main().then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)})
+
+Run:
+
+npm run db:push && npm run db:seed
+
+
+⸻
+
+7) App shell
+
+src/app/layout.tsx
+
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+import "./globals.css"
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en"><body className="min-h-screen bg-white text-slate-900">{children}</body></html>
+  )
+}
+
+src/app/page.tsx — list tracks
+
+import { prisma } from "@/lib/prisma"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export default async function Home() {
+  const tracks = await prisma.track.findMany({ orderBy: { title: "asc" } })
+  return (
+    <main className="max-w-3xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-4">Diver Well Training</h1>
+      <ul className="space-y-3">
+        {tracks.map(t => (
+          <li key={t.id}><a className="underline" href={`/tracks/${t.slug}`}>{t.title}</a></li>
+        ))}
+      </ul>
+    </main>
+  )
+}
+
+src/app/tracks/[slug]/page.tsx — track details
+
+import { prisma } from "@/lib/prisma"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export default async function TrackPage({ params }: { params: { slug: string } }) {
+  const track = await prisma.track.findUnique({ where: { slug: params.slug }, include: { lessons: { orderBy: { order: "asc" } } } })
+  if (!track) return <div className="p-6">Not found</div>
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <a className="underline text-sm" href="/">← Back</a>
+      <h1 className="text-2xl font-bold">{track.title}</h1>
+      <p className="mt-2 text-slate-600">{track.summary}</p>
+      <ul className="mt-6 space-y-2">
+        {track.lessons.map(l => (<li key={l.id}><a className="underline" href={`/lessons/${l.id}`}>{l.title}</a></li>))}
+      </ul>
+    </div>
+  )
+}
+
+src/app/lessons/[id]/page.tsx — lesson viewer
+
+import { prisma } from "@/lib/prisma"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export default async function Lesson({ params }: { params: { id: string } }) {
+  const lesson = await prisma.lesson.findUnique({ where: { id: params.id } })
+  if (!lesson) return <div className="p-6">Not found</div>
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <a className="underline text-sm" href="/">← Back</a>
+      <h1 className="text-2xl font-bold mt-2">{lesson.title}</h1>
+      <article className="prose mt-6 whitespace-pre-wrap">{lesson.content}</article>
+    </div>
+  )
+}
+
+
+⸻
+
+8) Auth (Credentials) — minimal
+
+src/app/api/auth/[...nextauth]/route.ts
+
+import NextAuth from "next-auth"
+import Credentials from "next-auth/providers/credentials"
+import { prisma } from "@/lib/prisma"
+import bcrypt from "bcryptjs"
+
+const auth = NextAuth({
+  session: { strategy: "jwt" },
+  providers: [
+    Credentials({
+      name: "Credentials",
+      credentials: { email: {}, password: {} },
+      async authorize(c) {
+        if (!c?.email || !c?.password) return null
+        const user = await prisma.user.findUnique({ where: { email: c.email } })
+        if (!user) return null
+        const ok = await bcrypt.compare(c.password, user.password)
+        if (!ok) return null
+        return { id: user.id, email: user.email, name: user.name, role: user.role }
+      },
+    }),
+  ],
+})
+
+export const GET = auth.handlers.GET
+export const POST = auth.handlers.POST
+export const runtime = "nodejs"
+
+src/app/(auth)/signin/page.tsx
+
+"use client"
+import { signIn } from "next-auth/react"
+import { useState } from "react"
+
+export default function SignIn() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  return (
+    <div className="max-w-md mx-auto py-10">
+      <h1 className="text-2xl font-bold mb-4">Sign in</h1>
+      <form onSubmit={(e)=>{e.preventDefault(); signIn("credentials", { email, password, callbackUrl: "/dashboard" })}}>
+        <input className="border p-2 w-full mb-2" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
+        <input className="border p-2 w-full mb-4" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+        <button className="border px-4 py-2">Sign in</button>
+      </form>
+    </div>
+  )
+}
+
+src/app/dashboard/page.tsx
+
+import { getServerSession } from "next-auth"
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export default async function Dashboard() {
+  const session = await getServerSession()
+  if (!session?.user) return <div className="p-6">Please sign in</div>
+  return <div className="p-6">Welcome, {session.user.email}</div>
+}
+
+
+⸻
+
+9) Health & error helpers (debug fast)
+
+src/app/api/health/route.ts
+
+export const runtime = "nodejs"
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+export async function GET() {
+  try { await prisma.$queryRaw`SELECT 1`; return NextResponse.json({ ok: true }) }
+  catch (e: any) { console.error("HEALTH ERROR", e?.message); return NextResponse.json({ ok: false }, { status: 500 }) }
+}
+
+src/app/error.tsx
+
+"use client"
+import { useEffect } from "react"
+export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
+  useEffect(() => console.error("GlobalError", error), [error])
+  return <html><body><h1>Something went wrong</h1><p>Digest: {error?.digest}</p></body></html>
+}
+
+
+⸻
+
+10) Run it
+
+npm run dev
+
+Open the Replit preview URL → Home shows Tracks, click into a Track → Lesson renders.
+
+Sign in with the seeded admin: admin@diverwell.app / admin123 (change after first login).
+
+⸻
+
+11) Next steps (fast follow)
+	•	Add quizzes UI at /lessons/[id]/quiz (use Quiz + Question models).
+	•	Add brand‑neutral linter in Replit via simple Node script if desired.
+	•	Later: export this repo to GitHub and wire the previous CI + ClickUp automations.
+
+⸻
+
+Troubleshooting quickies
+	•	Prisma Client not generated → open Shell: npx prisma generate.
+	•	DB errors → verify DATABASE_URL (must include ?sslmode=require), then npm run db:push.
+	•	Auth callback errors in Replit → set NEXTAUTH_URL to the exact Repl URL, redeploy/run.
+	•	Port closed → ensure dev/start scripts include -H 0.0.0.0 -p $PORT.

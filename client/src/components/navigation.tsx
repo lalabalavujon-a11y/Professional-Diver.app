@@ -77,6 +77,7 @@ export default function Navigation() {
                 </div>
               </a>
             </Link>
+            {/* Desktop Navigation - Hidden on Mobile */}
             <div className="hidden md:flex space-x-6">
               <Link href="/dashboard" data-testid="link-dashboard">
                 <a className={`font-medium transition-colors ${
@@ -97,7 +98,7 @@ export default function Navigation() {
                 </a>
               </Link>
               
-              {/* More Menu Dropdown */}
+              {/* More Menu Dropdown - Desktop Only */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -230,7 +231,7 @@ export default function Navigation() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Operations Menu Dropdown */}
+              {/* Operations Menu Dropdown - Desktop Only */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -292,7 +293,7 @@ export default function Navigation() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Support Menu Dropdown */}
+              {/* Support Menu Dropdown - Desktop Only */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -345,12 +346,18 @@ export default function Navigation() {
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="mt-0 px-4 py-6 space-y-1 overflow-y-auto max-h-[calc(100vh-120px)]">
+                  {/* Main Navigation */}
+                  <div className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Main</div>
                   <NavLink href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
                     Professional Exams
                   </NavLink>
                   <NavLink href="/tracks" onClick={() => setMobileMenuOpen(false)}>
                     Study Materials
                   </NavLink>
+                  
+                  {/* More Menu Items */}
+                  <div className="border-t my-4"></div>
+                  <div className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">More</div>
                   <NavLink href="/crm" onClick={() => setMobileMenuOpen(false)}>
                     <div className="flex items-center space-x-2">
                       <BarChart3 className="w-4 h-4" />
@@ -385,20 +392,16 @@ export default function Navigation() {
                       <span>AI Learning Path</span>
                     </div>
                   </NavLink>
+                  
+                  {/* Operations Menu Items */}
+                  <div className="border-t my-4"></div>
+                  <div className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Operations</div>
                   <NavLink href="/operations" onClick={() => setMobileMenuOpen(false)}>
                     <div className="flex items-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-                      </svg>
-                      <span>Operations</span>
+                      <Settings className="w-4 h-4" />
+                      <span>Operations Center</span>
                     </div>
                   </NavLink>
-                  <div className="border-t my-4"></div>
-                  <NavLink href="/affiliate" onClick={() => setMobileMenuOpen(false)}>
-                    Partners
-                  </NavLink>
-                  <div className="border-t my-4 mx-4"></div>
-                  <div className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Operations</div>
                   <NavLink href="/chat/diver-well" onClick={() => setMobileMenuOpen(false)}>
                     <div className="flex items-center space-x-2">
                       <MessageCircle className="w-4 h-4 text-teal-600" />
@@ -413,7 +416,7 @@ export default function Navigation() {
                       setMobileMenuOpen(false);
                       window.open('https://chatgpt.com/g/g-6897d42d3ba48191b48883a4839c09bf-diver-well-commercial-diver-ai-consultant', '_blank');
                     }}
-                    className="block w-full text-left px-4 py-3 text-base font-medium transition-colors rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    className="block w-full text-left px-4 py-3 text-base font-medium transition-colors rounded-lg min-h-[48px] text-slate-600 hover:text-slate-900 hover:bg-slate-50 active:bg-slate-100"
                   >
                     <div className="flex items-center space-x-2">
                       <ExternalLink className="w-4 h-4 text-slate-500" />
@@ -423,23 +426,26 @@ export default function Navigation() {
                       </div>
                     </div>
                   </button>
-                  <NavLink href="/operations" onClick={() => setMobileMenuOpen(false)}>
-                    <div className="flex items-center space-x-2">
-                      <Settings className="w-4 h-4" />
-                      <span>Operations Center</span>
-                    </div>
-                  </NavLink>
-                  <div className="border-t my-4 mx-4"></div>
+                  
+                  {/* Support Menu Items */}
+                  <div className="border-t my-4"></div>
                   <div className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Support</div>
                   <NavLink href={isAdmin ? "/chat/laura" : "/chat/support"} onClick={() => setMobileMenuOpen(false)}>
                     <div className="flex items-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                      </svg>
-                      <span>{isAdmin ? "Laura Oracle" : "Support"}</span>
+                      <MessageCircle className="w-4 h-4" />
+                      <span>{isAdmin ? "Laura Oracle (Admin)" : "Laura AI Assistant"}</span>
                     </div>
                   </NavLink>
+                  
+                  {/* Partners */}
                   <div className="border-t my-4"></div>
+                  <NavLink href="/affiliate" onClick={() => setMobileMenuOpen(false)}>
+                    Partners
+                  </NavLink>
+                  
+                  {/* Legal */}
+                  <div className="border-t my-4"></div>
+                  <div className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Legal</div>
                   <NavLink href="/privacy" onClick={() => setMobileMenuOpen(false)}>
                     Privacy Policy
                   </NavLink>

@@ -1,0 +1,55 @@
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare Workers
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build worker
+        run: npm run build:worker
+
+      - name: Export backup (pre-deploy)
+        run: npm run backup:export
+        continue-on-error: true # Continue even if backup fails (local dev might not have DB)
+
+      - name: Deploy Main Worker to Cloudflare (Production)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env production
+          workingDirectory: ./
+
+      - name: Deploy API Worker to Cloudflare (Production)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler-api.toml --env production
+          workingDirectory: ./
+
+      - name: Deployment Summary
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "Main Worker: professionaldiver-app-production"
+          echo "API Worker: professionaldiver-api-production"
+          echo "Production URL: https://professionaldiver.app"
+

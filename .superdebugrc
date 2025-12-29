@@ -1,0 +1,15 @@
+{
+  "watchPatterns": [
+    "**/*.{js,jsx,ts,tsx}"
+  ],
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**"
+  ],
+  "autoFix": false,
+  "checkInterval": "*/5 * * * *",
+  "verbose": true,
+  "projectName": "PROFESSIONAL-DIVER"
+}

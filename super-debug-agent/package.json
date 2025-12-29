@@ -1,0 +1,48 @@
+{
+  "name": "super-debug-agent",
+  "version": "1.0.0",
+  "description": "Professional background debugging agent for continuous code monitoring and issue detection",
+  "main": "index.js",
+  "scripts": {
+    "install-agent": "node scripts/install.js",
+    "start-agent": "node scripts/start.js",
+    "stop-agent": "node scripts/stop.js",
+    "test-agent": "node scripts/test.js",
+    "configure": "node scripts/configure.js",
+    "debug:start": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "debug:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "debug:monitor": "node ./super-debug-agent/index.js",
+    "debug:install": "node ./super-debug-agent/scripts/install.js",
+    "debug:configure": "node ./super-debug-agent/scripts/configure.js"
+  },
+  "keywords": [
+    "debugging",
+    "linting",
+    "code-quality",
+    "monitoring",
+    "eslint",
+    "typescript",
+    "react",
+    "nextjs",
+    "background-agent"
+  ],
+  "author": "Jon Lalabalavu",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@typescript-eslint/eslint-plugin": "^8.42.0",
+    "@typescript-eslint/parser": "^8.42.0",
+    "chalk": "^4.1.2",
+    "chokidar": "^3.6.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.5.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "node-cron": "^3.0.3",
+    "ora": "^5.4.1",
+    "typescript": "^5.3.3"
+  },
+  "bin": {
+    "super-debug": "./bin/super-debug.js"
+  }
+}
