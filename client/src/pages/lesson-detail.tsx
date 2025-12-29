@@ -226,9 +226,42 @@ function getSubjectResources(trackSlug: string): Array<{icon: JSX.Element, title
 
 export default function LessonDetail() {
   const [, params] = useRoute("/lessons/:id");
-  const { data: lesson, isLoading } = useQuery<LessonWithTrackSlug>({
+  const { data: lesson, isLoading, error } = useQuery<LessonWithTrackSlug>({
     queryKey: ["/api/lessons", params?.id],
     enabled: !!params?.id,
+    queryFn: async () => {
+      if (!params?.id) throw new Error('Lesson ID is required');
+      const response = await fetch(`/api/lessons/${params.id}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Lesson not found');
+        }
+        throw new Error(`Failed to fetch lesson: ${response.statusText}`);
+      }
+      const data = await response.json();
+      
+      // If lesson doesn't have trackSlug, try to get it from the track
+      if (data && !data.trackSlug && data.trackId) {
+        try {
+          // Get track info to populate trackSlug
+          const trackResponse = await fetch(`/api/tracks`);
+          if (trackResponse.ok) {
+            const tracks = await trackResponse.json();
+            const track = tracks.find((t: any) => t.id === data.trackId);
+            if (track) {
+              data.trackSlug = track.slug;
+              data.trackTitle = track.title;
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching track info:', e);
+        }
+      }
+      
+      return data;
+    },
+    retry: 2,
+    retryDelay: 1000,
   });
 
   // Fetch all lessons in the track for track outline navigation
