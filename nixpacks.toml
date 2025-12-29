@@ -5,9 +5,13 @@
 nixPkgs = ["nodejs-22_x", "pnpm"]
 
 [phases.install]
-cmds = ["pnpm install --frozen-lockfile"]
+# Use pnpm with legacy peer deps to handle dependency conflicts
+cmds = ["pnpm install --frozen-lockfile --legacy-peer-deps"]
 
-# No build phase needed - Express server runs TypeScript directly with tsx
+# Build phase - ensure tsx is available
+[phases.build]
+cmds = ["pnpm install --frozen-lockfile --legacy-peer-deps"]
 
+# Start command - Express server runs TypeScript directly with tsx
 [start]
 cmd = "NODE_ENV=production node --import tsx/esm server/index.ts"
