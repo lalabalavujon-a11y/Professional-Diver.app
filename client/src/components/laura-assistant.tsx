@@ -153,7 +153,8 @@ export default function LauraAssistant() {
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all"
                 onClick={() => {
                   setIsOpen(false);
-                  window.open('/chat/laura', '_blank');
+                  const w = window.open('/chat/laura', '_blank');
+                  if (!w) window.location.href = '/chat/laura';
                 }}
                 data-testid="button-chat-laura-oracle"
               >
@@ -169,7 +170,9 @@ export default function LauraAssistant() {
                   className="border-blue-200 text-blue-600 hover:bg-blue-50"
                   onClick={() => {
                     setIsOpen(false);
-                    window.open('https://chatgpt.com/g/g-6897d42d3ba48191b48883a4839c09bf-diver-well-commercial-diver-ai-consultant', '_blank');
+                    const url = 'https://chatgpt.com/g/g-6897d42d3ba48191b48883a4839c09bf-diver-well-commercial-diver-ai-consultant';
+                    const w = window.open(url, '_blank');
+                    if (!w) window.location.href = url;
                   }}
                   data-testid="button-diver-well-consultant"
                 >
