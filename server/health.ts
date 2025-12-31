@@ -4,6 +4,7 @@ import { LangChainConfig } from "./langchain-config";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
 import { Client as LangSmithClient } from "langsmith";
+import { getOpenAIHealthcheckModel } from "./openai-model";
 
 const router = Router();
 
@@ -14,7 +15,7 @@ const langsmith = new LangSmithClient({
 
 // Initialize LangChain model for pipeline testing
 const llm = new ChatOpenAI({
-  model: "gpt-4o-mini",
+  model: getOpenAIHealthcheckModel(),
   temperature: 0,
   apiKey: process.env.OPENAI_API_KEY || "dev-mode"
 });

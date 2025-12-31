@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getOpenAIChatModel } from "./openai-model";
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY environment variable must be set");
@@ -47,7 +48,7 @@ export class AILearningPathService {
       const prompt = this.buildLearningPathPrompt(userProgress);
       
       const response = await openai.chat.completions.create({
-        model: "gpt-4", // the newest OpenAI model is "gpt-4" which was released August 7, 2025. do not change this unless explicitly requested by the user
+        model: getOpenAIChatModel(),
         messages: [
           {
             role: "system",
@@ -230,7 +231,7 @@ Respond with JSON:
 `;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4", // the newest OpenAI model is "gpt-4" which was released August 7, 2025. do not change this unless explicitly requested by the user
+        model: getOpenAIChatModel(),
         messages: [
           {
             role: "system",
@@ -290,7 +291,7 @@ Provide career guidance in JSON format:
 `;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4", // the newest OpenAI model is "gpt-4" which was released August 7, 2025. do not change this unless explicitly requested by the user
+        model: getOpenAIChatModel(),
         messages: [
           {
             role: "system",
