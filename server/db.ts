@@ -14,10 +14,9 @@ let db: any;
 
 const env = process.env.NODE_ENV ?? 'development';
 
-if (env !== 'development') {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL must be set for production. Did you forget to provision a database?');
-  }
+const hasDatabaseUrl = !!process.env.DATABASE_URL;
+
+if (env !== 'development' && hasDatabaseUrl) {
   // connect to Postgres using process.env.DATABASE_URL
   console.log('🚀 Using PostgreSQL database for production');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -30,7 +29,11 @@ if (env !== 'development') {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  console.log('🔧 Using local SQLite database for development');
+  if (env !== 'development' && !hasDatabaseUrl) {
+    console.warn('⚠️ DATABASE_URL not set; falling back to local SQLite database');
+  } else {
+    console.log('🔧 Using local SQLite database for development');
+  }
   const sqlite = new Database(file);
   db = drizzleSQLite(sqlite, { schema: sqliteSchema });
 }
