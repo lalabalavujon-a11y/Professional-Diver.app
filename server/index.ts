@@ -46,6 +46,8 @@ app.use((req, res, next) => {
 
 // Mount comprehensive health check router
 app.use('/health', healthRouter);
+// Alias for Vite proxy sanity checks in CI (expects /api/health)
+app.use('/api/health', healthRouter);
 
 app.get('/', (_req, res) => res.type('text/plain').send('OK'));
 
