@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Timer, Mic, MicOff, Volume2, ChevronLeft, ChevronRight, Clock, Brain, FileText } from "lucide-react";
 import RoleBasedNavigation from "@/components/role-based-navigation";
+import { apiRequest } from "@/lib/queryClient";
 // Import comprehensive exam questions for SRS (Spaced Repetition System)
 // @ts-ignore - Content file import
 import { examQuestions as fullExamQuestions } from '../../../content/exam-questions.js';
@@ -296,9 +297,31 @@ export default function ExamInterface() {
     }
   };
 
-  const handleSubmitExam = () => {
+  const handleSubmitExam = async () => {
     setExamSubmitted(true);
     setShowExplanations(true);
+
+    try {
+      // Auto-grade only questions that have a correctAnswer.
+      const gradableQuestions = questions.filter((q) => typeof q.correctAnswer === "string" && q.correctAnswer.length > 0);
+      const totalGradable = gradableQuestions.length;
+      const correct = gradableQuestions.reduce((sum, q) => {
+        const userAnswer = answers[q.id];
+        return userAnswer && userAnswer === q.correctAnswer ? sum + 1 : sum;
+      }, 0);
+
+      if (currentSlug) {
+        await apiRequest("POST", "/api/exam-attempts", {
+          userId: "current-user",
+          examSlug: currentSlug,
+          score: correct,
+          totalQuestions: totalGradable,
+          answers: JSON.stringify(answers),
+        });
+      }
+    } catch (error) {
+      console.error("Failed to persist exam attempt:", error);
+    }
   };
 
   const getQuestionTypeIcon = (type: string) => {

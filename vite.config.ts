@@ -33,8 +33,8 @@ export default defineConfig({
   },
   server: {
     host: '127.0.0.1',
-    port: 3001, // Changed from 3000 to avoid conflicts
-    strictPort: false, // Allow fallback to next available port if 3001 is taken
+    port: 3000,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:5000',
