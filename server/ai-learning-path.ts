@@ -1,10 +1,10 @@
 import OpenAI from "openai";
+import { getOpenAIChatModel } from "./openai-model";
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY environment variable must be set");
 }
 
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 interface UserProfile {
@@ -117,7 +117,7 @@ export class AILearningPathService {
       const prompt = this.buildAnalysisPrompt(userProfile, additionalInfo);
       
       const response = await openai.chat.completions.create({
-        model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+        model: getOpenAIChatModel(),
         messages: [
           {
             role: "system",

@@ -176,9 +176,12 @@ LANGSMITH_PROJECT=professional-diver-training-app
 
 # OpenAI Configuration
 OPENAI_API_KEY=your_openai_api_key
-AI_TUTOR_MODEL=gpt-4o
+AI_TUTOR_MODEL=gpt-5.2
 AI_TUTOR_TEMPERATURE=0.3
 AI_TUTOR_MAX_TOKENS=3000
+
+# Recommended: global override used across the server
+# OPENAI_CHAT_MODEL=gpt-5.2
 ```
 
 ### Laura Oracle Configuration

@@ -27,9 +27,11 @@ import { Client as LangSmithClient } from 'langsmith';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import OpenAI from 'openai';
 import { db } from './db';
+import { getOpenAIChatModel } from './openai-model';
 import { 
   users, tracks, lessons, quizzes, questions, aiTutors, 
-  userProgress, quizAttempts, learningPaths, invites 
+  userProgress, quizAttempts, learningPaths, invites,
+  type QuizAttempt
 } from '../shared/schema-sqlite';
 import { eq, and, desc, sql, count, gte, lte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -168,7 +170,7 @@ export class LauraOracleService {
 
     // Initialize AI models
     this.chatModel = new ChatOpenAI({
-      modelName: 'gpt-4o',
+      modelName: getOpenAIChatModel(),
       temperature: 0.3, // Lower temperature for more consistent administrative responses
       maxTokens: 3000,
       openAIApiKey: process.env.OPENAI_API_KEY,
@@ -254,7 +256,9 @@ export class LauraOracleService {
       const totalUsers = await db.select({ count: count() }).from(users);
       const activeUsers = await db.select({ count: count() })
         .from(users)
-        .where(gte(users.lastLogin, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)));
+        // `users.lastLogin` does not exist in the SQLite schema.
+        // Use `updatedAt` as a conservative proxy for recent activity.
+        .where(gte(users.updatedAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)));
 
       // Content analytics
       const totalTracks = await db.select({ count: count() }).from(tracks);
@@ -262,12 +266,12 @@ export class LauraOracleService {
       const totalQuestions = await db.select({ count: count() }).from(questions);
 
       // Performance analytics
-      const recentAttempts = await db.select()
+      const recentAttempts: QuizAttempt[] = await db.select()
         .from(quizAttempts)
         .where(gte(quizAttempts.completedAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)));
 
       const passRate = recentAttempts.length > 0 
-        ? (recentAttempts.filter(a => a.score >= 70).length / recentAttempts.length) * 100
+        ? (recentAttempts.filter((attempt) => attempt.score >= 70).length / recentAttempts.length) * 100
         : 0;
 
       return {
@@ -347,7 +351,7 @@ export class LauraOracleService {
         // Create a trace for this interaction
         await this.langsmithClient.createRun({
           name: "laura-oracle-interaction",
-          runType: "chain",
+          run_type: "chain",
           inputs: {
             user_message: userMessage,
             context: context
@@ -357,8 +361,10 @@ export class LauraOracleService {
             analytics: context.analytics,
             actions: this.extractActionsFromResponse(oracleResponse)
           },
-          projectName: this.config.langsmithProject,
-          tags: ["laura-oracle", "platform-admin", "langsmith-domain"]
+          project_name: this.config.langsmithProject,
+          extra: {
+            tags: ["laura-oracle", "platform-admin", "langsmith-domain"]
+          }
         });
 
         console.log('📊 Laura Oracle interaction logged to LangSmith for domain learning');
@@ -476,11 +482,13 @@ export class LauraOracleService {
       for (const objective of objectives) {
         await this.langsmithClient.createRun({
           name: "platform-objective-learning",
-          runType: "chain",
+          run_type: "chain",
           inputs: { objective },
           outputs: { learned: true, timestamp: new Date().toISOString() },
-          projectName: this.config.langsmithProject,
-          tags: ["laura-oracle", "objective-learning", "langsmith-domain"]
+          project_name: this.config.langsmithProject,
+          extra: {
+            tags: ["laura-oracle", "objective-learning", "langsmith-domain"]
+          }
         });
       }
       
