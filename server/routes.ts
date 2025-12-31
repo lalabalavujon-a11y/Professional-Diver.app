@@ -13,8 +13,12 @@ import { insertLessonSchema, insertInviteSchema, insertAttemptSchema } from "@sh
 import { eq } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { db } from "./db";
+import { registerSrsRoutes } from "./srs-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // SRS (Phase 2–4) routes
+  registerSrsRoutes(app);
+
   // Object storage routes
   app.post("/api/objects/upload", async (req, res) => {
     try {

@@ -51,10 +51,41 @@ interface QuizAnalytics {
   }>;
 }
 
+interface SrsAnalytics {
+  now: number;
+  deckStats: Array<{
+    id: string;
+    title: string;
+    total_cards: number;
+    suspended_cards: number;
+    due_now: number;
+  }>;
+  reviewStats7d: Array<{
+    deck_id: string;
+    reviews_7d: number;
+    passes_7d: number;
+  }>;
+  recentReviews: Array<{
+    id: string;
+    deck_id: string;
+    deck_title: string;
+    card_id: string;
+    grade: number;
+    reviewed_at: number;
+  }>;
+}
+
 export default function Analytics() {
   const { data: analytics, isLoading } = useQuery<QuizAnalytics>({
     queryKey: ["/api/analytics/quiz"],
     // Override global defaults so analytics can update while open.
+    staleTime: 0,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: srsAnalytics } = useQuery<SrsAnalytics>({
+    queryKey: ["/api/analytics/srs", "?userId=current-user"],
     staleTime: 0,
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
@@ -437,6 +468,65 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
+
+        {/* SRS Analytics */}
+        <div className="mt-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-slate-900">SRS Analytics</h2>
+            <Badge variant="secondary">Near real-time</Badge>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Deck status</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {srsAnalytics && srsAnalytics.deckStats.length > 0 ? (
+                  srsAnalytics.deckStats.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium text-slate-900">{d.title}</div>
+                        <div className="text-xs text-slate-500">
+                          {d.total_cards} cards • {d.suspended_cards} leeches
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-slate-900">{d.due_now} due</div>
+                        <div className="text-xs text-slate-500">now</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-slate-600">No SRS data yet (create a deck and review a few cards).</div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent SRS reviews</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 max-h-80 overflow-y-auto">
+                {srsAnalytics && srsAnalytics.recentReviews.length > 0 ? (
+                  srsAnalytics.recentReviews.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium text-slate-900">{r.deck_title || r.deck_id}</div>
+                        <div className="text-xs text-slate-500">{formatTime(r.reviewed_at)}</div>
+                      </div>
+                      <Badge variant={r.grade >= 2 ? "default" : "secondary"}>
+                        {r.grade === 0 ? "Again" : r.grade === 1 ? "Hard" : r.grade === 2 ? "Good" : "Easy"}
+                      </Badge>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-slate-600">No reviews yet.</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </main>
     </div>
   );
