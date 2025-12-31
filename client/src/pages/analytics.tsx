@@ -30,16 +30,34 @@ interface QuizAnalytics {
     id: string;
     score: number;
     total_questions: number;
-    created_at: string;
+    created_at: string | number;
     quiz_title: string;
     lesson_title: string;
     track_title: string;
+  }>;
+  examStats?: Array<{
+    slug: string;
+    total_attempts: number;
+    avg_score: number;
+    max_score: number;
+    min_score: number;
+  }>;
+  recentExamAttempts?: Array<{
+    id: string;
+    slug: string;
+    score: number;
+    total_questions: number;
+    created_at: string | number;
   }>;
 }
 
 export default function Analytics() {
   const { data: analytics, isLoading } = useQuery<QuizAnalytics>({
     queryKey: ["/api/analytics/quiz"],
+    // Override global defaults so analytics can update while open.
+    staleTime: 0,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   if (isLoading) {
@@ -103,8 +121,8 @@ export default function Analytics() {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatTime = (dateInput: string | number) => {
+    const date = new Date(dateInput);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -327,6 +345,50 @@ export default function Analytics() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Recent Exam Attempts (Full Exam Mode) */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Recent Full Exam Attempts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {analytics.recentExamAttempts && analytics.recentExamAttempts.length > 0 ? (
+                analytics.recentExamAttempts.map((attempt) => (
+                  <div
+                    key={attempt.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    data-testid={`recent-exam-attempt-${attempt.id}`}
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-900">
+                        {attempt.slug}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {formatTime(attempt.created_at)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`font-semibold ${getScoreColor(attempt.score, attempt.total_questions)}`}>
+                        {attempt.score}/{attempt.total_questions}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {attempt.total_questions > 0 ? Math.round((attempt.score / attempt.total_questions) * 100) : 0}%
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-slate-500">
+                  No recent full exam attempts found
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Detailed Track Statistics */}
         <Card>

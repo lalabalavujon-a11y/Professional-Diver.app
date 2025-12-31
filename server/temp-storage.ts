@@ -227,37 +227,67 @@ export class TempDatabaseStorage {
 
   async getQuizAnalytics() {
     try {
-      // Get quiz completion statistics
+      /**
+       * NOTE (SQLite): our `quiz_attempts` table stores only `score` and `completed_at`.
+       * It does NOT store `total_questions` or `created_at`.
+       * For analytics we derive `total_questions` from `questions` and treat `completed_at` as the event time.
+       */
+
+      // Get quiz completion statistics (percent-based)
       const quizStats = await db.execute(`
+        WITH quiz_question_counts AS (
+          SELECT quiz_id, COUNT(*) AS total_questions
+          FROM questions
+          GROUP BY quiz_id
+        )
         SELECT 
           q.id,
           q.title,
           l.title as lesson_title,
           t.title as track_title,
-          COUNT(CASE WHEN qa.id IS NOT NULL THEN 1 END) as total_attempts,
-          AVG(CASE WHEN qa.score IS NOT NULL THEN qa.score::float END) as avg_score,
-          MAX(CASE WHEN qa.score IS NOT NULL THEN qa.score END) as max_score,
-          MIN(CASE WHEN qa.score IS NOT NULL THEN qa.score END) as min_score
+          COUNT(qa.id) as total_attempts,
+          AVG(CASE 
+            WHEN qa.score IS NOT NULL 
+            THEN (qa.score * 100.0) / NULLIF(qqc.total_questions, 0) 
+          END) as avg_score,
+          MAX(CASE 
+            WHEN qa.score IS NOT NULL 
+            THEN (qa.score * 100.0) / NULLIF(qqc.total_questions, 0) 
+          END) as max_score,
+          MIN(CASE 
+            WHEN qa.score IS NOT NULL 
+            THEN (qa.score * 100.0) / NULLIF(qqc.total_questions, 0) 
+          END) as min_score
         FROM quizzes q
         LEFT JOIN lessons l ON q.lesson_id = l.id
         LEFT JOIN tracks t ON l.track_id = t.id
         LEFT JOIN quiz_attempts qa ON q.id = qa.quiz_id
+        LEFT JOIN quiz_question_counts qqc ON q.id = qqc.quiz_id
         GROUP BY q.id, q.title, l.title, t.title
         ORDER BY total_attempts DESC
       `);
 
       // Get track-level analytics
       const trackStats = await db.execute(`
+        WITH quiz_question_counts AS (
+          SELECT quiz_id, COUNT(*) AS total_questions
+          FROM questions
+          GROUP BY quiz_id
+        )
         SELECT 
           t.id,
           t.title,
           COUNT(DISTINCT l.id) as total_lessons,
           COUNT(DISTINCT q.id) as total_quizzes,
           COUNT(qa.id) as total_attempts,
-          AVG(CASE WHEN qa.score IS NOT NULL THEN qa.score::float END) as avg_score
+          AVG(CASE 
+            WHEN qa.score IS NOT NULL 
+            THEN (qa.score * 100.0) / NULLIF(qqc.total_questions, 0) 
+          END) as avg_score
         FROM tracks t
         LEFT JOIN lessons l ON t.id = l.track_id
         LEFT JOIN quizzes q ON l.id = q.lesson_id
+        LEFT JOIN quiz_question_counts qqc ON q.id = qqc.quiz_id
         LEFT JOIN quiz_attempts qa ON q.id = qa.quiz_id
         WHERE t.is_published = true
         GROUP BY t.id, t.title
@@ -269,8 +299,12 @@ export class TempDatabaseStorage {
         SELECT 
           qa.id,
           qa.score,
-          qa.total_questions,
-          qa.created_at,
+          (
+            SELECT COUNT(*) 
+            FROM questions qq 
+            WHERE qq.quiz_id = qa.quiz_id
+          ) as total_questions,
+          qa.completed_at as created_at,
           q.title as quiz_title,
           l.title as lesson_title,
           t.title as track_title
@@ -278,14 +312,56 @@ export class TempDatabaseStorage {
         LEFT JOIN quizzes q ON qa.quiz_id = q.id
         LEFT JOIN lessons l ON q.lesson_id = l.id
         LEFT JOIN tracks t ON l.track_id = t.id
-        ORDER BY qa.created_at DESC
+        ORDER BY qa.completed_at DESC
+        LIMIT 20
+      `);
+
+      // --- Exam analytics (for full exam mode) ---
+      // Ensure table exists (safe no-op if already created)
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS exam_attempts (
+          id text PRIMARY KEY NOT NULL,
+          user_id text NOT NULL,
+          exam_slug text NOT NULL,
+          score integer NOT NULL,
+          total_questions integer NOT NULL,
+          time_spent integer,
+          completed_at integer NOT NULL,
+          answers text,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE no action ON DELETE cascade
+        );
+      `);
+
+      const examStats = await db.execute(`
+        SELECT
+          ea.exam_slug as slug,
+          COUNT(ea.id) as total_attempts,
+          AVG((ea.score * 100.0) / NULLIF(ea.total_questions, 0)) as avg_score,
+          MAX((ea.score * 100.0) / NULLIF(ea.total_questions, 0)) as max_score,
+          MIN((ea.score * 100.0) / NULLIF(ea.total_questions, 0)) as min_score
+        FROM exam_attempts ea
+        GROUP BY ea.exam_slug
+        ORDER BY total_attempts DESC
+      `);
+
+      const recentExamAttempts = await db.execute(`
+        SELECT
+          ea.id,
+          ea.exam_slug as slug,
+          ea.score,
+          ea.total_questions,
+          ea.completed_at as created_at
+        FROM exam_attempts ea
+        ORDER BY ea.completed_at DESC
         LIMIT 20
       `);
 
       return {
         quizStats: quizStats.rows,
         trackStats: trackStats.rows,
-        recentAttempts: recentAttempts.rows
+        recentAttempts: recentAttempts.rows,
+        examStats: examStats.rows,
+        recentExamAttempts: recentExamAttempts.rows,
       };
     } catch (error) {
       console.error('Error fetching quiz analytics:', error);
@@ -293,7 +369,9 @@ export class TempDatabaseStorage {
       return {
         quizStats: [],
         trackStats: [],
-        recentAttempts: []
+        recentAttempts: [],
+        examStats: [],
+        recentExamAttempts: [],
       };
     }
   }
