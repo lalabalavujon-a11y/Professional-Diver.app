@@ -1,9 +1,8 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
-import { drizzle as drizzleSQLite } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
 import ws from "ws";
 import { existsSync, mkdirSync } from 'fs';
+import { createRequire } from "module";
 import * as schema from "@shared/schema";
 import * as sqliteSchema from "@shared/schema-sqlite";
 
@@ -15,6 +14,7 @@ let db: any;
 const env = process.env.NODE_ENV ?? 'development';
 
 const hasDatabaseUrl = !!process.env.DATABASE_URL;
+const require = createRequire(import.meta.url);
 
 if (env !== 'development' && hasDatabaseUrl) {
   // connect to Postgres using process.env.DATABASE_URL
@@ -34,6 +34,9 @@ if (env !== 'development' && hasDatabaseUrl) {
   } else {
     console.log('🔧 Using local SQLite database for development');
   }
+  // Load SQLite-only dependencies lazily so production deploys (Postgres) don't require native builds.
+  const Database = require("better-sqlite3") as typeof import("better-sqlite3");
+  const { drizzle: drizzleSQLite } = require("drizzle-orm/better-sqlite3") as typeof import("drizzle-orm/better-sqlite3");
   const sqlite = new Database(file);
   db = drizzleSQLite(sqlite, { schema: sqliteSchema });
 }

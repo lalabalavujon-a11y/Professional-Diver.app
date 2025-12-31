@@ -64,7 +64,6 @@
     "@uppy/core": "^5.0.0",
     "@uppy/dashboard": "^5.0.0",
     "@uppy/react": "^5.0.0",
-    "better-sqlite3": "^9.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -148,6 +147,7 @@
     "vite": "^5.4.19"
   },
   "optionalDependencies": {
+    "better-sqlite3": "^9.4.3",
     "bufferutil": "^4.0.8"
   }
 }
