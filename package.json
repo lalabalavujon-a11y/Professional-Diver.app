@@ -8,7 +8,7 @@
     "dev:web": "vite --host 127.0.0.1 --port 3000 --strictPort",
     "dev:all": "npm-run-all -p dev:api dev:web",
     "build": "vite build",
-    "start": "cross-env NODE_ENV=production node dist/server/index.js",
+    "start": "cross-env NODE_ENV=production HOST=0.0.0.0 tsx server/index.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "debug:start": "eslint . --ext .js,.jsx,.ts,.tsx",
@@ -107,6 +107,7 @@
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
     "ws": "^8.18.0",
+    "tsx": "^4.20.5",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0"
   },
@@ -143,7 +144,6 @@
     "ora": "^5.4.1",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.17",
-    "tsx": "^4.20.5",
     "typescript": "^5.6.3",
     "vite": "^5.4.19"
   },
