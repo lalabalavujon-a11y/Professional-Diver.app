@@ -254,7 +254,8 @@ export class LauraOracleService {
       const totalUsers = await db.select({ count: count() }).from(users);
       const activeUsers = await db.select({ count: count() })
         .from(users)
-        .where(gte(users.lastLogin, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)));
+        // SQLite schema does not have `lastLogin`; use `updatedAt` as a proxy for activity.
+        .where(gte(users.updatedAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)));
 
       // Content analytics
       const totalTracks = await db.select({ count: count() }).from(tracks);
@@ -262,12 +263,12 @@ export class LauraOracleService {
       const totalQuestions = await db.select({ count: count() }).from(questions);
 
       // Performance analytics
-      const recentAttempts = await db.select()
+      const recentAttempts = (await db.select()
         .from(quizAttempts)
-        .where(gte(quizAttempts.completedAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)));
+        .where(gte(quizAttempts.completedAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)))) as Array<{ score: number }>;
 
       const passRate = recentAttempts.length > 0 
-        ? (recentAttempts.filter(a => a.score >= 70).length / recentAttempts.length) * 100
+        ? (recentAttempts.filter((a) => a.score >= 70).length / recentAttempts.length) * 100
         : 0;
 
       return {
@@ -347,7 +348,7 @@ export class LauraOracleService {
         // Create a trace for this interaction
         await this.langsmithClient.createRun({
           name: "laura-oracle-interaction",
-          runType: "chain",
+          run_type: "chain",
           inputs: {
             user_message: userMessage,
             context: context
@@ -357,8 +358,7 @@ export class LauraOracleService {
             analytics: context.analytics,
             actions: this.extractActionsFromResponse(oracleResponse)
           },
-          projectName: this.config.langsmithProject,
-          tags: ["laura-oracle", "platform-admin", "langsmith-domain"]
+          project_name: this.config.langsmithProject
         });
 
         console.log('📊 Laura Oracle interaction logged to LangSmith for domain learning');
@@ -476,11 +476,10 @@ export class LauraOracleService {
       for (const objective of objectives) {
         await this.langsmithClient.createRun({
           name: "platform-objective-learning",
-          runType: "chain",
+          run_type: "chain",
           inputs: { objective },
           outputs: { learned: true, timestamp: new Date().toISOString() },
-          projectName: this.config.langsmithProject,
-          tags: ["laura-oracle", "objective-learning", "langsmith-domain"]
+          project_name: this.config.langsmithProject
         });
       }
       
