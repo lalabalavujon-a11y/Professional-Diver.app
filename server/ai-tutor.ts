@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import DivingTutorManager from './ai-tutors';
 import ProfessionalDivingVectorStore from './vector-store';
+import { getOpenAIChatModel } from './openai-model';
 
 export const aiTutorRouter = Router();
 
@@ -22,7 +23,7 @@ aiTutorRouter.get('/status', (_req, res) => {
       brandNeutrality: 'enforced',
       industryStandards: ['IMCA', 'ADCI', 'OSHA', 'ASTM']
     },
-    llm: process.env.AI_TUTOR_MODEL || 'gpt-4o',
+    llm: getOpenAIChatModel(),
     tracing: process.env.LANGSMITH_TRACING === 'true',
     ts: new Date().toISOString(),
   });

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { ChatOpenAI } from '@langchain/openai';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Client } from 'langsmith';
+import { getOpenAIChatModel } from './openai-model';
 
 // Brand-neutral configuration for LangChain and LangSmith
 export class LangChainConfig {
@@ -26,7 +27,7 @@ export class LangChainConfig {
 
     // Initialize OpenAI models with brand-neutral configuration
     this.chatModel = new ChatOpenAI({
-      modelName: process.env.AI_TUTOR_MODEL || 'gpt-4o',
+      modelName: getOpenAIChatModel(),
       temperature: parseFloat(process.env.AI_TUTOR_TEMPERATURE || '0.7'),
       maxTokens: parseInt(process.env.AI_TUTOR_MAX_TOKENS || '2000'),
       openAIApiKey: process.env.OPENAI_API_KEY,
