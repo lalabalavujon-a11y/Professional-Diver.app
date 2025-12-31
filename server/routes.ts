@@ -11,8 +11,14 @@ import { z } from "zod";
 // LangChain AI Tutor routes are now handled by ai-tutor.ts router
 import { insertLessonSchema, insertInviteSchema, insertAttemptSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { randomBytes } from "crypto";
+import { db } from "./db";
+import { registerSrsRoutes } from "./srs-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // SRS (Phase 2–4) routes
+  registerSrsRoutes(app);
+
   // Object storage routes
   app.post("/api/objects/upload", async (req, res) => {
     try {
@@ -644,6 +650,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/quiz-attempts", async (req, res) => {
     try {
+      const env = process.env.NODE_ENV ?? "development";
+      const isSQLiteDev = env === "development";
+
+      // SQLite dev writes to `quiz_attempts` (used by the analytics dashboard).
+      if (isSQLiteDev) {
+        const quizAttemptInput = z.object({
+          userId: z.string().min(1),
+          quizId: z.string().min(1),
+          score: z.number().int().min(0),
+          timeSpent: z.number().int().min(0).optional(),
+          answers: z.string().optional(),
+        });
+
+        const parsed = quizAttemptInput.parse(req.body);
+        const id = randomBytes(16).toString("hex");
+        const completedAt = Date.now();
+
+        await db.execute(
+          `
+          INSERT INTO quiz_attempts (id, user_id, quiz_id, score, time_spent, completed_at, answers)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `,
+          [
+            id,
+            parsed.userId,
+            parsed.quizId,
+            parsed.score,
+            parsed.timeSpent ?? null,
+            completedAt,
+            parsed.answers ?? null,
+          ],
+        );
+
+        res.status(201).json({ id, ...parsed, completedAt });
+        return;
+      }
+
+      // Production (PostgreSQL) — keep existing behavior.
       const attemptData = insertAttemptSchema.parse(req.body);
       const attempt = await storage.createAttempt(attemptData);
       res.status(201).json(attempt);
@@ -652,6 +696,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid data", details: error.errors });
       }
       res.status(500).json({ error: "Failed to create attempt" });
+    }
+  });
+
+  // Full exam attempts (used by the "Exam Interface" page)
+  app.post("/api/exam-attempts", async (req, res) => {
+    try {
+      const env = process.env.NODE_ENV ?? "development";
+      const isSQLiteDev = env === "development";
+
+      if (!isSQLiteDev) {
+        res.status(501).json({ error: "Exam attempts not implemented for production yet" });
+        return;
+      }
+
+      // Ensure table exists (safe no-op if already created)
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS exam_attempts (
+          id text PRIMARY KEY NOT NULL,
+          user_id text NOT NULL,
+          exam_slug text NOT NULL,
+          score integer NOT NULL,
+          total_questions integer NOT NULL,
+          time_spent integer,
+          completed_at integer NOT NULL,
+          answers text,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE no action ON DELETE cascade
+        );
+      `);
+
+      const examAttemptInput = z.object({
+        userId: z.string().min(1),
+        examSlug: z.string().min(1),
+        score: z.number().int().min(0),
+        totalQuestions: z.number().int().min(0),
+        timeSpent: z.number().int().min(0).optional(),
+        answers: z.string().optional(),
+      });
+
+      const parsed = examAttemptInput.parse(req.body);
+      const id = randomBytes(16).toString("hex");
+      const completedAt = Date.now();
+
+      await db.execute(
+        `
+        INSERT INTO exam_attempts (id, user_id, exam_slug, score, total_questions, time_spent, completed_at, answers)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `,
+        [
+          id,
+          parsed.userId,
+          parsed.examSlug,
+          parsed.score,
+          parsed.totalQuestions,
+          parsed.timeSpent ?? null,
+          completedAt,
+          parsed.answers ?? null,
+        ],
+      );
+
+      res.status(201).json({ id, ...parsed, completedAt });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Exam attempt create error:", error);
+      res.status(500).json({ error: "Failed to create exam attempt" });
     }
   });
 

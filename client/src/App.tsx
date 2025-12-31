@@ -31,6 +31,8 @@ import Tracks from "@/pages/tracks";
 import Terms from "@/pages/terms";
 import ProfessionalExams from "@/pages/professional-exams";
 import ExamInterface from "@/pages/exam-interface";
+import SrsReview from "@/pages/srs-review";
+import AdminSrs from "@/pages/admin-srs";
 
 function Router() {
   return (
@@ -43,12 +45,14 @@ function Router() {
       <Route path="/exams" component={ProfessionalExams} />
       <Route path="/exams/:slug/start" component={ExamInterface} />
       <Route path="/exams/:slug/results" component={ExamInterface} />
+      <Route path="/review" component={SrsReview} />
       <Route path="/tracks/:slug" component={TrackDetail} />
       <Route path="/lessons/:id" component={LessonDetail} />
       <Route path="/lessons/:id/quiz" component={Quiz} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/invites" component={AdminInvites} />
       <Route path="/admin/lessons/:id" component={AdminLessonEditor} />
+      <Route path="/admin/srs" component={AdminSrs} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/crm" component={CRMDashboard} />
       <Route path="/privacy" component={Privacy} />

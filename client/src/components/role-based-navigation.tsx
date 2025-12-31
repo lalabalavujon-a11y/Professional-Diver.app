@@ -14,6 +14,7 @@ import {
   UserCheck,
   GraduationCap,
   TrendingUp,
+  Repeat,
   MessageSquare,
   HelpCircle
 } from "lucide-react";
@@ -67,12 +68,14 @@ export default function RoleBasedNavigation() {
     { href: "/analytics", label: "Analytics", icon: TrendingUp },
     { href: "/operations", label: "Operations", icon: Wrench },
     { href: "/markdown-editor", label: "Content Editor", icon: FileText },
+    { href: "/admin/srs", label: "SRS Admin", icon: Repeat },
   ];
 
   // Training Navigation Items (for all users)
   const trainingNavItems = [
     { href: "/dashboard", label: "Professional Exams", icon: GraduationCap },
     { href: "/tracks", label: "Learning Tracks", icon: BookOpen },
+    { href: "/review", label: "Daily Review (SRS)", icon: Repeat },
     { href: "/learning-path", label: "AI Learning Path", icon: Brain },
   ];
 

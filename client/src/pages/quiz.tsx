@@ -60,6 +60,7 @@ export default function Quiz() {
         description: "Your quiz has been submitted successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/quiz"] });
     },
     onError: () => {
       toast({
@@ -82,7 +83,6 @@ export default function Quiz() {
         userId: "current-user",
         quizId: quiz?.id,
         score,
-        totalQuestions: quiz?.questions.length || 0,
         answers: JSON.stringify(answers),
       });
       
@@ -214,7 +214,6 @@ export default function Quiz() {
       userId: "current-user", // This would come from auth context
       quizId: quiz.id,
       score,
-      totalQuestions: quiz.questions.length,
       answers: JSON.stringify(answers),
     });
   };

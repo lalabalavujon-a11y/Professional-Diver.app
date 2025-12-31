@@ -30,16 +30,65 @@ interface QuizAnalytics {
     id: string;
     score: number;
     total_questions: number;
-    created_at: string;
+    created_at: string | number;
     quiz_title: string;
     lesson_title: string;
     track_title: string;
+  }>;
+  examStats?: Array<{
+    slug: string;
+    total_attempts: number;
+    avg_score: number;
+    max_score: number;
+    min_score: number;
+  }>;
+  recentExamAttempts?: Array<{
+    id: string;
+    slug: string;
+    score: number;
+    total_questions: number;
+    created_at: string | number;
+  }>;
+}
+
+interface SrsAnalytics {
+  now: number;
+  deckStats: Array<{
+    id: string;
+    title: string;
+    total_cards: number;
+    suspended_cards: number;
+    due_now: number;
+  }>;
+  reviewStats7d: Array<{
+    deck_id: string;
+    reviews_7d: number;
+    passes_7d: number;
+  }>;
+  recentReviews: Array<{
+    id: string;
+    deck_id: string;
+    deck_title: string;
+    card_id: string;
+    grade: number;
+    reviewed_at: number;
   }>;
 }
 
 export default function Analytics() {
   const { data: analytics, isLoading } = useQuery<QuizAnalytics>({
     queryKey: ["/api/analytics/quiz"],
+    // Override global defaults so analytics can update while open.
+    staleTime: 0,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: srsAnalytics } = useQuery<SrsAnalytics>({
+    queryKey: ["/api/analytics/srs", "?userId=current-user"],
+    staleTime: 0,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   if (isLoading) {
@@ -103,8 +152,8 @@ export default function Analytics() {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatTime = (dateInput: string | number) => {
+    const date = new Date(dateInput);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -328,6 +377,50 @@ export default function Analytics() {
           </Card>
         </div>
 
+        {/* Recent Exam Attempts (Full Exam Mode) */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Recent Full Exam Attempts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {analytics.recentExamAttempts && analytics.recentExamAttempts.length > 0 ? (
+                analytics.recentExamAttempts.map((attempt) => (
+                  <div
+                    key={attempt.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    data-testid={`recent-exam-attempt-${attempt.id}`}
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-900">
+                        {attempt.slug}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {formatTime(attempt.created_at)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`font-semibold ${getScoreColor(attempt.score, attempt.total_questions)}`}>
+                        {attempt.score}/{attempt.total_questions}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {attempt.total_questions > 0 ? Math.round((attempt.score / attempt.total_questions) * 100) : 0}%
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-slate-500">
+                  No recent full exam attempts found
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Detailed Track Statistics */}
         <Card>
           <CardHeader>
@@ -375,6 +468,65 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
+
+        {/* SRS Analytics */}
+        <div className="mt-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-slate-900">SRS Analytics</h2>
+            <Badge variant="secondary">Near real-time</Badge>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Deck status</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {srsAnalytics && srsAnalytics.deckStats.length > 0 ? (
+                  srsAnalytics.deckStats.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium text-slate-900">{d.title}</div>
+                        <div className="text-xs text-slate-500">
+                          {d.total_cards} cards • {d.suspended_cards} leeches
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-slate-900">{d.due_now} due</div>
+                        <div className="text-xs text-slate-500">now</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-slate-600">No SRS data yet (create a deck and review a few cards).</div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent SRS reviews</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 max-h-80 overflow-y-auto">
+                {srsAnalytics && srsAnalytics.recentReviews.length > 0 ? (
+                  srsAnalytics.recentReviews.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium text-slate-900">{r.deck_title || r.deck_id}</div>
+                        <div className="text-xs text-slate-500">{formatTime(r.reviewed_at)}</div>
+                      </div>
+                      <Badge variant={r.grade >= 2 ? "default" : "secondary"}>
+                        {r.grade === 0 ? "Again" : r.grade === 1 ? "Hard" : r.grade === 2 ? "Good" : "Easy"}
+                      </Badge>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-slate-600">No reviews yet.</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </main>
     </div>
   );
