@@ -281,10 +281,24 @@ export const insertTrackSchema = createInsertSchema(tracks).omit({
   createdAt: true,
 });
 
-export const insertLessonSchema = createInsertSchema(lessons).omit({
+// Base schema from drizzle
+const baseInsertLessonSchema = createInsertSchema(lessons).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+// Override JSON fields to accept arrays/objects properly
+// drizzle-zod may generate schemas that don't handle JSON columns correctly
+// For SQLite, these are stored as text but we accept arrays/objects which will be stringified
+export const insertLessonSchema = baseInsertLessonSchema.extend({
+  videos: z.any().optional(),
+  documents: z.any().optional(),
+  embeds: z.any().optional(),
+  links: z.any().optional(),
+  images: z.any().optional(),
+  audio: z.any().optional(),
+  objectives: z.any().optional(),
 });
 
 export const insertQuizSchema = createInsertSchema(quizzes).omit({

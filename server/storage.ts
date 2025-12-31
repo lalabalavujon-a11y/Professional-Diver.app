@@ -1,12 +1,12 @@
 import { 
-  users, 
-  tracks, 
-  lessons, 
-  quizzes, 
-  questions, 
-  attempts, 
-  invites,
-  userProgress,
+  users as usersPG, 
+  tracks as tracksPG, 
+  lessons as lessonsPG, 
+  quizzes as quizzesPG, 
+  questions as questionsPG, 
+  attempts as attemptsPG, 
+  invites as invitesPG,
+  userProgress as userProgressPG,
   type User, 
   type InsertUser,
   type Track,
@@ -23,9 +23,31 @@ import {
   type InsertInvite,
   type UserProgress
 } from "@shared/schema";
+import { 
+  users as usersSQLite, 
+  tracks as tracksSQLite, 
+  lessons as lessonsSQLite, 
+  quizzes as quizzesSQLite, 
+  questions as questionsSQLite, 
+  attempts as attemptsSQLite, 
+  invites as invitesSQLite,
+  userProgress as userProgressSQLite
+} from "@shared/schema-sqlite";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
+
+// Use the correct schema based on environment
+const env = process.env.NODE_ENV ?? 'development';
+const isProduction = env === 'production' && process.env.DATABASE_URL;
+const users = isProduction ? usersPG : usersSQLite;
+const tracks = isProduction ? tracksPG : tracksSQLite;
+const lessons = isProduction ? lessonsPG : lessonsSQLite;
+const quizzes = isProduction ? quizzesPG : quizzesSQLite;
+const questions = isProduction ? questionsPG : questionsSQLite;
+const attempts = isProduction ? attemptsPG : attemptsSQLite;
+const invites = isProduction ? invitesPG : invitesSQLite;
+const userProgress = isProduction ? userProgressPG : userProgressSQLite;
 
 export interface IStorage {
   // User methods
@@ -123,26 +145,47 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       };
       
-      // For JSON columns, drizzle expects the actual objects/arrays, not strings
-      // Normalize JSON fields to ensure they're arrays/objects
+      // Determine if we're using SQLite (development) or PostgreSQL (production)
+      const env = process.env.NODE_ENV ?? 'development';
+      const isSQLite = env === 'development' && !process.env.DATABASE_URL;
+      
+      // JSON fields that need special handling
       const jsonFields = ['videos', 'documents', 'embeds', 'links', 'images', 'audio', 'objectives'];
+      
       for (const field of jsonFields) {
         if (updateData[field] !== undefined) {
-          // If it's a string, try to parse it
-          if (typeof updateData[field] === 'string') {
-            try {
-              const parsed = JSON.parse(updateData[field]);
-              updateData[field] = parsed === null ? [] : parsed;
-            } catch (e) {
-              console.warn(`Failed to parse ${field} as JSON, defaulting to empty array:`, e);
+          if (isSQLite) {
+            // SQLite stores JSON as text, so we need to stringify
+            if (updateData[field] === null) {
+              updateData[field] = '[]';
+            } else if (typeof updateData[field] === 'string') {
+              // Already a string, but validate it's valid JSON
+              try {
+                JSON.parse(updateData[field]);
+                // Valid JSON string, keep it
+              } catch (e) {
+                console.warn(`Invalid JSON string for ${field}, defaulting to empty array:`, e);
+                updateData[field] = '[]';
+              }
+            } else {
+              // Array or object - stringify it
+              updateData[field] = JSON.stringify(updateData[field] || []);
+            }
+          } else {
+            // PostgreSQL - drizzle handles JSON automatically, but we normalize to arrays/objects
+            if (typeof updateData[field] === 'string') {
+              try {
+                const parsed = JSON.parse(updateData[field]);
+                updateData[field] = parsed === null ? [] : parsed;
+              } catch (e) {
+                console.warn(`Failed to parse ${field} as JSON, defaulting to empty array:`, e);
+                updateData[field] = [];
+              }
+            } else if (updateData[field] === null) {
               updateData[field] = [];
             }
+            // If it's already an array/object, drizzle will handle it correctly
           }
-          // If it's null after parsing, default to empty array
-          else if (updateData[field] === null) {
-            updateData[field] = [];
-          }
-          // If it's already an array/object, drizzle will handle it correctly
         }
       }
       

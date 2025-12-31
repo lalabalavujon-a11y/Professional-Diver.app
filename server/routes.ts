@@ -10,15 +10,19 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 // import { AILearningPathService } from "./ai-learning-path";
 import { z } from "zod";
 // LangChain AI Tutor routes are now handled by ai-tutor.ts router
-import { insertLessonSchema, insertInviteSchema, insertAttemptSchema, behaviorInsights, emailCampaigns, testimonials } from "@shared/schema";
+import { insertLessonSchema as insertLessonSchemaPG, insertInviteSchema as insertInviteSchemaPG, insertAttemptSchema as insertAttemptSchemaPG, behaviorInsights, emailCampaigns, testimonials } from "@shared/schema";
+import { insertLessonSchema as insertLessonSchemaSQLite, insertInviteSchema as insertInviteSchemaSQLite, insertAttemptSchema as insertAttemptSchemaSQLite } from "@shared/schema-sqlite";
 import { users as usersPG } from "@shared/schema";
 import { users as usersSQLite } from "@shared/schema-sqlite";
 
-// Use the correct users table based on environment
+// Use the correct schema and tables based on environment
 // db instance uses the correct schema, but we need matching table definition for type safety
 const env = process.env.NODE_ENV ?? 'development';
 const isProduction = env === 'production' && process.env.DATABASE_URL;
 const users = isProduction ? usersPG : usersSQLite;
+const insertLessonSchema = isProduction ? insertLessonSchemaPG : insertLessonSchemaSQLite;
+const insertInviteSchema = isProduction ? insertInviteSchemaPG : insertInviteSchemaSQLite;
+const insertAttemptSchema = isProduction ? insertAttemptSchemaPG : insertAttemptSchemaSQLite;
 import { eq, sql, and, or, desc } from "drizzle-orm";
 import { db } from "./db";
 import { getGHLService } from "./ghl-integration";
