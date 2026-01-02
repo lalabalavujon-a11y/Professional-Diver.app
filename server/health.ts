@@ -2,7 +2,21 @@ import { Router } from "express";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
 import { Client as LangSmithClient } from "langsmith";
-import dns from "dns";
+import { execFileSync } from "child_process";
+
+function resolveIPv4Sync(hostname: string): string | null {
+  try {
+    const out = execFileSync("getent", ["ahostsv4", hostname], { encoding: "utf8" });
+    const firstIp = out
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)[0]
+      ?.split(/\s+/)[0];
+    return firstIp && /^\d{1,3}(\.\d{1,3}){3}$/.test(firstIp) ? firstIp : null;
+  } catch {
+    return null;
+  }
+}
 
 const router = Router();
 
@@ -42,13 +56,17 @@ router.get("/", async (req, res) => {
     } else {
       // Production: perform a real Postgres ping (Supabase/Neon/etc).
       const { Pool } = await import("pg");
+      const url = new URL(databaseUrl);
+
+      const hostForConnect = resolveIPv4Sync(url.hostname) ?? url.hostname;
+
       const pool = new Pool({
-        connectionString: databaseUrl,
-        ssl: { rejectUnauthorized: false },
-        // Force IPv4 to avoid IPv6 ENETUNREACH on some hosts.
-        lookup: ((hostname: string, options: unknown, callback: unknown) => {
-          return (dns.lookup as any)(hostname, { ...(options ?? {}), family: 4 }, callback);
-        }) as any,
+        host: hostForConnect,
+        port: url.port ? Number(url.port) : 5432,
+        user: url.username || undefined,
+        password: url.password || undefined,
+        database: url.pathname?.replace(/^\//, "") || undefined,
+        ssl: { rejectUnauthorized: false, servername: url.hostname },
       } as any);
 
       try {
