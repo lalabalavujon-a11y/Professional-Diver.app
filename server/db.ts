@@ -42,7 +42,7 @@ if (env !== 'development' && hasDatabaseUrl) {
     // in the connection string, so we explicitly enable SSL for non-local hosts.
     //
     // Additionally, some Railway regions have broken/blocked IPv6 egress while Supabase resolves to AAAA first.
-    // Force IPv4 at the TCP level with `family: 4` to avoid ENETUNREACH on IPv6 addresses.
+    // We force IPv4 preference at process bootstrap (see `server/bootstrap/env.ts`).
     const { Pool } = require("pg") as typeof import("pg");
     const { drizzle } = require("drizzle-orm/node-postgres") as typeof import("drizzle-orm/node-postgres");
 
@@ -59,7 +59,6 @@ if (env !== 'development' && hasDatabaseUrl) {
       password: url.password || undefined,
       database: url.pathname?.replace(/^\//, "") || undefined,
       ssl,
-      family: 4,
     });
     db = drizzle(pool, { schema });
   }
