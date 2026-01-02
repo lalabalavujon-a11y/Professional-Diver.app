@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { db } from "./db";
-import { LangChainConfig } from "./langchain-config";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
 import { Client as LangSmithClient } from "langsmith";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -34,15 +34,11 @@ router.get("/", async (req, res) => {
 
   // Database connectivity check
   try {
-    if (process.env.NODE_ENV === 'development') {
-      // SQLite check
-      await db.get("SELECT 1");
-      health.services.db = "sqlite-connected";
-    } else {
-      // PostgreSQL check
-      await db.get("SELECT 1");
-      health.services.db = "postgresql-connected";
-    }
+    await db.execute(sql`SELECT 1`);
+
+    const isProd = process.env.NODE_ENV === "production";
+    const hasDatabaseUrl = !!process.env.DATABASE_URL;
+    health.services.db = isProd && hasDatabaseUrl ? "postgresql-connected" : "sqlite-connected";
   } catch (error) {
     health.services.db = `database-error: ${error instanceof Error ? error.message : 'unknown'}`;
   }
