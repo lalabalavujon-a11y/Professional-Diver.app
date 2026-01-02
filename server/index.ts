@@ -70,7 +70,12 @@ async function main() {
   });
 
   // VITE COMPLETELY REMOVED - PURE EXPRESS API SERVER ONLY
-  const port = Number(process.env.PORT) || 5000;
+  /**
+   * Railway + Nixpacks often runs a reverse proxy (Caddy) on `PORT` and expects
+   * your app to listen on `NIXPACKS_PORT`. When `NIXPACKS_PORT` is present,
+   * prefer it to avoid edge 502s ("Application failed to respond").
+   */
+  const port = Number(process.env.NIXPACKS_PORT ?? process.env.PORT) || 5000;
   const host =
     process.env.HOST ||
     (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
