@@ -2,6 +2,7 @@ import { Router } from "express";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
 import { Client as LangSmithClient } from "langsmith";
+import dns from "dns";
 
 const router = Router();
 
@@ -44,7 +45,11 @@ router.get("/", async (req, res) => {
       const pool = new Pool({
         connectionString: databaseUrl,
         ssl: { rejectUnauthorized: false },
-      });
+        // Force IPv4 to avoid IPv6 ENETUNREACH on some hosts.
+        lookup: ((hostname: string, options: unknown, callback: unknown) => {
+          return (dns.lookup as any)(hostname, { ...(options ?? {}), family: 4 }, callback);
+        }) as any,
+      } as any);
 
       try {
         const result = await pool.query("SELECT 1 as ok");

@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync } from 'fs';
 import { createRequire } from "module";
+import dns from "dns";
 import * as schema from "@shared/schema";
 import * as sqliteSchema from "@shared/schema-sqlite";
 
@@ -52,6 +53,14 @@ if (env !== 'development' && hasDatabaseUrl) {
         : undefined;
 
     const url = new URL(databaseUrl!);
+
+    // Force IPv4 DNS resolution for Supabase (prevents IPv6 ENETUNREACH in some hosted networks).
+    const lookup = ((hostname: string, options: unknown, callback: unknown) => {
+      // `pg` forwards this to `net.connect`, which calls `dns.lookup`.
+      // We override lookup to always request IPv4.
+      return (dns.lookup as any)(hostname, { ...(options ?? {}), family: 4 }, callback);
+    }) as any;
+
     const pool = new Pool({
       host: url.hostname,
       port: url.port ? Number(url.port) : 5432,
@@ -59,7 +68,8 @@ if (env !== 'development' && hasDatabaseUrl) {
       password: url.password || undefined,
       database: url.pathname?.replace(/^\//, "") || undefined,
       ssl,
-    });
+      lookup,
+    } as any);
     db = drizzle(pool, { schema });
   }
 } else {
