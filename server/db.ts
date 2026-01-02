@@ -40,6 +40,9 @@ if (env !== 'development' && hasDatabaseUrl) {
   } else {
     // Supabase (and most managed Postgres) expects TLS. `pg` doesn't reliably honor `sslmode=require`
     // in the connection string, so we explicitly enable SSL for non-local hosts.
+    //
+    // Additionally, some Railway regions have broken/blocked IPv6 egress while Supabase resolves to AAAA first.
+    // Force IPv4 at the TCP level with `family: 4` to avoid ENETUNREACH on IPv6 addresses.
     const { Pool } = require("pg") as typeof import("pg");
     const { drizzle } = require("drizzle-orm/node-postgres") as typeof import("drizzle-orm/node-postgres");
 
@@ -48,7 +51,16 @@ if (env !== 'development' && hasDatabaseUrl) {
         ? { rejectUnauthorized: false }
         : undefined;
 
-    const pool = new Pool({ connectionString: databaseUrl, ssl });
+    const url = new URL(databaseUrl!);
+    const pool = new Pool({
+      host: url.hostname,
+      port: url.port ? Number(url.port) : 5432,
+      user: url.username || undefined,
+      password: url.password || undefined,
+      database: url.pathname?.replace(/^\//, "") || undefined,
+      ssl,
+      family: 4,
+    });
     db = drizzle(pool, { schema });
   }
 } else {
