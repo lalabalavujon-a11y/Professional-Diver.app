@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from 'fs';
 import { createRequire } from "module";
-import dns from "dns";
+import { execFileSync } from "child_process";
 import * as schema from "@shared/schema";
 import * as sqliteSchema from "@shared/schema-sqlite";
 
@@ -12,6 +12,22 @@ const env = process.env.NODE_ENV ?? 'development';
 const databaseUrl = process.env.DATABASE_URL;
 const hasDatabaseUrl = !!databaseUrl;
 const require = createRequire(import.meta.url);
+
+function resolveIPv4Sync(hostname: string): string | null {
+  try {
+    // Prefer IPv4 in environments where IPv6 is unreachable.
+    // `getent ahostsv4` returns lines like: "<ip> STREAM <hostname>"
+    const out = execFileSync("getent", ["ahostsv4", hostname], { encoding: "utf8" });
+    const firstIp = out
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)[0]
+      ?.split(/\s+/)[0];
+    return firstIp && /^\d{1,3}(\.\d{1,3}){3}$/.test(firstIp) ? firstIp : null;
+  } catch {
+    return null;
+  }
+}
 
 if (env !== 'development' && hasDatabaseUrl) {
   const hostname = (() => {
@@ -49,26 +65,22 @@ if (env !== 'development' && hasDatabaseUrl) {
 
     const ssl =
       hostname.endsWith(".supabase.co") || hostname.endsWith(".supabase.com") || hostname !== "localhost"
-        ? { rejectUnauthorized: false }
+        ? { rejectUnauthorized: false, servername: hostname }
         : undefined;
 
     const url = new URL(databaseUrl!);
 
-    // Force IPv4 DNS resolution for Supabase (prevents IPv6 ENETUNREACH in some hosted networks).
-    const lookup = ((hostname: string, options: unknown, callback: unknown) => {
-      // `pg` forwards this to `net.connect`, which calls `dns.lookup`.
-      // We override lookup to always request IPv4.
-      return (dns.lookup as any)(hostname, { ...(options ?? {}), family: 4 }, callback);
-    }) as any;
+    // Supabase often resolves to IPv6 (AAAA) first, but some hosts cannot route IPv6.
+    // Resolve an IPv4 (A record) explicitly and connect to that, while keeping TLS SNI as the hostname.
+    const hostForConnect = resolveIPv4Sync(url.hostname) ?? url.hostname;
 
     const pool = new Pool({
-      host: url.hostname,
+      host: hostForConnect,
       port: url.port ? Number(url.port) : 5432,
       user: url.username || undefined,
       password: url.password || undefined,
       database: url.pathname?.replace(/^\//, "") || undefined,
       ssl,
-      lookup,
     } as any);
     db = drizzle(pool, { schema });
   }
