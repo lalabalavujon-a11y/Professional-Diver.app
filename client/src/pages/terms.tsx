@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Terms() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50">
+    <>
       <RoleBasedNavigation />
-      
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardHeader>
             <CardTitle className="text-3xl font-bold text-slate-900">Terms of Service</CardTitle>
@@ -105,7 +105,8 @@ export default function Terms() {
             </section>
           </CardContent>
         </Card>
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }
