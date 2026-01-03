@@ -207,11 +207,29 @@ export class LauraOracleService {
     timestamp: string;
   }> {
     try {
+      console.log('🔵 Laura Oracle: Starting chatWithOracle with message:', message.substring(0, 50));
+      
       // Get current platform analytics
-      const analytics = await this.getPlatformAnalytics();
+      console.log('🔵 Laura Oracle: Getting platform analytics...');
+      let analytics;
+      try {
+        analytics = await this.getPlatformAnalytics();
+        console.log('✅ Laura Oracle: Platform analytics retrieved');
+      } catch (analyticsError) {
+        console.error('❌ Laura Oracle: Error getting analytics:', analyticsError);
+        throw analyticsError;
+      }
       
       // Build comprehensive context for Laura
-      const context = await this.buildOracleContext(analytics, userContext);
+      console.log('🔵 Laura Oracle: Building context...');
+      let context;
+      try {
+        context = await this.buildOracleContext(analytics, userContext);
+        console.log('✅ Laura Oracle: Context built');
+      } catch (contextError) {
+        console.error('❌ Laura Oracle: Error building context:', contextError);
+        throw contextError;
+      }
       
       // Create LangSmith trace for learning
       const traceId = sessionId || nanoid();
@@ -221,7 +239,17 @@ export class LauraOracleService {
         new HumanMessage(`Platform Context: ${JSON.stringify(context, null, 2)}\n\nUser Query: ${message}`)
       ];
 
-      const response = await this.chatModel.invoke(messages);
+      console.log('🔵 Laura Oracle: Invoking chat model...');
+      let response;
+      try {
+        response = await this.chatModel.invoke(messages);
+        console.log('✅ Laura Oracle: Chat model responded');
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error('❌ Error invoking chat model:', errorMsg);
+        console.error('Full error:', error);
+        throw new Error(`OpenAI API error: ${errorMsg}`);
+      }
       
       // Log interaction to LangSmith for domain learning
       await this.logToLangSmith(traceId, message, response.content as string, context);
@@ -238,8 +266,10 @@ export class LauraOracleService {
 
     } catch (error) {
       console.error('❌ Laura Oracle chat error:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('Error details:', errorMsg);
       return {
-        response: "I apologize, but I'm experiencing a technical issue. Please try again or contact the admin team directly.",
+        response: `I apologize, but I'm experiencing a technical issue: ${errorMsg}. Please try again or contact the admin team directly.`,
         timestamp: new Date().toISOString()
       };
     }
@@ -251,21 +281,40 @@ export class LauraOracleService {
   async getPlatformAnalytics(): Promise<PlatformAnalytics> {
     try {
       // User analytics
-      const totalUsers = await db.select({ count: count() }).from(users);
-      const activeUsers = await db.select({ count: count() })
-        .from(users)
-        // SQLite schema does not have `lastLogin`; use `updatedAt` as a proxy for activity.
-        .where(gte(users.updatedAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)));
+      let totalUsers, activeUsers, totalTracks, totalLessons, totalQuestions, recentAttempts;
+      
+      try {
+        totalUsers = await db.select({ count: count() }).from(users);
+      } catch (e) {
+        console.error('DB error (totalUsers):', e);
+        totalUsers = [{ count: 0 }];
+      }
+      
+      try {
+        activeUsers = await db.select({ count: count() })
+          .from(users)
+          .where(gte(users.updatedAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)));
+      } catch (e) {
+        console.error('DB error (activeUsers):', e);
+        activeUsers = [{ count: 0 }];
+      }
+      
+      try {
+        totalTracks = await db.select({ count: count() }).from(tracks);
+        totalLessons = await db.select({ count: count() }).from(lessons);
+        totalQuestions = await db.select({ count: count() }).from(questions);
+        recentAttempts = (await db.select()
+          .from(quizAttempts)
+          .where(gte(quizAttempts.completedAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)))) as Array<{ score: number }>;
+      } catch (e) {
+        console.error('DB error:', e);
+        totalTracks = [{ count: 0 }];
+        totalLessons = [{ count: 0 }];
+        totalQuestions = [{ count: 0 }];
+        recentAttempts = [];
+      }
 
-      // Content analytics
-      const totalTracks = await db.select({ count: count() }).from(tracks);
-      const totalLessons = await db.select({ count: count() }).from(lessons);
-      const totalQuestions = await db.select({ count: count() }).from(questions);
-
-      // Performance analytics
-      const recentAttempts = (await db.select()
-        .from(quizAttempts)
-        .where(gte(quizAttempts.completedAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)))) as Array<{ score: number }>;
+      // Calculate pass rate from recent attempts
 
       const passRate = recentAttempts.length > 0 
         ? (recentAttempts.filter((a) => a.score >= 70).length / recentAttempts.length) * 100
@@ -304,7 +353,10 @@ export class LauraOracleService {
       };
 
     } catch (error) {
-      console.error('❌ Error getting platform analytics:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('❌ Error getting platform analytics:', errorMsg);
+      console.error('Full error:', error);
+      // Return safe defaults if database fails
       return {
         users: { total: 0, active: 0, newThisMonth: 0, subscriptionBreakdown: {} },
         content: { totalTracks: 0, totalLessons: 0, totalQuestions: 0, completionRates: {} },

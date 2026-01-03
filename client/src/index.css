@@ -26,7 +26,7 @@
   --chart-1: hsl(214 100% 40%);
   --chart-2: hsl(159.7826 100% 36.0784%);
   --chart-3: hsl(42.0290 92.8251% 56.2745%);
-  --chart-4: hsl(147.1429 78.5047% 41.9608%);
+  --chart-4: hsl(147.1429 78.5047% 41.9604%);
   --chart-5: hsl(341.4894 75.2000% 50.9804%);
   --sidebar: hsl(180 6.6667% 97.0588%);
   --sidebar-foreground: hsl(215 16% 46%);
@@ -60,6 +60,9 @@
   --green-700: hsl(142 81% 36%);
   --red-600: hsl(356 90% 54%);
   --red-700: hsl(356 85% 45%);
+  --sidebar-width: 16rem;
+  --sidebar-width-icon: 3rem;
+  --header-height: 4rem;
 }
 
 .dark {
@@ -168,3 +171,90 @@
 .hover\:text-primary-700:hover { color: var(--primary-700); }
 .hover\:text-ocean-700:hover { color: var(--ocean-700); }
 .hover\:border-primary-400:hover { border-color: hsl(214 80% 60%); }
+
+/* Sidebar layout spacing - Apply to pages with RoleBasedNavigation */
+/* Content with data-sidebar-content attribute - properly spaced for sidebar */
+[data-sidebar-content="true"] {
+  margin-left: var(--sidebar-width);
+  transition: margin-left 0.2s ease-linear;
+}
+
+/* Mobile: Remove sidebar margin */
+@media (max-width: 768px) {
+  [data-sidebar-content="true"] {
+    margin-left: 0 !important;
+  }
+}
+
+/* Mobile Optimizations */
+@layer utilities {
+  /* Improved touch targets for mobile (minimum 44x44px) */
+  @media (max-width: 768px) {
+    /* Ensure buttons have adequate touch targets */
+    button:not(.icon-only),
+    a[role="button"]:not(.icon-only),
+    [role="button"]:not(.icon-only) {
+      min-height: 44px;
+    }
+    
+    /* Improved spacing for mobile cards */
+    .mobile-card-spacing {
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    /* Better text sizing on mobile */
+    h1 {
+      font-size: 1.75rem;
+      line-height: 2rem;
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+      line-height: 1.75rem;
+    }
+    
+    h3 {
+      font-size: 1.25rem;
+      line-height: 1.5rem;
+    }
+    
+    /* Better spacing between elements on mobile */
+    .space-y-6 > * + * {
+      margin-top: 1rem;
+    }
+    
+    .space-y-8 > * + * {
+      margin-top: 1.5rem;
+    }
+  }
+}
+
+/* Mobile-specific improvements */
+@layer base {
+  @media (max-width: 768px) {
+    /* Better scroll behavior on mobile */
+    html {
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    
+    /* Prevent text size adjustment on iOS */
+    body {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+    
+    /* Improve tap highlighting */
+    a, button, [role="button"] {
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+      tap-highlight-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Better focus visibility on mobile */
+    *:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+  }
+}
