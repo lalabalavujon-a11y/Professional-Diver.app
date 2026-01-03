@@ -169,7 +169,7 @@ export default function LauraAssistant() {
                   className="border-blue-200 text-blue-600 hover:bg-blue-50"
                   onClick={() => {
                     setIsOpen(false);
-                    window.open('https://chatgpt.com/g/g-6897d42d3ba48191b48883a4839c09bf-diver-well-commercial-diver-ai-consultant', '_blank');
+                    window.open('/chat/diver-well', '_blank');
                   }}
                   data-testid="button-diver-well-consultant"
                 >

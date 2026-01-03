@@ -26,6 +26,7 @@ import DemoUsers from "@/pages/demo-users";
 import ProfileSettings from "@/pages/profile-settings";
 import LearningPath from "@/pages/learning-path";
 import ChatLaura from "@/pages/chat-laura";
+import ChatDiverWell from "@/pages/chat-diver-well";
 import Operations from "@/pages/operations";
 import Tracks from "@/pages/tracks";
 import Terms from "@/pages/terms";
@@ -65,6 +66,7 @@ function Router() {
       <Route path="/profile-settings" component={ProfileSettings} />
       <Route path="/learning-path" component={LearningPath} />
       <Route path="/chat/laura" component={ChatLaura} />
+      <Route path="/chat/diver-well" component={ChatDiverWell} />
       <Route path="/operations" component={Operations} />
       <Route path="/tracks" component={Tracks} />
       <Route path="/terms" component={Terms} />
