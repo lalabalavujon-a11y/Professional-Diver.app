@@ -390,10 +390,15 @@ export default function RoleBasedNavigation() {
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="flex flex-col min-h-screen">
-        {/* Header */}
+      <SidebarInset className="flex flex-col">
+        {/* Header - Fixed position to stay at top */}
         <header 
-          className="sticky top-0 z-50 flex h-14 md:h-16 shrink-0 items-center gap-3 md:gap-4 border-b bg-background backdrop-blur-sm px-3 sm:px-4" 
+          className="fixed top-0 right-0 z-50 flex h-14 md:h-16 shrink-0 items-center gap-3 md:gap-4 border-b bg-background/95 backdrop-blur-sm px-3 sm:px-4" 
+          style={{ 
+            left: 'var(--sidebar-width)', 
+            transition: 'left 0.2s ease-linear',
+            width: 'calc(100% - var(--sidebar-width))'
+          }}
           data-testid="navigation-header"
         >
           <SidebarTrigger className="-ml-1 h-9 w-9 md:h-10 md:w-10" />
