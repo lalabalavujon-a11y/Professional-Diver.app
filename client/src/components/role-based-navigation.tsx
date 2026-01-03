@@ -393,7 +393,7 @@ export default function RoleBasedNavigation() {
       <SidebarInset className="flex flex-col">
         {/* Header - Fixed position to stay at top, CSS handles positioning */}
         <header 
-          className="fixed top-0 z-50 flex h-14 md:h-16 shrink-0 items-center gap-3 md:gap-4 border-b bg-background/95 backdrop-blur-sm px-3 sm:px-4" 
+          className="fixed top-0 right-0 z-50 flex h-14 md:h-16 shrink-0 items-center gap-3 md:gap-4 border-b bg-background/95 backdrop-blur-sm px-3 sm:px-4" 
           data-testid="navigation-header"
         >
           <SidebarTrigger className="-ml-1 h-9 w-9 md:h-10 md:w-10" />
