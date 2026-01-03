@@ -22,10 +22,10 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
+    <>
       <RoleBasedNavigation />
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="min-h-screen bg-gray-50 text-slate-900 font-sans" data-sidebar-content="true">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* User Status Badge */}
         <div className="mb-6">
           <UserStatusBadge 
@@ -39,13 +39,13 @@ export default function Dashboard() {
 
         <section className="mb-12">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="border-b border-gray-200 px-6 py-4">
-              <div className="flex items-center justify-between">
+            <div className="border-b border-gray-200 px-4 sm:px-6 py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900" data-testid="text-dashboard-title">
+                  <h2 className="text-lg sm:text-xl font-semibold text-slate-900" data-testid="text-dashboard-title">
                     Your Learning Dashboard
                   </h2>
-                  <p className="text-sm text-slate-500">Track your progress and continue your diving education</p>
+                  <p className="text-xs sm:text-sm text-slate-500">Track your progress and continue your diving education</p>
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
@@ -68,10 +68,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {/* Quick Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-lg p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-lg p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-primary-600 font-semibold">Lessons Completed</p>
@@ -84,7 +84,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-ocean-50 to-ocean-100 rounded-lg p-6">
+                <div className="bg-gradient-to-br from-ocean-50 to-ocean-100 rounded-lg p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-ocean-600 font-semibold">Quiz Average</p>
@@ -99,7 +99,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-6">
+                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-yellow-600 font-semibold">Study Streak</p>
@@ -114,9 +114,9 @@ export default function Dashboard() {
               </div>
 
               {/* AI Learning Path Suggestions */}
-              <div className="mb-8">
-                <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
-                  <div className="flex items-center justify-between mb-4">
+              <div className="mb-6 sm:mb-8">
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 sm:p-6 border border-purple-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="p-2 bg-purple-100 rounded-lg">
                         <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,19 +124,19 @@ export default function Dashboard() {
                         </svg>
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-slate-900">AI Learning Path Suggestions</h3>
-                        <p className="text-sm text-slate-600">Get personalized recommendations powered by AI</p>
+                        <h3 className="text-base sm:text-lg font-semibold text-slate-900">AI Learning Path Suggestions</h3>
+                        <p className="text-xs sm:text-sm text-slate-600">Get personalized recommendations powered by AI</p>
                       </div>
                     </div>
                     <button 
                       onClick={() => window.location.href = '/learning-path'}
-                      className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                      className="bg-purple-500 hover:bg-purple-600 text-white px-4 sm:px-6 py-2 rounded-lg font-medium transition-colors w-full sm:w-auto"
                       data-testid="button-ai-suggestions"
                     >
                       Get AI Suggestions
                     </button>
                   </div>
-                  <div className="flex items-center space-x-4 text-sm text-slate-600">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-slate-600">
                     <div className="flex items-center space-x-1">
                       <CheckCircle className="w-4 h-4 text-green-500" />
                       <span>Personalized recommendations</span>
@@ -154,16 +154,16 @@ export default function Dashboard() {
               </div>
 
               {/* Current Progress */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">Continue Learning</h3>
-                <div className="bg-gradient-to-r from-primary-50 to-ocean-50 rounded-lg p-6 border border-primary-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
+              <div className="mb-6 sm:mb-8">
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-4">Continue Learning</h3>
+                <div className="bg-gradient-to-r from-primary-50 to-ocean-50 rounded-lg p-4 sm:p-6 border border-primary-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                    <div className="flex-1">
                       <h4 className="font-semibold text-slate-900" data-testid="text-current-track">Physiology Basics</h4>
                       <p className="text-sm text-slate-600">Next: Circulatory System</p>
                     </div>
                     <Link href="/tracks/diving-physiology-basics">
-                      <button className="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg font-medium transition-colors" data-testid="button-continue">
+                      <button className="bg-primary-500 hover:bg-primary-600 text-white px-4 sm:px-6 py-2 rounded-lg font-medium transition-colors w-full sm:w-auto" data-testid="button-continue">
                         Continue
                       </button>
                     </Link>
@@ -178,16 +178,16 @@ export default function Dashboard() {
               {/* Recent Quiz Results */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-slate-900">Recent Quiz Results</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-900">Recent Quiz Results</h3>
                   <Link href="/analytics">
-                    <button className="text-primary-600 hover:text-primary-700 font-medium text-sm" data-testid="button-view-all">
+                    <button className="text-primary-600 hover:text-primary-700 font-medium text-xs sm:text-sm" data-testid="button-view-all">
                       View All
                     </button>
                   </Link>
                 </div>
                 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg" data-testid="quiz-result-1">
+                  <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg" data-testid="quiz-result-1">
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                         <CheckCircle className="w-5 h-5 text-green-600" />
@@ -203,7 +203,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg" data-testid="quiz-result-2">
+                  <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg" data-testid="quiz-result-2">
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
                         <AlertTriangle className="w-5 h-5 text-yellow-600" />
@@ -219,7 +219,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg" data-testid="quiz-result-3">
+                  <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg" data-testid="quiz-result-3">
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                         <CheckCircle className="w-5 h-5 text-green-600" />
@@ -239,7 +239,8 @@ export default function Dashboard() {
             </div>
           </div>
         </section>
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }
