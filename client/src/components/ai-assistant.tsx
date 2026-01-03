@@ -6,17 +6,13 @@ import { MessageCircle, X, ExternalLink, Bot, Headphones } from "lucide-react";
 
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
-  const [showIframe, setShowIframe] = useState(false);
-
-  const consultantUrl = "https://chatgpt.com/g/g-6897d42d3ba48191b48883a4839c09bf-diver-well-commercial-diver-ai-consultant";
 
   const handleOpenConsultant = () => {
-    window.open(consultantUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+    window.open('/chat/diver-well', '_blank');
   };
 
   const handleEmbedConsultant = () => {
-    setShowIframe(true);
-    setIsOpen(false);
+    window.open('/chat/diver-well', '_blank');
   };
 
   return (
@@ -81,47 +77,6 @@ export default function AIAssistant() {
         </DialogContent>
       </Dialog>
 
-      {/* Embedded ChatGPT Dialog */}
-      <Dialog open={showIframe} onOpenChange={setShowIframe}>
-        <DialogContent className="sm:max-w-4xl h-[80vh] p-0">
-          <DialogHeader className="p-6 pb-2">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-primary-600" />
-                Diver Well - Commercial Diving AI Consultant
-              </DialogTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowIframe(false)}
-                data-testid="button-close-embedded"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </DialogHeader>
-          <div className="flex-1 p-6 pt-2">
-            <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center">
-              <div className="text-center space-y-4">
-                <Bot className="w-12 h-12 text-primary-500 mx-auto" />
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">AI Consultant Loading...</h3>
-                  <p className="text-sm text-slate-600 max-w-md">
-                    For the best experience, we recommend opening the AI consultant in a new window.
-                  </p>
-                  <Button
-                    onClick={handleOpenConsultant}
-                    className="bg-primary-500 hover:bg-primary-600 text-white"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Open in New Window
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
