@@ -11,19 +11,19 @@ export default function Home() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
+    <>
       <RoleBasedNavigation />
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="min-h-screen bg-gray-50 text-slate-900 font-sans" data-sidebar-content="true">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         <HeroSection />
         
-        <section id="tracks" className="mb-12">
-          <div className="flex items-center justify-between mb-8">
+        <section id="tracks" className="mb-8 sm:mb-12">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2" data-testid="text-learning-tracks">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2" data-testid="text-learning-tracks">
                 Learning Tracks
               </h2>
-              <p className="text-slate-600">Comprehensive courses designed for professional divers</p>
+              <p className="text-sm sm:text-base text-slate-600">Comprehensive courses designed for professional divers</p>
             </div>
             <div className="hidden md:flex items-center space-x-2">
               <span className="text-sm text-slate-500">View:</span>
@@ -43,9 +43,9 @@ export default function Home() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
               {[1, 2].map((i) => (
-                <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
                   <div className="animate-pulse">
                     <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
                     <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
@@ -59,7 +59,7 @@ export default function Home() {
               ))}
             </div>
           ) : tracks && tracks.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
               {tracks.map((track, index: number) => (
                 <TrackCard 
                   key={track.id} 
@@ -79,16 +79,16 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="bg-white border-t border-gray-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center space-x-3 mb-4 md:mb-0">
+      <footer className="bg-white border-t border-gray-200 mt-8 sm:mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
                 <LayoutDashboard className="w-5 h-5 text-white" />
               </div>
               <span className="font-semibold text-slate-900">Diver Well Training</span>
             </div>
-            <div className="flex items-center space-x-6 text-sm text-slate-500">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-slate-500">
               <a href="#" className="hover:text-slate-700">Privacy Policy</a>
               <a href="#" className="hover:text-slate-700">Terms of Service</a>
               <a href="#" className="hover:text-slate-700">Support</a>
