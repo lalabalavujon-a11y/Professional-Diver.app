@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, ArrowLeft, Headphones, Settings, User, HelpCircle, BarChart3, Shield, Brain, Zap, Activity, Database, Users, TrendingUp, Volume2, VolumeX, Play, Pause } from "lucide-react";
+import { Send, ArrowLeft, Headphones, Settings, User, HelpCircle, BarChart3, Shield, Brain, Zap, Activity, Database, Users, TrendingUp, Volume2, VolumeX, Play, Pause, Mic, MicOff } from "lucide-react";
 import { Link } from "wouter";
 import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
 
@@ -66,7 +66,9 @@ export default function ChatLaura() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -79,6 +81,16 @@ export default function ChatLaura() {
   // Load platform analytics on component mount
   useEffect(() => {
     loadPlatformAnalytics();
+  }, []);
+
+  // Cleanup: stop recording when component unmounts
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+      }
+    };
   }, []);
 
   const loadPlatformAnalytics = async () => {
@@ -275,6 +287,70 @@ export default function ChatLaura() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const toggleVoiceRecording = () => {
+    if (!isRecording) {
+      // Start voice recording
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const recognitionInstance = new SpeechRecognition();
+        
+        recognitionInstance.continuous = false;
+        recognitionInstance.interimResults = true;
+        recognitionInstance.lang = 'en-US';
+        
+        recognitionInstance.onstart = () => {
+          setIsRecording(true);
+        };
+        
+        recognitionInstance.onresult = (event: any) => {
+          let finalTranscript = '';
+          let interimTranscript = '';
+          
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + ' ';
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+          
+          // Update the input text with transcribed speech
+          if (finalTranscript) {
+            setInputText((prev) => prev + finalTranscript);
+          }
+        };
+        
+        recognitionInstance.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsRecording(false);
+          if (event.error === 'no-speech') {
+            // User stopped speaking, that's okay
+          } else {
+            alert('Speech recognition error. Please try again or type your message.');
+          }
+        };
+        
+        recognitionInstance.onend = () => {
+          setIsRecording(false);
+          recognitionRef.current = null;
+        };
+        
+        recognitionInstance.start();
+        recognitionRef.current = recognitionInstance;
+      } else {
+        alert('Speech recognition is not supported in this browser. Please type your message manually.');
+      }
+    } else {
+      // Stop recording
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+      }
+      setIsRecording(false);
     }
   };
 
@@ -500,15 +576,33 @@ export default function ChatLaura() {
                           className="flex-1"
                           data-testid="input-chat-message"
                         />
+                        <Button
+                          type="button"
+                          variant={isRecording ? "destructive" : "outline"}
+                          onClick={toggleVoiceRecording}
+                          className={`flex items-center space-x-1 ${
+                            isRecording ? 'bg-red-600 hover:bg-red-700 text-white' : ''
+                          }`}
+                          data-testid="button-voice-input"
+                          title={isRecording ? "Stop recording" : "Start voice input"}
+                        >
+                          {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                        </Button>
                         <Button 
                           onClick={handleSendMessage}
-                          disabled={!inputText.trim()}
+                          disabled={!inputText.trim() || isRecording}
                           className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                           data-testid="button-send-message"
                         >
                           <Send className="w-4 h-4" />
                         </Button>
                       </div>
+                      {isRecording && (
+                        <div className="mt-2 flex items-center space-x-2 text-sm text-red-600">
+                          <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                          <span>Listening... Speak your message</span>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
