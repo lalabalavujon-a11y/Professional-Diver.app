@@ -1,0 +1,85 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "lalabalavu.jon@gmail.com"
+    labels:
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Group updates to reduce PR noise
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    # Ignore specific packages if needed (uncomment and modify as needed)
+    # ignore:
+    #   - dependency-name: "package-name"
+    #     update-types: ["version-update:semver-major"]
+
+  # If you have a client subdirectory with its own package.json
+  - package-ecosystem: "npm"
+    directory: "/client"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "lalabalavu.jon@gmail.com"
+    labels:
+      - "dependencies"
+      - "security"
+      - "client"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Enable security updates (automatic fixes for vulnerabilities)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 20
+    open-pull-requests-limit-per-repository: 20
+    reviewers:
+      - "lalabalavu.jon@gmail.com"
+    labels:
+      - "security"
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "security"
+      include: "scope"
+    # Prioritize security updates
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+

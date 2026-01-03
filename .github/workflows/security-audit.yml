@@ -1,0 +1,132 @@
+name: Security Audit
+
+on:
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual triggering
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'yarn.lock'
+      - 'pnpm-lock.yaml'
+      - 'client/package.json'
+      - 'client/package-lock.json'
+
+jobs:
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        directory: ['', './client']
+        include:
+          - directory: ''
+            package-manager: 'npm'
+          - directory: './client'
+            package-manager: 'npm'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: ${{ matrix.package-manager }}
+          cache-dependency-path: ${{ matrix.directory }}/package-lock.json
+
+      - name: Install dependencies
+        if: hashFiles(format('{0}/package.json', matrix.directory)) != ''
+        working-directory: ${{ matrix.directory }}
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          elif [ -f yarn.lock ]; then
+            yarn install --frozen-lockfile
+          elif [ -f pnpm-lock.yaml ]; then
+            npm install -g pnpm
+            pnpm install --frozen-lockfile
+          else
+            npm install
+          fi
+
+      - name: Run security audit
+        if: hashFiles(format('{0}/package.json', matrix.directory)) != ''
+        working-directory: ${{ matrix.directory }}
+        run: |
+          echo "🔍 Running security audit..."
+          if [ -f package-lock.json ] || [ -f yarn.lock ] || [ -f pnpm-lock.yaml ]; then
+            npm audit --audit-level=moderate || true
+          else
+            echo "⚠️ No lock file found. Skipping audit."
+          fi
+
+      - name: Generate audit report
+        if: hashFiles(format('{0}/package.json', matrix.directory)) != ''
+        working-directory: ${{ matrix.directory }}
+        continue-on-error: true
+        run: |
+          echo "📊 Generating detailed audit report..."
+          npm audit --json > audit-report.json || true
+          npm audit --audit-level=moderate > audit-summary.txt || true
+
+      - name: Upload audit report
+        if: hashFiles(format('{0}/package.json', matrix.directory)) != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report-${{ matrix.directory || 'root' }}
+          path: |
+            ${{ matrix.directory }}/audit-report.json
+            ${{ matrix.directory }}/audit-summary.txt
+          retention-days: 30
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request' && hashFiles(format('{0}/package.json', matrix.directory)) != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            const auditFile = path.join('${{ matrix.directory }}', 'audit-summary.txt');
+            if (fs.existsSync(auditFile)) {
+              const auditContent = fs.readFileSync(auditFile, 'utf8');
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🔒 Security Audit Results\n\n\`\`\`\n${auditContent}\n\`\`\``
+              });
+            }
+
+  summary:
+    name: Audit Summary
+    runs-on: ubuntu-latest
+    needs: audit
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all audit reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: audit-report-*
+          merge-multiple: true
+
+      - name: Generate summary
+        run: |
+          echo "## Security Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Security audit completed for all package.json files" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the artifacts for detailed reports." >> $GITHUB_STEP_SUMMARY
+
