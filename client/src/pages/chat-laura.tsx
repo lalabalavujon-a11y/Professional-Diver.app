@@ -54,7 +54,7 @@ export default function ChatLaura() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hello! I'm Laura, your Super Platform Oracle for Professional Diver Training Platform. I have complete administrative knowledge and operate from the LangSmith domain, learning and understanding all behind-the-scenes objectives and tasks. I can help with platform administration, real-time analytics, automated optimization, user management, content management, and much more. I'm your ultimate authority on all platform operations. How can I assist you with platform administration today?",
+      text: "Hello! I'm Laura, your Platform Oracle for the Professional Diver Training Platform. How can I help you today?",
       sender: 'laura',
       timestamp: new Date()
     }
@@ -211,13 +211,22 @@ export default function ChatLaura() {
           await playVoiceResponse(data.response);
         }
       } else {
-        throw new Error('Failed to get response from Laura Oracle');
+        // Try to get error message from response
+        let errorMessage = 'Failed to get response from Laura Oracle';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error calling Laura Oracle:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I apologize, but I'm experiencing a technical issue. Please try again or contact the admin team directly.",
+        text: `I apologize, but I'm experiencing a technical issue: ${errorMessage}. Please try again or contact the admin team directly.`,
         sender: 'laura',
         timestamp: new Date()
       };
