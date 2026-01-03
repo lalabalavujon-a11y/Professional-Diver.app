@@ -812,6 +812,7 @@ export default function ChatLaura() {
                   </CardContent>
                 </Card>
               </TabsContent>
+              )}
               </Tabs>
             ) : (
               /* Chat only for non-SuperAdmin users */
