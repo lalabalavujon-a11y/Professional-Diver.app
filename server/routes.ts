@@ -10,10 +10,14 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { z } from "zod";
 // LangChain AI Tutor routes are now handled by ai-tutor.ts router
 import { insertLessonSchema, insertInviteSchema, insertAttemptSchema } from "@shared/schema";
+import { insertLessonSchema as insertLessonSchemaSQLite } from "@shared/schema-sqlite";
 import { eq } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { db } from "./db";
 import { registerSrsRoutes } from "./srs-routes";
+
+// In-memory store for user profile data (for demo purposes)
+const userProfileStore = new Map<string, any>();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // SRS (Phase 2–4) routes
@@ -67,54 +71,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.sendStatus(404);
       }
       return res.sendStatus(500);
-    }
-  });
-
-  // User profile routes
-  app.put("/api/users/profile", async (req, res) => {
-    try {
-      const { name, email, phone, bio, company, jobTitle, location, currentEmail } = req.body;
-      const userEmail = req.headers['x-user-email'] || currentEmail || email;
-      
-      // Update the current user's profile (for demo, we'll just return success)
-      res.json({
-        id: 'demo-user',
-        name: name || 'Demo User',
-        email: email || userEmail,
-        phone,
-        bio,
-        company,
-        jobTitle,
-        location,
-        updatedAt: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error("Error updating user profile:", error);
-      res.status(500).json({ error: "Failed to update profile" });
-    }
-  });
-
-  app.put("/api/users/profile-picture", async (req, res) => {
-    try {
-      const { profilePictureURL } = req.body;
-      const userEmail = req.headers['x-user-email'] as string;
-      
-      if (!profilePictureURL) {
-        return res.status(400).json({ error: "Profile picture URL is required" });
-      }
-
-      // Normalize the object storage URL
-      const objectStorageService = new ObjectStorageService();
-      const normalizedPath = objectStorageService.normalizeObjectEntityPath(profilePictureURL);
-
-      res.json({
-        success: true,
-        profilePictureUrl: normalizedPath,
-        updatedAt: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error("Error updating profile picture:", error);
-      res.status(500).json({ error: "Failed to update profile picture" });
     }
   });
 
@@ -432,22 +388,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Affiliate Program Endpoints
   app.get('/api/affiliate/dashboard', async (req, res) => {
     try {
-      // Create a demo affiliate if it doesn't exist
-      let demoAffiliate;
-      try {
-        const dashboardData = await affiliateService.getAffiliateDashboard('demo-affiliate-1');
-        res.json(dashboardData);
-        return;
-      } catch (error) {
-        // If affiliate doesn't exist, create it
-        demoAffiliate = await affiliateService.createAffiliate({
-          userId: 'demo-user-1',
-          name: 'Demo Partner',
-          email: 'demo@partner.com'
-        });
-        const dashboardData = await affiliateService.getAffiliateDashboard(demoAffiliate.id);
-        res.json(dashboardData);
+      // Get user email from query params (same pattern as /api/users/current)
+      const email = req.query.email as string;
+      
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
       }
+
+      // Get user info to get userId and name (same logic as /api/users/current)
+      let userId: string;
+      let userName: string;
+      
+      // Admin account
+      if (email === 'lalabalavu.jon@gmail.com') {
+        userId = 'admin-1';
+        userName = 'Admin User';
+      } else {
+        // For other users, use email as userId (consistent with current user endpoint)
+        userId = email;
+        // Extract name from email or use email
+        userName = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+      }
+
+      // Find or create affiliate for this user
+      let affiliate = await affiliateService.getAffiliateByUserId(userId);
+      
+      if (!affiliate) {
+        // Create new affiliate account
+        affiliate = await affiliateService.createAffiliate({
+          userId: userId,
+          name: userName,
+          email: email
+        });
+      }
+
+      // Get dashboard data
+      const dashboardData = await affiliateService.getAffiliateDashboard(affiliate.id);
+      res.json(dashboardData);
     } catch (error) {
       console.error('Affiliate dashboard error:', error);
       res.status(500).json({ error: 'Failed to load dashboard' });
@@ -619,13 +596,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/lessons/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const updateData = insertLessonSchema.partial().parse(req.body);
-      const lesson = await storage.updateLesson(id, updateData);
+      // Validate with SQLite schema since tempStorage uses SQLite
+      const updateData = insertLessonSchemaSQLite.partial().parse(req.body);
+      // Use tempStorage to match the GET endpoint and work with current database
+      const lesson = await tempStorage.updateLesson(id, updateData);
       if (!lesson) {
         return res.status(404).json({ error: "Lesson not found" });
       }
       res.json(lesson);
     } catch (error) {
+      console.error('Lesson update error:', error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid data", details: error.errors });
       }
@@ -907,19 +887,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { name, email, phone, bio, company, jobTitle, location, currentEmail } = req.body;
       const userEmail = req.headers['x-user-email'] || currentEmail || email;
       
-      // For demo purposes, we'll mock the update
-      const updatedUser = {
-        id: 'user-1',
-        name: name || 'User',
+      if (!userEmail) {
+        return res.status(400).json({ error: "User email is required" });
+      }
+
+      // Get existing profile or create new one
+      const existingProfile = userProfileStore.get(userEmail) || {};
+      
+      // Update profile data
+      const updatedProfile = {
+        ...existingProfile,
+        name: name || existingProfile.name || '',
         email: email || userEmail,
-        phone: phone || '',
-        bio: bio || '',
-        company: company || '',
-        jobTitle: jobTitle || '',
-        location: location || '',
-        role: userEmail === 'lalabalavu.jon@gmail.com' ? 'ADMIN' : 'USER',
-        subscriptionType: userEmail === 'lalabalavu.jon@gmail.com' ? 'LIFETIME' : 'TRIAL',
+        phone: phone !== undefined ? phone : existingProfile.phone || '',
+        bio: bio !== undefined ? bio : existingProfile.bio || '',
+        company: company !== undefined ? company : existingProfile.company || '',
+        jobTitle: jobTitle !== undefined ? jobTitle : existingProfile.jobTitle || '',
+        location: location !== undefined ? location : existingProfile.location || '',
         updatedAt: new Date().toISOString(),
+      };
+
+      // Store updated profile
+      userProfileStore.set(userEmail, updatedProfile);
+
+      // Determine role and subscription type
+      const role = userEmail === 'lalabalavu.jon@gmail.com' ? 'ADMIN' : 'USER';
+      const subscriptionType = userEmail === 'lalabalavu.jon@gmail.com' ? 'LIFETIME' : 'TRIAL';
+
+      const updatedUser = {
+        id: userEmail === 'lalabalavu.jon@gmail.com' ? 'admin-1' : 'user-1',
+        ...updatedProfile,
+        role,
+        subscriptionType,
       };
 
       res.json(updatedUser);
@@ -942,19 +941,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User email is required" });
       }
 
-      // For demo purposes, we'll mock the profile picture update
-      const { ObjectStorageService } = await import("./objectStorage");
+      // Normalize the object storage URL
       const objectStorageService = new ObjectStorageService();
       const normalizedPath = objectStorageService.normalizeObjectEntityPath(profilePictureURL);
 
-      const updatedUser = {
-        id: 'user-1',
-        name: 'User',
-        email: userEmail,
+      // Get existing profile or create new one
+      const existingProfile = userProfileStore.get(userEmail) || {};
+      
+      // Update profile picture
+      const updatedProfile = {
+        ...existingProfile,
         profilePictureUrl: normalizedPath,
-        role: userEmail === 'lalabalavu.jon@gmail.com' ? 'ADMIN' : 'USER',
-        subscriptionType: userEmail === 'lalabalavu.jon@gmail.com' ? 'LIFETIME' : 'TRIAL',
         updatedAt: new Date().toISOString(),
+      };
+
+      // Store updated profile
+      userProfileStore.set(userEmail, updatedProfile);
+
+      // Determine role and subscription type
+      const role = userEmail === 'lalabalavu.jon@gmail.com' ? 'ADMIN' : 'USER';
+      const subscriptionType = userEmail === 'lalabalavu.jon@gmail.com' ? 'LIFETIME' : 'TRIAL';
+
+      const updatedUser = {
+        id: userEmail === 'lalabalavu.jon@gmail.com' ? 'admin-1' : 'user-1',
+        ...updatedProfile,
+        name: existingProfile.name || (userEmail === 'lalabalavu.jon@gmail.com' ? 'Admin User' : 'User'),
+        email: userEmail,
+        role,
+        subscriptionType,
       };
 
       res.json(updatedUser);
@@ -967,56 +981,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Current user route
   app.get("/api/users/current", async (req, res) => {
     try {
-      // For demo purposes, return different users based on query param
       const email = req.query.email as string;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Get stored profile data
+      const storedProfile = userProfileStore.get(email) || {};
+      
+      // Base user data
+      let baseUser: any;
       
       // Admin account
       if (email === 'lalabalavu.jon@gmail.com') {
-        res.json({
+        baseUser = {
           id: 'admin-1',
-          name: 'Admin User',
+          name: storedProfile.name || 'Admin User',
           email: 'lalabalavu.jon@gmail.com',
           role: 'ADMIN',
           subscriptionType: 'LIFETIME',
           subscriptionDate: new Date('2024-01-01').toISOString(),
-          trialExpiresAt: null
-        });
-        return;
+          trialExpiresAt: null,
+          createdAt: storedProfile.createdAt || new Date('2024-01-01').toISOString(),
+        };
       }
-      
       // Lifetime access users
-      const lifetimeUsers = [
-        'eroni2519@gmail.com',
-        'jone.cirikidaveta@gmail.com', 
-        'jone7898@gmail.com',
-        'samueltabuya35@gmail.com',
-        'jone.viti@gmail.com'
-      ];
-      
-      if (lifetimeUsers.includes(email)) {
-        res.json({
+      else if (['eroni2519@gmail.com', 'jone.cirikidaveta@gmail.com', 'jone7898@gmail.com', 'samueltabuya35@gmail.com', 'jone.viti@gmail.com'].includes(email)) {
+        baseUser = {
           id: 'lifetime-user',
-          name: 'Lifetime Member',
+          name: storedProfile.name || 'Lifetime Member',
           email: email,
           role: 'LIFETIME',
           subscriptionType: 'LIFETIME',
           subscriptionDate: new Date('2024-01-01').toISOString(),
-          trialExpiresAt: null
-        });
-        return;
+          trialExpiresAt: null,
+          createdAt: storedProfile.createdAt || new Date('2024-01-01').toISOString(),
+        };
       }
-      
       // Default trial user
-      res.json({
-        id: 'trial-user',
-        name: 'Trial User',
-        email: email || 'trial@example.com',
-        role: 'USER',
-        subscriptionType: 'TRIAL',
-        subscriptionDate: null,
-        trialExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-      });
+      else {
+        baseUser = {
+          id: 'trial-user',
+          name: storedProfile.name || 'Trial User',
+          email: email,
+          role: 'USER',
+          subscriptionType: 'TRIAL',
+          subscriptionDate: null,
+          trialExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          createdAt: storedProfile.createdAt || new Date().toISOString(),
+        };
+      }
+
+      // Merge with stored profile data
+      const user = {
+        ...baseUser,
+        phone: storedProfile.phone || '',
+        bio: storedProfile.bio || '',
+        company: storedProfile.company || '',
+        jobTitle: storedProfile.jobTitle || '',
+        location: storedProfile.location || '',
+        profilePictureUrl: storedProfile.profilePictureUrl || null,
+        updatedAt: storedProfile.updatedAt || baseUser.createdAt,
+      };
+
+      res.json(user);
     } catch (error) {
+      console.error("Error fetching current user:", error);
       res.status(500).json({ error: "Failed to fetch current user" });
     }
   });
@@ -1115,6 +1146,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Laura Oracle voice error:', error);
       res.status(500).json({ error: 'Laura Oracle voice service unavailable' });
+    }
+  });
+
+  // Diver Well routes
+  app.post("/api/diver-well/chat", async (req, res) => {
+    try {
+      const { chatWithDiverWell } = await import('./api/diver-well');
+      await chatWithDiverWell(req, res);
+    } catch (error) {
+      console.error('Diver Well chat error:', error);
+      res.status(500).json({ error: 'Diver Well service unavailable' });
+    }
+  });
+
+  app.get("/api/diver-well/info", async (req, res) => {
+    try {
+      const { getDiverWellInfo } = await import('./api/diver-well');
+      await getDiverWellInfo(req, res);
+    } catch (error) {
+      console.error('Diver Well info error:', error);
+      res.status(500).json({ error: 'Diver Well info unavailable' });
+    }
+  });
+
+  app.post("/api/diver-well/voice", async (req, res) => {
+    try {
+      const { generateVoiceResponse } = await import('./api/diver-well');
+      await generateVoiceResponse(req, res);
+    } catch (error) {
+      console.error('Diver Well voice error:', error);
+      res.status(500).json({ error: 'Diver Well voice service unavailable' });
+    }
+  });
+
+  // Register import routes for GitHub repository content
+  registerImportRoutes(app);
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
+
+        location: storedProfile.location || '',
+        profilePictureUrl: storedProfile.profilePictureUrl || null,
+        updatedAt: storedProfile.updatedAt || baseUser.createdAt,
+      };
+
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+      res.status(500).json({ error: "Failed to fetch current user" });
+    }
+  });
+
+  // User progress routes
+  app.get("/api/users/:userId/progress", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const progress = await storage.getUserProgress(userId);
+      res.json(progress);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch user progress" });
+    }
+  });
+
+  app.post("/api/users/:userId/progress", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { lessonId } = req.body;
+      const progress = await storage.markLessonComplete(userId, lessonId);
+      res.status(201).json(progress);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark lesson complete" });
+    }
+  });
+
+  // Invite validation route
+  app.get("/api/invites/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const invite = await storage.getInviteByToken(token);
+      if (!invite || invite.usedAt || new Date() > invite.expiresAt) {
+        return res.status(404).json({ error: "Invalid or expired invite" });
+      }
+      res.json(invite);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to validate invite" });
+    }
+  });
+
+  // Laura Oracle routes
+  app.post("/api/laura-oracle/chat", async (req, res) => {
+    try {
+      const { chatWithLauraOracle } = await import('./api/laura-oracle');
+      await chatWithLauraOracle(req, res);
+    } catch (error) {
+      console.error('Laura Oracle chat error:', error);
+      res.status(500).json({ error: 'Laura Oracle service unavailable' });
+    }
+  });
+
+  app.get("/api/laura-oracle/analytics", async (req, res) => {
+    try {
+      const { getPlatformAnalytics } = await import('./api/laura-oracle');
+      await getPlatformAnalytics(req, res);
+    } catch (error) {
+      console.error('Laura Oracle analytics error:', error);
+      res.status(500).json({ error: 'Laura Oracle analytics unavailable' });
+    }
+  });
+
+  app.post("/api/laura-oracle/admin-task", async (req, res) => {
+    try {
+      const { executeAdminTask } = await import('./api/laura-oracle');
+      await executeAdminTask(req, res);
+    } catch (error) {
+      console.error('Laura Oracle admin task error:', error);
+      res.status(500).json({ error: 'Laura Oracle admin service unavailable' });
+    }
+  });
+
+  app.post("/api/laura-oracle/learn-objectives", async (req, res) => {
+    try {
+      const { learnFromObjectives } = await import('./api/laura-oracle');
+      await learnFromObjectives(req, res);
+    } catch (error) {
+      console.error('Laura Oracle learning error:', error);
+      res.status(500).json({ error: 'Laura Oracle learning service unavailable' });
+    }
+  });
+
+  app.get("/api/laura-oracle/info", async (req, res) => {
+    try {
+      const { getLauraOracleInfo } = await import('./api/laura-oracle');
+      await getLauraOracleInfo(req, res);
+    } catch (error) {
+      console.error('Laura Oracle info error:', error);
+      res.status(500).json({ error: 'Laura Oracle info unavailable' });
+    }
+  });
+
+  app.post("/api/laura-oracle/voice", async (req, res) => {
+    try {
+      const { generateVoiceResponse } = await import('./api/laura-oracle');
+      await generateVoiceResponse(req, res);
+    } catch (error) {
+      console.error('Laura Oracle voice error:', error);
+      res.status(500).json({ error: 'Laura Oracle voice service unavailable' });
+    }
+  });
+
+  // Diver Well routes
+  app.post("/api/diver-well/chat", async (req, res) => {
+    try {
+      const { chatWithDiverWell } = await import('./api/diver-well');
+      await chatWithDiverWell(req, res);
+    } catch (error) {
+      console.error('Diver Well chat error:', error);
+      res.status(500).json({ error: 'Diver Well service unavailable' });
+    }
+  });
+
+  app.get("/api/diver-well/info", async (req, res) => {
+    try {
+      const { getDiverWellInfo } = await import('./api/diver-well');
+      await getDiverWellInfo(req, res);
+    } catch (error) {
+      console.error('Diver Well info error:', error);
+      res.status(500).json({ error: 'Diver Well info unavailable' });
+    }
+  });
+
+  app.post("/api/diver-well/voice", async (req, res) => {
+    try {
+      const { generateVoiceResponse } = await import('./api/diver-well');
+      await generateVoiceResponse(req, res);
+    } catch (error) {
+      console.error('Diver Well voice error:', error);
+      res.status(500).json({ error: 'Diver Well voice service unavailable' });
     }
   });
 

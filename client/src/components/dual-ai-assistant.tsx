@@ -136,8 +136,8 @@ export default function DualAIAssistant() {
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
                   setIsOpen(false);
-                  // Platform-exclusive access to ChatGPT consultant
-                  window.open('https://chatgpt.com/g/g-6897d42d3ba48191b48883a4839c09bf-diver-well-commercial-diver-ai-consultant', '_blank');
+                  // Platform-embedded Diver Well consultant
+                  window.open('/chat/diver-well', '_blank');
                 }}
                 data-testid="button-chat-diver-well"
               >
