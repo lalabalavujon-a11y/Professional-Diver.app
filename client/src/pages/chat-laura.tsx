@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +52,19 @@ interface PlatformAnalytics {
 }
 
 export default function ChatLaura() {
+  // Get current user to check role
+  const { data: currentUser } = useQuery({
+    queryKey: ["/api/users/current"],
+    queryFn: async () => {
+      const email = localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com';
+      const response = await fetch(`/api/users/current?email=${email}`);
+      if (!response.ok) throw new Error('Failed to fetch user');
+      return response.json();
+    }
+  });
+
+  const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -425,24 +439,26 @@ export default function ChatLaura() {
           {/* Main Content Area */}
           <div className="lg:col-span-3">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="chat" className="flex items-center space-x-2">
-                  <Headphones className="w-4 h-4" />
-                  <span>Chat</span>
-                </TabsTrigger>
-                <TabsTrigger value="analytics" className="flex items-center space-x-2">
-                  <BarChart3 className="w-4 h-4" />
-                  <span>Analytics</span>
-                </TabsTrigger>
-                <TabsTrigger value="admin" className="flex items-center space-x-2">
-                  <Shield className="w-4 h-4" />
-                  <span>Admin</span>
-                </TabsTrigger>
-                <TabsTrigger value="monitoring" className="flex items-center space-x-2">
-                  <Activity className="w-4 h-4" />
-                  <span>Monitoring</span>
-                </TabsTrigger>
-              </TabsList>
+              {isSuperAdmin && (
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="chat" className="flex items-center space-x-2">
+                    <Headphones className="w-4 h-4" />
+                    <span>Chat</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="analytics" className="flex items-center space-x-2">
+                    <BarChart3 className="w-4 h-4" />
+                    <span>Analytics</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="admin" className="flex items-center space-x-2">
+                    <Shield className="w-4 h-4" />
+                    <span>Admin</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="monitoring" className="flex items-center space-x-2">
+                    <Activity className="w-4 h-4" />
+                    <span>Monitoring</span>
+                  </TabsTrigger>
+                </TabsList>
+              )}
 
               {/* Chat Tab */}
               <TabsContent value="chat" className="mt-6">
@@ -453,7 +469,7 @@ export default function ChatLaura() {
                         <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
                           <Brain className="w-4 h-4 text-purple-600" />
                         </div>
-                        <span>Chat with Laura Oracle</span>
+                        <span>Chat with Laura</span>
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       </CardTitle>
                       
@@ -591,8 +607,9 @@ export default function ChatLaura() {
                 </Card>
               </TabsContent>
 
-              {/* Analytics Tab */}
-              <TabsContent value="analytics" className="mt-6">
+              {/* Analytics Tab - SuperAdmin only */}
+              {isSuperAdmin && (
+                <TabsContent value="analytics" className="mt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {platformAnalytics ? (
                     <>
@@ -684,9 +701,11 @@ export default function ChatLaura() {
                   )}
                 </div>
               </TabsContent>
+              )}
 
-              {/* Admin Tab */}
-              <TabsContent value="admin" className="mt-6">
+              {/* Admin Tab - SuperAdmin only */}
+              {isSuperAdmin && (
+                <TabsContent value="admin" className="mt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
@@ -740,9 +759,11 @@ export default function ChatLaura() {
                   </Card>
                 </div>
               </TabsContent>
+              )}
 
-              {/* Monitoring Tab */}
-              <TabsContent value="monitoring" className="mt-6">
+              {/* Monitoring Tab - SuperAdmin only */}
+              {isSuperAdmin && (
+                <TabsContent value="monitoring" className="mt-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
@@ -792,6 +813,7 @@ export default function ChatLaura() {
                   </CardContent>
                 </Card>
               </TabsContent>
+              )}
             </Tabs>
           </div>
         </div>
