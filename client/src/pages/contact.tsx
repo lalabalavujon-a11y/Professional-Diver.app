@@ -160,7 +160,7 @@ export default function Contact() {
                   <h4 className="font-semibold text-slate-900 mb-3">Quick Resources</h4>
                   <div className="space-y-2">
                     <button 
-                      onClick={() => window.open('https://chatgpt.com/g/g-6897d42d3ba48191b48883a4839c09bf-diver-well-commercial-diver-ai-consultant', '_blank')}
+                      onClick={() => window.open('/chat/diver-well', '_blank')}
                       className="block w-full text-left text-blue-600 hover:text-blue-700 text-sm"
                     >
                       → AI Consultant (Instant Help)
