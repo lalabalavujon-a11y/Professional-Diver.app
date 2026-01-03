@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, FileText, Mic, Brain, BarChart3, Award, CheckCircle, Play, Timer, Volume2 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -149,8 +147,6 @@ const professionalExamTracks: ExamTrack[] = [
 ];
 
 export default function ProfessionalExams() {
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
-
   // Get current user data
   const { data: currentUser } = useQuery({
     queryKey: ["/api/users/current"],
@@ -161,10 +157,6 @@ export default function ProfessionalExams() {
       return response.json();
     }
   });
-
-  const filteredExams = selectedDifficulty === "all" 
-    ? professionalExamTracks 
-    : professionalExamTracks.filter(exam => exam.difficulty.toLowerCase() === selectedDifficulty);
 
   const totalQuestions = professionalExamTracks.reduce((sum, exam) => sum + exam.questionsCount, 0);
   const completedExams = professionalExamTracks.filter(exam => exam.completed).length;
@@ -184,10 +176,10 @@ export default function ProfessionalExams() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
-        <RoleBasedNavigation />
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <RoleBasedNavigation />
+      <div className="min-h-screen bg-gray-50 text-slate-900 font-sans" data-sidebar-content="true">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2" data-testid="text-exams-title">
@@ -253,22 +245,9 @@ export default function ProfessionalExams() {
           </Card>
         </div>
 
-        {/* Filters */}
-        <div className="mb-6">
-          <Tabs value={selectedDifficulty} onValueChange={setSelectedDifficulty}>
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="all">All Levels</TabsTrigger>
-              <TabsTrigger value="beginner">Beginner</TabsTrigger>
-              <TabsTrigger value="intermediate">Intermediate</TabsTrigger>
-              <TabsTrigger value="advanced">Advanced</TabsTrigger>
-              <TabsTrigger value="expert">Expert</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
         {/* Exam Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredExams.map((exam) => (
+          {professionalExamTracks.map((exam) => (
             <Card key={exam.id} className="border-0 shadow-lg hover:shadow-xl transition-all">
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between mb-2">
@@ -388,5 +367,6 @@ export default function ProfessionalExams() {
         </Card>
       </main>
     </div>
+    </>
   );
 }
