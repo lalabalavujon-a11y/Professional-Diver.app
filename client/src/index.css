@@ -175,18 +175,14 @@
 /* Sidebar layout spacing - Apply to pages with RoleBasedNavigation */
 
 /* Fixed header positioning - adjusts with sidebar width */
-header[data-testid="navigation-header"].fixed {
-  position: fixed !important;
-  top: 0 !important;
+header[data-testid="navigation-header"] {
   left: var(--sidebar-width, 16rem) !important;
-  right: 0 !important;
   width: calc(100% - var(--sidebar-width, 16rem)) !important;
-  z-index: 50 !important;
   transition: left 0.2s ease-linear, width 0.2s ease-linear;
 }
 
 @media (max-width: 768px) {
-  header[data-testid="navigation-header"].fixed {
+  header[data-testid="navigation-header"] {
     left: 0 !important;
     width: 100% !important;
   }
