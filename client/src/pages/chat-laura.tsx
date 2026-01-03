@@ -54,7 +54,7 @@ export default function ChatLaura() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hello! I'm Laura, your Platform Oracle for the Professional Diver Training Platform. How can I help you today?",
+      text: "Hello! I'm Laura, your Oracle for the Professional Diver Training Platform. How can I help you today?",
       sender: 'laura',
       timestamp: new Date()
     }
@@ -415,33 +415,7 @@ export default function ChatLaura() {
                         <Shield className="w-3 h-3" />
                         <span>Complete Platform Administration</span>
                       </div>
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <BarChart3 className="w-3 h-3" />
-                        <span>Real-time Analytics & Monitoring</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <Zap className="w-3 h-3" />
-                        <span>Automated Task Execution</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <Users className="w-3 h-3" />
-                        <span>User Management & Support</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <Database className="w-3 h-3" />
-                        <span>LangSmith Domain Learning</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <Volume2 className="w-3 h-3" />
-                        <span>Voice Communication (Alloy)</span>
-                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-3 rounded-lg">
-                    <p className="text-xs text-purple-800">
-                      🚀 <strong>Oracle Tip:</strong> I operate from the LangSmith domain with voice capabilities using the friendly Alloy voice! Ask me about platform optimization, user analytics, content management, or any administrative task. I can speak my responses too!
-                    </p>
                   </div>
                 </div>
               </CardContent>
