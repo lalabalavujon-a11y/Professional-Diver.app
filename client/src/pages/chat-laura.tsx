@@ -438,8 +438,8 @@ export default function ChatLaura() {
 
           {/* Main Content Area */}
           <div className="lg:col-span-3">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              {isSuperAdmin && (
+            {isSuperAdmin ? (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="chat" className="flex items-center space-x-2">
                     <Headphones className="w-4 h-4" />
@@ -458,10 +458,9 @@ export default function ChatLaura() {
                     <span>Monitoring</span>
                   </TabsTrigger>
                 </TabsList>
-              )}
 
-              {/* Chat Tab */}
-              <TabsContent value="chat" className="mt-6">
+                {/* Chat Tab */}
+                <TabsContent value="chat" className="mt-6">
                 <Card className="h-[600px] flex flex-col">
                   <CardHeader className="border-b">
                     <div className="flex items-center justify-between">
@@ -813,8 +812,159 @@ export default function ChatLaura() {
                   </CardContent>
                 </Card>
               </TabsContent>
-              )}
-            </Tabs>
+              </Tabs>
+            ) : (
+              /* Chat only for non-SuperAdmin users */
+              <Card className="h-[600px] flex flex-col">
+                <CardHeader className="border-b">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
+                        <Brain className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <span>Chat with Laura</span>
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    </CardTitle>
+                    
+                    {/* Voice Controls */}
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setVoiceEnabled(!voiceEnabled)}
+                        className={`flex items-center space-x-1 ${
+                          voiceEnabled ? 'text-green-600 border-green-200' : 'text-gray-400'
+                        }`}
+                      >
+                        {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                        <span className="text-xs">Voice</span>
+                      </Button>
+                      
+                      {isPlaying && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={stopVoice}
+                          className="flex items-center space-x-1 text-red-600 border-red-200"
+                        >
+                          <Pause className="w-4 h-4" />
+                          <span className="text-xs">Stop</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="flex-1 flex flex-col p-0">
+                  {/* Messages */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className={`flex space-x-2 max-w-[80%] ${message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                          <Avatar className="w-8 h-8">
+                            <AvatarFallback className={message.sender === 'user' ? 'bg-blue-100 text-blue-600' : 'bg-gradient-to-br from-purple-100 to-blue-100 text-purple-600'}>
+                              {message.sender === 'user' ? 'U' : 'L'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className={`rounded-lg p-3 ${
+                            message.sender === 'user' 
+                              ? 'bg-blue-600 text-white' 
+                              : 'bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900 border border-slate-200'
+                          }`}>
+                            <p className="text-sm">{message.text}</p>
+                            <p className="text-xs mt-1 opacity-70">
+                              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            {message.actions && message.actions.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {message.actions.map((action, index) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    {action.replace(/_/g, ' ')}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                            {message.sender === 'laura' && voiceEnabled && (
+                              <div className="mt-2 flex items-center space-x-1">
+                                <Volume2 className="w-3 h-3 text-purple-500" />
+                                <button
+                                  onClick={() => playVoiceResponse(message.text)}
+                                  className="text-xs text-purple-600 hover:text-purple-700"
+                                >
+                                  Voice available
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {isTyping && (
+                      <div className="flex justify-start">
+                        <div className="flex space-x-2">
+                          <Avatar className="w-8 h-8">
+                            <AvatarFallback className="bg-gradient-to-br from-purple-100 to-blue-100 text-purple-600">
+                              L
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-3 border border-slate-200">
+                            <div className="flex space-x-1">
+                              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                  
+                  {/* Input Area */}
+                  <div className="border-t p-4">
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder="Type your message..."
+                        disabled={isRecording}
+                        className="flex-1"
+                        data-testid="input-chat-message"
+                      />
+                      <Button
+                        variant={isRecording ? "destructive" : "outline"}
+                        onClick={toggleVoiceRecording}
+                        className={`flex items-center space-x-1 ${
+                          isRecording ? 'bg-red-600 hover:bg-red-700 text-white' : ''
+                        }`}
+                        data-testid="button-voice-input"
+                        title={isRecording ? "Stop recording" : "Start voice input"}
+                      >
+                        {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                      </Button>
+                      <Button 
+                        onClick={handleSendMessage}
+                        disabled={!inputText.trim() || isRecording}
+                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                        data-testid="button-send-message"
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    {isRecording && (
+                      <div className="mt-2 flex items-center space-x-2 text-sm text-red-600">
+                        <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                        <span>Listening... Speak your message</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </main>
