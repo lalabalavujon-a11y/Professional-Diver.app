@@ -106,11 +106,14 @@ export default function TidesWidget({ timezone, latitude, longitude }: TidesWidg
   const fallbackHigh = new Date(now.getTime() + 6 * 60 * 60 * 1000);
   const fallbackLow = new Date(now.getTime() + 12 * 60 * 60 * 1000);
 
-  const fallbackData = {
+  const fallbackData: TideData = {
     currentLevel: 1.0, // meters
-    currentTrend: 'Rising' as const,
+    currentLevelFormatted: "1.0 m",
+    currentTrend: 'Rising',
     nextHigh: { time: fallbackHigh.toISOString(), level: 4.5 },
     nextLow: { time: fallbackLow.toISOString(), level: 1.8 },
+    todayTides: undefined,
+    location: "Fallback Location",
   };
 
   const displayData = tideData || fallbackData;
@@ -161,10 +164,10 @@ export default function TidesWidget({ timezone, latitude, longitude }: TidesWidg
                   {displayData.todayTides && displayData.todayTides.length >= 4 ? (
                     // Show all 4 tide events for today (2 highs, 2 lows)
                     <div className="space-y-0.5">
-                      {displayData.todayTides.map((tide, idx) => (
-                        <div key={idx} className="flex items-center justify-between">
-                          <span className={tide.type === 'high' ? 'text-blue-600 font-medium' : 'text-slate-600'}>
-                            {tide.type === 'high' ? 'High' : 'Low'}:
+                        {displayData.todayTides.map((tide: TideEvent, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between">
+                            <span className={tide.type === 'high' ? 'text-blue-600 font-medium' : 'text-slate-600'}>
+                              {tide.type === 'high' ? 'High' : 'Low'}:
                           </span>
                           <span className="ml-2">{formatTime(tide.time)}</span>
                           <span className="ml-2 text-slate-500">({formatTideLevel(tide.level, unitsPreference)})</span>

@@ -15,6 +15,8 @@ import { medicalFacilities, userMedicalFacilitySelections } from '../shared/sche
 import { eq, and, sql, or, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
+type UserMedicalFacilitySelection = typeof userMedicalFacilitySelections.$inferSelect;
+
 export type MedicalFacilityType = 'A_E' | 'CRITICAL_CARE' | 'DIVING_DOCTOR' | 'HYPERBARIC';
 
 export interface MedicalFacility {
@@ -158,7 +160,7 @@ export async function getUserMedicalFacilities(userId: string): Promise<MedicalF
       return [];
     }
 
-    const facilityIds = selections.map(s => s.facilityId);
+      const facilityIds = selections.map((s: UserMedicalFacilitySelection) => s.facilityId);
     const facilities = await db
       .select()
       .from(medicalFacilities)
