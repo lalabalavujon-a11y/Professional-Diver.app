@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,23 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { 
   Crown, 
   Lock, 
@@ -27,7 +44,8 @@ import {
   Mail,
   Globe,
   Navigation,
-  Waves
+  Waves,
+  GripVertical
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
@@ -44,6 +62,7 @@ import UseLogForm from "@/components/equipment/UseLogForm";
 import MedOpsApp from "@/components/med-ops/MedOpsApp";
 import DMTMedOpsApp from "@/components/dmt-med-ops/DMTMedOpsApp";
 import DiverWellOperationsApp from "@/components/operations/DiverWellOperationsApp";
+import DiveSupervisorControlApp from "@/components/dive-supervisor/DiveSupervisorControlApp";
 
 // Mock operational data - in real app this would come from backend
 const operationalData = {
@@ -109,10 +128,219 @@ const operationalData = {
   ]
 };
 
+// Operational apps configuration - defined before component to avoid hoisting issues
+const operationalApps = [
+  {
+    id: "diver-well",
+    title: "Diver Well AI Consultant",
+    description: "Commercial diving operations AI consultant - dive planning, safety protocols, operational guidance, and expert advice",
+    icon: <Waves className="w-8 h-8 text-cyan-600" />,
+    color: "cyan",
+    features: [
+      "Dive Planning & Risk Assessment",
+      "Safety Protocols & Procedures",
+      "Operational Guidance & Best Practices",
+      "Equipment Recommendations",
+      "Emergency Response Procedures",
+      "Industry Standards & Compliance"
+    ],
+    userRole: "All Operations Personnel"
+  },
+  {
+    id: "dive-supervisor",
+    title: "Dive Supervisor Operations",
+    description: "Comprehensive dive operation management, crew coordination, and safety oversight tools",
+    icon: <Shield className="w-8 h-8 text-blue-600" />,
+    color: "blue",
+    features: [
+      "Real-time dive monitoring",
+      "Crew assignment & scheduling", 
+      "Safety protocol management",
+      "Emergency response coordination",
+      "Dive log management",
+      "Equipment status tracking"
+    ],
+    userRole: "Dive Supervisor"
+  },
+  {
+    id: "lst-manager",
+    title: "Life Support Technician (LST)",
+    description: "Life support systems monitoring, maintenance scheduling, and critical equipment management",
+    icon: <Wrench className="w-8 h-8 text-green-600" />,
+    color: "green", 
+    features: [
+      "Life support system monitoring",
+      "Equipment maintenance tracking",
+      "Gas supply management",
+      "Emergency backup systems",
+      "Pressure & flow monitoring",
+      "System diagnostics & alerts"
+    ],
+    userRole: "Life Support Technician"
+  },
+  {
+    id: "ndt-inspector",
+    title: "NDT Underwater Inspection Controller",
+    description: "Non-destructive testing inspection management, reporting, and quality assurance tools",
+    icon: <Search className="w-8 h-8 text-purple-600" />,
+    color: "purple",
+    features: [
+      "Inspection planning & scheduling",
+      "NDT method selection & protocols",
+      "Real-time inspection data capture",
+      "Defect analysis & reporting",
+      "Quality assurance workflows",
+      "Certification compliance tracking"
+    ],
+    userRole: "NDT Inspector"
+  },
+  {
+    id: "equipment-manager",
+    title: "Equipment Manager",
+    description: "Comprehensive equipment maintenance scheduling, inventory management, and use log tracking",
+    icon: <Package className="w-8 h-8 text-teal-600" />,
+    color: "teal",
+    features: [
+      "Equipment inventory management",
+      "Maintenance schedule tracking",
+      "Before/after use logs",
+      "Maintenance task management",
+      "Equipment status tracking",
+      "Maintenance history & reporting"
+    ],
+    userRole: "Equipment Manager"
+  },
+  {
+    id: "med-ops",
+    title: "MED OPS / Emergency OPS",
+    description: "Emergency medical operations - connect with nearest A&E, Critical Care, and Diving Doctors worldwide",
+    icon: <HeartPulse className="w-8 h-8 text-red-600" />,
+    color: "red",
+    features: [
+      "Find nearest A&E facilities",
+      "Locate Critical Care units",
+      "Connect with Diving Doctors",
+      "Hyperbaric chamber locations",
+      "24/7 emergency contact",
+      "Location-based facility search"
+    ],
+    userRole: "Medical Operations"
+  },
+  {
+    id: "dmt-med-ops",
+    title: "DMT Diver Medic Operations",
+    description: "Medical equipment management, incident reporting, and medical documentation for Diver Medic Technicians",
+    icon: <HeartPulse className="w-8 h-8 text-pink-600" />,
+    color: "pink",
+    features: [
+      "Medical equipment inventory (O2 Cylinders, etc.)",
+      "Before/after use checks",
+      "CSV/Excel import & export",
+      "Incident report forms",
+      "Glaucoma screening forms",
+      "Medical documentation management"
+    ],
+    userRole: "Diver Medic Technician"
+  }
+] as const;
+
+// Sortable Item Component
+interface SortableItemProps {
+  app: typeof operationalApps[number];
+  hasOperationsAccess: boolean;
+  onAppClick: (appId: string) => void;
+}
+
+function SortableItem({ app, hasOperationsAccess, onAppClick }: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: app.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card 
+        className={`relative cursor-pointer transition-all hover:shadow-lg ${
+          hasOperationsAccess 
+            ? `border-${app.color}-200 hover:border-${app.color}-300` 
+            : 'border-gray-200 hover:border-gray-300'
+        } ${isDragging ? 'shadow-lg ring-2 ring-blue-500' : ''}`}
+        onClick={() => onAppClick(app.id)}
+      >
+        {!hasOperationsAccess && (
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+            <div className="text-center">
+              <Lock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm font-medium text-gray-600">Subscription Required</p>
+            </div>
+          </div>
+        )}
+        
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                {app.icon}
+                <Badge variant="outline" className="text-xs">
+                  {app.userRole}
+                </Badge>
+              </div>
+              <CardTitle className="text-lg">{app.title}</CardTitle>
+              <CardDescription className="text-sm">
+                {app.description}
+              </CardDescription>
+            </div>
+            <div
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing p-2 hover:bg-gray-100 rounded transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="w-5 h-5 text-gray-400" />
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-sm font-semibold text-slate-900 mb-2">Key Features:</h4>
+              <ul className="text-xs text-slate-600 space-y-1">
+                {app.features.slice(0, 4).map((feature, index) => (
+                  <li key={index} className="flex items-center space-x-2">
+                    <CheckCircle className="w-3 h-3 text-green-500" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+                {app.features.length > 4 && (
+                  <li className="text-xs text-slate-400">
+                    +{app.features.length - 4} more features
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function Operations() {
   const { toast } = useToast();
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
+  const [appsOrder, setAppsOrder] = useState<string[]>([]);
 
   // Get current user to check subscription status
   const { data: currentUser } = useQuery({
@@ -124,6 +352,68 @@ export default function Operations() {
       return response.json();
     }
   });
+
+  // Load saved order from localStorage on mount
+  useEffect(() => {
+    const savedOrder = localStorage.getItem('operationsAppsOrder');
+    if (savedOrder) {
+      try {
+        const parsedOrder = JSON.parse(savedOrder);
+        // Validate that all app IDs are present
+        const defaultOrder = operationalApps.map(app => app.id);
+        const validOrder = parsedOrder.filter((id: string) => defaultOrder.includes(id));
+        // Add any missing apps to the end
+        const missingApps = defaultOrder.filter(id => !validOrder.includes(id));
+        setAppsOrder([...validOrder, ...missingApps]);
+      } catch {
+        // If parsing fails, use default order
+        setAppsOrder(operationalApps.map(app => app.id));
+      }
+    } else {
+      // Default order
+      setAppsOrder(operationalApps.map(app => app.id));
+    }
+  }, []);
+
+  // Save order to localStorage whenever it changes
+  useEffect(() => {
+    if (appsOrder.length > 0) {
+      localStorage.setItem('operationsAppsOrder', JSON.stringify(appsOrder));
+    }
+  }, [appsOrder]);
+
+  // Set up drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px of movement before starting drag
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end event
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setAppsOrder((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // Get ordered apps based on saved order
+  const orderedApps = appsOrder.length > 0
+    ? appsOrder
+        .map(id => operationalApps.find(app => app.id === id))
+        .filter((app): app is typeof operationalApps[number] => app !== undefined)
+        .concat(operationalApps.filter(app => !appsOrder.includes(app.id)))
+    : operationalApps;
 
   // Get user preferences for operations calendar
   const { data: preferences } = useQuery({
@@ -144,121 +434,6 @@ export default function Operations() {
 
   const hasOperationsAccess = currentUser?.subscriptionType === 'LIFETIME' || currentUser?.role === 'ADMIN';
 
-  const operationalApps = [
-    {
-      id: "diver-well",
-      title: "Diver Well AI Consultant",
-      description: "Commercial diving operations AI consultant - dive planning, safety protocols, operational guidance, and expert advice",
-      icon: <Waves className="w-8 h-8 text-cyan-600" />,
-      color: "cyan",
-      features: [
-        "Dive Planning & Risk Assessment",
-        "Safety Protocols & Procedures",
-        "Operational Guidance & Best Practices",
-        "Equipment Recommendations",
-        "Emergency Response Procedures",
-        "Industry Standards & Compliance"
-      ],
-      userRole: "All Operations Personnel"
-    },
-    {
-      id: "dive-supervisor",
-      title: "Dive Supervisor Operations",
-      description: "Comprehensive dive operation management, crew coordination, and safety oversight tools",
-      icon: <Shield className="w-8 h-8 text-blue-600" />,
-      color: "blue",
-      features: [
-        "Real-time dive monitoring",
-        "Crew assignment & scheduling", 
-        "Safety protocol management",
-        "Emergency response coordination",
-        "Dive log management",
-        "Equipment status tracking"
-      ],
-      userRole: "Dive Supervisor"
-    },
-    {
-      id: "lst-manager",
-      title: "Life Support Technician (LST)",
-      description: "Life support systems monitoring, maintenance scheduling, and critical equipment management",
-      icon: <Wrench className="w-8 h-8 text-green-600" />,
-      color: "green", 
-      features: [
-        "Life support system monitoring",
-        "Equipment maintenance tracking",
-        "Gas supply management",
-        "Emergency backup systems",
-        "Pressure & flow monitoring",
-        "System diagnostics & alerts"
-      ],
-      userRole: "Life Support Technician"
-    },
-    {
-      id: "ndt-inspector",
-      title: "NDT Underwater Inspection Controller",
-      description: "Non-destructive testing inspection management, reporting, and quality assurance tools",
-      icon: <Search className="w-8 h-8 text-purple-600" />,
-      color: "purple",
-      features: [
-        "Inspection planning & scheduling",
-        "NDT method selection & protocols",
-        "Real-time inspection data capture",
-        "Defect analysis & reporting",
-        "Quality assurance workflows",
-        "Certification compliance tracking"
-      ],
-      userRole: "NDT Inspector"
-    },
-    {
-      id: "equipment-manager",
-      title: "Equipment Manager",
-      description: "Comprehensive equipment maintenance scheduling, inventory management, and use log tracking",
-      icon: <Package className="w-8 h-8 text-teal-600" />,
-      color: "teal",
-      features: [
-        "Equipment inventory management",
-        "Maintenance schedule tracking",
-        "Before/after use logs",
-        "Maintenance task management",
-        "Equipment status tracking",
-        "Maintenance history & reporting"
-      ],
-      userRole: "Equipment Manager"
-    },
-    {
-      id: "med-ops",
-      title: "MED OPS / Emergency OPS",
-      description: "Emergency medical operations - connect with nearest A&E, Critical Care, and Diving Doctors worldwide",
-      icon: <HeartPulse className="w-8 h-8 text-red-600" />,
-      color: "red",
-      features: [
-        "Find nearest A&E facilities",
-        "Locate Critical Care units",
-        "Connect with Diving Doctors",
-        "Hyperbaric chamber locations",
-        "24/7 emergency contact",
-        "Location-based facility search"
-      ],
-      userRole: "Medical Operations"
-    },
-    {
-      id: "dmt-med-ops",
-      title: "DMT Diver Medic Operations",
-      description: "Medical equipment management, incident reporting, and medical documentation for Diver Medic Technicians",
-      icon: <HeartPulse className="w-8 h-8 text-pink-600" />,
-      color: "pink",
-      features: [
-        "Medical equipment inventory (O2 Cylinders, etc.)",
-        "Before/after use checks",
-        "CSV/Excel import & export",
-        "Incident report forms",
-        "Glaucoma screening forms",
-        "Medical documentation management"
-      ],
-      userRole: "Diver Medic Technician"
-    }
-  ];
-
   const handleAppAccess = (appId: string) => {
     if (!hasOperationsAccess) {
       setSubscriptionModalOpen(true);
@@ -272,7 +447,7 @@ export default function Operations() {
       case "diver-well":
         return <DiverWellOperationsApp />;
       case "dive-supervisor":
-        return <DiveSupervisorApp />;
+        return <DiveSupervisorControlApp />;
       case "lst-manager":
         return <LSTManagerApp />;
       case "ndt-inspector":
@@ -338,66 +513,27 @@ export default function Operations() {
             {renderAppContent(selectedApp)}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {operationalApps.map((app) => (
-              <Card 
-                key={app.id} 
-                className={`relative cursor-pointer transition-all hover:shadow-lg ${
-                  hasOperationsAccess 
-                    ? `border-${app.color}-200 hover:border-${app.color}-300` 
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => handleAppAccess(app.id)}
-              >
-                {!hasOperationsAccess && (
-                  <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
-                    <div className="text-center">
-                      <Lock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm font-medium text-gray-600">Subscription Required</p>
-                    </div>
-                  </div>
-                )}
-                
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        {app.icon}
-                        <Badge variant="outline" className="text-xs">
-                          {app.userRole}
-                        </Badge>
-                      </div>
-                      <CardTitle className="text-lg">{app.title}</CardTitle>
-                      <CardDescription className="text-sm">
-                        {app.description}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-900 mb-2">Key Features:</h4>
-                      <ul className="text-xs text-slate-600 space-y-1">
-                        {app.features.slice(0, 4).map((feature, index) => (
-                          <li key={index} className="flex items-center space-x-2">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                        {app.features.length > 4 && (
-                          <li className="text-xs text-slate-400">
-                            +{app.features.length - 4} more features
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={orderedApps.map(app => app.id)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {orderedApps.map((app) => (
+                  <SortableItem
+                    key={app.id}
+                    app={app}
+                    hasOperationsAccess={hasOperationsAccess}
+                    onAppClick={handleAppAccess}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {/* Subscription Modal */}
@@ -478,70 +614,6 @@ export default function Operations() {
   );
 }
 
-// Individual operational app components
-function DiveSupervisorApp() {
-  const unitsPreference = useUnitsPreference();
-  
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Shield className="w-5 h-5 text-blue-600" />
-              <span>Active Dive Operations</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {operationalData.diveOperations.map((operation) => (
-                <div key={operation.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold">{operation.title}</h4>
-                    <Badge variant={operation.status === 'In Progress' ? 'default' : 'secondary'}>
-                      {operation.status}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm text-slate-600">
-                    <div>Date: {operation.date}</div>
-                    <div>Depth: {formatDepthFromString(operation.depth, unitsPreference)}</div>
-                    <div>Supervisor: {operation.supervisor}</div>
-                    <div>Divers: {operation.divers}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <TrendingUp className="w-5 h-5 text-green-600" />
-              <span>Safety Metrics</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm">Incident-Free Days</span>
-                <span className="font-semibold text-green-600">127</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Active Operations</span>
-                <span className="font-semibold">2</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Crew Availability</span>
-                <span className="font-semibold text-blue-600">95%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
 
 function LSTManagerApp() {
   return (

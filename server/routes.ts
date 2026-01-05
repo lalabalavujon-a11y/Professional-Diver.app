@@ -4,20 +4,26 @@ import { storage } from "./storage";
 import { tempStorage } from "./temp-storage";
 import { emailMarketing } from "./email-marketing";
 import { affiliateService } from "./affiliate-service";
+import { crmService } from "./crm-service";
+import { crmAdapter } from "./crm-adapter";
+import { userLifecycleService } from "./user-lifecycle-service";
+import { partnerService } from "./partner-service";
+import { handleHighLevelContactWebhook, handleHighLevelTagWebhook } from "./highlevel-webhooks";
 import { registerImportRoutes } from "./routes/import-content";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 // import { AILearningPathService } from "./ai-learning-path";
 import { z } from "zod";
 // LangChain AI Tutor routes are now handled by ai-tutor.ts router
-import { insertLessonSchema, insertInviteSchema, insertAttemptSchema, insertWidgetLocationSchema, insertNavigationWaypointSchema, insertNavigationRouteSchema, widgetLocations, navigationWaypoints, navigationRoutes, users } from "@shared/schema";
-import { insertLessonSchema as insertLessonSchemaSQLite, widgetLocations as widgetLocationsSQLite, navigationWaypoints as navigationWaypointsSQLite, navigationRoutes as navigationRoutesSQLite, users as usersSQLite } from "@shared/schema-sqlite";
+import { insertLessonSchema, insertInviteSchema, insertAttemptSchema, insertWidgetLocationSchema, insertNavigationWaypointSchema, insertNavigationRouteSchema, insertWidgetPreferencesSchema, widgetLocations, navigationWaypoints, navigationRoutes, users, sessions, widgetPreferences, diveTeamMembers, diveOperations, diveOperationContacts, diveOperationPermits, diveTeamRosters, divePlans, dailyProjectReports, casEvacDrills, toolBoxTalks, diveOperationHazards, welfareRecords, shippingInfo, ramsDocuments } from "@shared/schema";
+import { insertLessonSchema as insertLessonSchemaSQLite, widgetLocations as widgetLocationsSQLite, navigationWaypoints as navigationWaypointsSQLite, navigationRoutes as navigationRoutesSQLite, users as usersSQLite, sessions as sessionsSQLite, widgetPreferences as widgetPreferencesSQLite, supportTickets, type InsertSupportTicket } from "@shared/schema-sqlite";
 import { eq, and, desc } from "drizzle-orm";
 import { randomBytes, createHash } from "crypto";
 import { db } from "./db";
 import { registerSrsRoutes } from "./srs-routes";
 import { registerEquipmentRoutes } from "./routes/equipment-routes";
+import { registerOperationsCalendarRoutes } from "./routes/operations-calendar-routes";
 import { getWeatherData, timezoneToCoordinates as weatherTimezoneToCoordinates } from "./weather-service";
-import { getTideData, timezoneToCoordinates as tidesTimezoneToCoordinates } from "./tides-service";
+import { getTideData, timezoneToCoordinates as tidesTimezoneToCoordinates, clearTidesCache } from "./tides-service";
 import { getPorts, getPortsNearLocation } from "./ports-service";
 import { getNoticesToMariners } from "./notices-to-mariners-service";
 import { 
@@ -53,6 +59,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Equipment Maintenance routes
   registerEquipmentRoutes(app);
+  
+  // Operations Calendar routes
+  console.log("📅 About to register Operations Calendar routes...");
+  registerOperationsCalendarRoutes(app);
+  console.log("📅 Operations Calendar routes registration completed");
 
   // Object storage routes
   app.post("/api/objects/upload", async (req, res) => {
@@ -322,7 +333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Trial signup endpoint
+  // Trial signup endpoint - now uses CRM service for user + client sync
   app.post('/api/trial-signup', async (req, res) => {
     try {
       const { name, email } = req.body;
@@ -335,7 +346,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Please enter a valid email address' });
       }
 
-      const user = await tempStorage.createTrialUser({ name, email });
+      // Use CRM service to create user and sync to client (with optional HighLevel sync)
+      const { user, client } = await crmService.handleTrialSignup({ name, email });
+      
+      // Sync to HighLevel if available (via adapter)
+      if (client) {
+        try {
+          await crmAdapter.updateClient(client.id, {
+            name: client.name,
+            email: client.email,
+            subscriptionType: client.subscription_type,
+            status: client.status,
+          });
+        } catch (error) {
+          console.error('Error syncing trial signup to HighLevel (non-fatal):', error);
+          // Continue even if HighLevel sync fails
+        }
+      }
       
       // Send welcome email
       await emailMarketing.sendWelcomeTrialEmail({ name, email });
@@ -348,7 +375,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: user.email,
           subscriptionType: user.subscription_type,
           trialExpiresAt: user.trial_expires_at
-        }
+        },
+        client: client ? {
+          id: client.id,
+          partnerStatus: client.partner_status
+        } : null
       });
     } catch (error: any) {
       console.error('Trial signup error:', error);
@@ -368,23 +399,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'All fields are required' });
       }
 
-      const ticket = {
-        userId: 'unknown', // Would be from session in real implementation
+      // Try to find user by email
+      let userId: string | undefined;
+      try {
+        const user = await db.select().from(usersSQLite).where(eq(usersSQLite.email, email)).limit(1);
+        if (user.length > 0) {
+          userId = user[0].id;
+        }
+      } catch (e) {
+        // User not found, continue without userId
+        console.log('User not found for email:', email);
+      }
+
+      // Use crypto.randomUUID() for ticket ID to avoid import side-effects, and ensure InsertSupportTicket type is correct.
+      const ticketId = `PDT-${crypto.randomUUID()}`;
+      const ticketData: InsertSupportTicket = {
+        ticketId,
+        userId: userId || null,
         email,
         name,
         subject,
         message,
-        priority,
+        priority: priority as 'low' | 'medium' | 'high' | 'urgent',
+        status: 'pending',
+        assignedToLaura: true, // Default to Laura handling all tickets
+      };
+
+      // Save ticket to database
+      const [savedTicket] = await db.insert(supportTickets).values(ticketData).returning();
+
+      // Send confirmation email
+      const ticket = {
+        userId: userId || 'unknown',
+        email,
+        name,
+        subject,
+        message,
+        priority: priority as 'low' | 'medium' | 'high' | 'urgent',
         createdAt: new Date()
       };
 
       const success = await emailMarketing.sendTicketConfirmation(ticket);
       
-      if (success) {
+      if (success && savedTicket) {
         res.json({ 
           success: true, 
           message: 'Support ticket submitted successfully. You will receive a confirmation email shortly.',
-          ticketId: `PDT-${Date.now()}`
+          ticketId: savedTicket.ticketId,
+          id: savedTicket.id
         });
       } else {
         res.status(500).json({ error: 'Failed to submit support ticket' });
@@ -392,6 +454,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Support ticket error:', error);
       res.status(500).json({ error: 'Failed to submit support ticket' });
+    }
+  });
+
+  // Get all support tickets (admin only)
+  app.get('/api/support/tickets', async (req, res) => {
+    try {
+      const { status, priority, assignedToLaura } = req.query;
+      
+      let query = db.select().from(supportTickets);
+      const conditions = [];
+
+      if (status) {
+        conditions.push(eq(supportTickets.status, status as string));
+      }
+      if (priority) {
+        conditions.push(eq(supportTickets.priority, priority as string));
+      }
+      if (assignedToLaura !== undefined) {
+        conditions.push(eq(supportTickets.assignedToLaura, assignedToLaura === 'true'));
+      }
+
+      if (conditions.length > 0) {
+        query = db.select().from(supportTickets).where(and(...conditions));
+      }
+
+      const tickets = await query.orderBy(desc(supportTickets.createdAt));
+
+      res.json({ 
+        success: true, 
+        tickets,
+        count: tickets.length
+      });
+    } catch (error) {
+      console.error('Get support tickets error:', error);
+      res.status(500).json({ error: 'Failed to fetch support tickets' });
+    }
+  });
+
+  // Get single support ticket
+  app.get('/api/support/ticket/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const [ticket] = await db.select()
+        .from(supportTickets)
+        .where(eq(supportTickets.id, id))
+        .limit(1);
+
+      if (!ticket) {
+        return res.status(404).json({ error: 'Support ticket not found' });
+      }
+
+      res.json({ 
+        success: true, 
+        ticket
+      });
+    } catch (error) {
+      console.error('Get support ticket error:', error);
+      res.status(500).json({ error: 'Failed to fetch support ticket' });
+    }
+  });
+
+  // Update support ticket status
+  app.patch('/api/support/ticket/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, response, assignedTo, assignedToLaura } = req.body;
+      
+      const updateData: any = {
+        updatedAt: new Date()
+      };
+
+      if (status) {
+        updateData.status = status;
+        if (status === 'completed' || status === 'closed') {
+          updateData.resolvedAt = new Date();
+        }
+      }
+      if (response !== undefined) {
+        updateData.response = response;
+      }
+      if (assignedTo !== undefined) {
+        updateData.assignedTo = assignedTo;
+      }
+      if (assignedToLaura !== undefined) {
+        updateData.assignedToLaura = assignedToLaura;
+      }
+
+      const [updatedTicket] = await db.update(supportTickets)
+        .set(updateData)
+        .where(eq(supportTickets.id, id))
+        .returning();
+
+      if (!updatedTicket) {
+        return res.status(404).json({ error: 'Support ticket not found' });
+      }
+
+      res.json({ 
+        success: true, 
+        ticket: updatedTicket
+      });
+    } catch (error) {
+      console.error('Update support ticket error:', error);
+      res.status(500).json({ error: 'Failed to update support ticket' });
+    }
+  });
+
+  // Get support ticket statistics
+  app.get('/api/support/tickets/stats', async (req, res) => {
+    try {
+      const allTickets = await db.select().from(supportTickets);
+      
+      const stats = {
+        total: allTickets.length,
+        pending: allTickets.filter(t => t.status === 'pending').length,
+        inProgress: allTickets.filter(t => t.status === 'in_progress').length,
+        completed: allTickets.filter(t => t.status === 'completed').length,
+        closed: allTickets.filter(t => t.status === 'closed').length,
+        assignedToLaura: allTickets.filter(t => t.assignedToLaura).length,
+        byPriority: {
+          low: allTickets.filter(t => t.priority === 'low').length,
+          medium: allTickets.filter(t => t.priority === 'medium').length,
+          high: allTickets.filter(t => t.priority === 'high').length,
+          urgent: allTickets.filter(t => t.priority === 'urgent').length,
+        }
+      };
+
+      res.json({ 
+        success: true, 
+        stats
+      });
+    } catch (error) {
+      console.error('Get support ticket stats error:', error);
+      res.status(500).json({ error: 'Failed to fetch support ticket statistics' });
+    }
+  });
+
+  // Laura auto-handle support ticket
+  app.post('/api/support/ticket/:id/laura-handle', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userContext } = req.body;
+      const LauraOracleService = (await import('./laura-oracle-service')).default;
+      const lauraOracle = LauraOracleService.getInstance();
+
+      const result = await lauraOracle.autoHandleTicket(id, userContext);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          ticket: result.ticket,
+          response: result.response,
+          message: result.message
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.message
+        });
+      }
+    } catch (error) {
+      console.error('Laura auto-handle ticket error:', error);
+      res.status(500).json({ error: 'Failed to auto-handle support ticket' });
     }
   });
 
@@ -507,6 +732,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Conversion tracking error:', error);
       res.status(500).json({ error: 'Failed to process conversion' });
+    }
+  });
+
+  // Partner routes
+  app.post('/api/partners/convert', async (req, res) => {
+    try {
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+      }
+
+      const result = await partnerService.convertToPartner(userId);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          user: result.user,
+          client: result.client,
+          affiliate: result.affiliate,
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error,
+        });
+      }
+    } catch (error) {
+      console.error('Partner conversion error:', error);
+      res.status(500).json({ error: 'Failed to convert to partner' });
+    }
+  });
+
+  app.get('/api/partners/eligibility/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const eligibility = await partnerService.checkEligibility(userId);
+      res.json(eligibility);
+    } catch (error) {
+      console.error('Partner eligibility check error:', error);
+      res.status(500).json({ error: 'Failed to check eligibility' });
+    }
+  });
+
+  app.post('/api/partners/apply', async (req, res) => {
+    try {
+      const { userId, reason, experience } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+      }
+
+      const result = await partnerService.applyToBecomePartner(userId, {
+        reason,
+        experience,
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Partner application error:', error);
+      res.status(500).json({ error: 'Failed to process partner application' });
+    }
+  });
+
+  app.get('/api/partners/stats/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const stats = await partnerService.getPartnerStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error('Partner stats error:', error);
+      res.status(500).json({ error: 'Failed to get partner stats' });
     }
   });
 
@@ -789,7 +1088,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/clients", async (req, res) => {
     try {
-      const client = await tempStorage.createClient(req.body);
+      // Use CRM adapter for unified local + HighLevel sync
+      const client = await crmAdapter.createClient(req.body);
       res.json(client);
     } catch (error) {
       console.error('Create client API error:', error);
@@ -799,7 +1099,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/clients/:id", async (req, res) => {
     try {
-      const client = await tempStorage.updateClient(req.params.id, req.body);
+      // Use CRM adapter for unified local + HighLevel sync
+      const client = await crmAdapter.updateClient(req.params.id, req.body);
       res.json(client);
     } catch (error) {
       console.error('Update client API error:', error);
@@ -824,6 +1125,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Client stats API error:', error);
       res.status(500).json({ error: "Failed to fetch client stats" });
+    }
+  });
+
+  // Partner routes
+  app.get("/api/partners/eligibility/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const eligibility = await partnerService.checkEligibility(userId);
+      res.json(eligibility);
+    } catch (error) {
+      console.error('Partner eligibility error:', error);
+      res.status(500).json({ error: "Failed to check partner eligibility" });
+    }
+  });
+
+  app.post("/api/partners/convert", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+      const result = await partnerService.convertToPartner(userId);
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      console.error('Partner conversion error:', error);
+      res.status(500).json({ error: "Failed to convert to partner" });
+    }
+  });
+
+  app.post("/api/partners/apply", async (req, res) => {
+    try {
+      const { userId, reason, experience } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+      const result = await partnerService.applyToBecomePartner(userId, {
+        reason,
+        experience,
+      });
+      res.json(result);
+    } catch (error) {
+      console.error('Partner application error:', error);
+      res.status(500).json({ error: "Failed to process partner application" });
+    }
+  });
+
+  app.get("/api/partners/stats/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const stats = await partnerService.getPartnerStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error('Partner stats error:', error);
+      res.status(500).json({ error: "Failed to get partner stats" });
+    }
+  });
+
+  // HighLevel webhook routes
+  app.post("/api/webhooks/highlevel/contact", async (req, res) => {
+    try {
+      await handleHighLevelContactWebhook(req, res);
+    } catch (error) {
+      console.error('HighLevel contact webhook error:', error);
+      res.status(500).json({ error: "Failed to process webhook" });
+    }
+  });
+
+  app.post("/api/webhooks/highlevel/tags", async (req, res) => {
+    try {
+      await handleHighLevelTagWebhook(req, res);
+    } catch (error) {
+      console.error('HighLevel tag webhook error:', error);
+      res.status(500).json({ error: "Failed to process webhook" });
+    }
+  });
+
+  // Payment webhook handlers - integrate with Stripe/PayPal when payment processing is implemented
+  app.post("/api/webhooks/stripe", async (req, res) => {
+    try {
+      const event = req.body;
+      
+      // Handle different Stripe event types
+      switch (event.type) {
+        case 'checkout.session.completed':
+        case 'customer.subscription.created':
+        case 'customer.subscription.updated':
+          // Handle subscription creation/update
+          const customerId = event.data.object.customer;
+          const subscriptionType = event.data.object.items?.data[0]?.price?.recurring?.interval === 'month' 
+            ? 'MONTHLY' 
+            : event.data.object.items?.data[0]?.price?.recurring?.interval === 'year'
+            ? 'ANNUAL'
+            : 'MONTHLY';
+          
+          // Find user by Stripe customer ID
+          const userResult = await db.execute(
+            'SELECT * FROM users WHERE stripe_customer_id = $1',
+            [customerId]
+          );
+          
+          if (userResult.rows.length > 0) {
+            const userId = userResult.rows[0].id;
+            // Update user subscription and sync to CRM
+            await userLifecycleService.handlePurchaseEvent({
+              userId,
+              subscriptionType: subscriptionType as "MONTHLY" | "ANNUAL" | "LIFETIME",
+              stripeCustomerId: customerId,
+            });
+          }
+          break;
+          
+        case 'customer.subscription.deleted':
+          // Handle subscription cancellation
+          const cancelledCustomerId = event.data.object.customer;
+          const cancelledUserResult = await db.execute(
+            'SELECT * FROM users WHERE stripe_customer_id = $1',
+            [cancelledCustomerId]
+          );
+          
+          if (cancelledUserResult.rows.length > 0) {
+            const cancelledUserId = cancelledUserResult.rows[0].id;
+            await userLifecycleService.updateSubscriptionStatus(cancelledUserId, 'CANCELLED');
+          }
+          break;
+      }
+      
+      res.json({ received: true });
+    } catch (error) {
+      console.error('Stripe webhook error:', error);
+      res.status(500).json({ error: "Failed to process webhook" });
+    }
+  });
+
+  app.post("/api/webhooks/paypal", async (req, res) => {
+    try {
+      const event = req.body;
+      
+      // TODO: Implement PayPal webhook handling
+      // Similar structure to Stripe webhook but using PayPal event types
+      // Handle subscription.created, subscription.updated, subscription.cancelled
+      
+      console.log('PayPal webhook received:', event.event_type);
+      res.json({ received: true });
+    } catch (error) {
+      console.error('PayPal webhook error:', error);
+      res.status(500).json({ error: "Failed to process webhook" });
     }
   });
 
@@ -1362,15 +1813,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.length > 0) {
         return user[0].id;
       }
-      // If user doesn't exist, return a fallback based on email
-      if (email === 'lalabalavu.jon@gmail.com') {
-        return 'admin-1';
+      
+      // If user doesn't exist, try to create a minimal user record
+      console.log('User not found, attempting to create user for email:', email);
+      try {
+        const newUser = await db
+          .insert(usersTable)
+          .values({
+            id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            email: email,
+            name: email.split('@')[0], // Use email prefix as name
+            role: 'USER',
+            subscriptionType: 'TRIAL',
+            subscriptionStatus: 'ACTIVE',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as any)
+          .returning();
+        
+        if (newUser && newUser.length > 0) {
+          console.log('Created new user:', newUser[0].id);
+          return newUser[0].id;
+        }
+      } catch (createError: any) {
+        console.error('Error creating user:', createError);
+        // If creation fails (e.g., duplicate), try to fetch again
+        const retryUser = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+        if (retryUser.length > 0) {
+          return retryUser[0].id;
+        }
       }
-      // For other users, try to create a user or use email as fallback
-      return email; // Fallback to email as ID
+      
+      // Final fallback - return null to indicate user not found
+      console.error('Could not find or create user for email:', email);
+      return null;
     } catch (error) {
       console.error('Error getting user ID from email:', error);
-      return email; // Fallback to email
+      return null;
+    }
+  }
+
+  // Helper function to get user ID from session token or email (for Tide Times App and XC Weather App)
+  async function getUserIdFromSessionOrEmail(req: any): Promise<string | null> {
+    try {
+      // First, try to get from session token (cookie or Authorization header)
+      const sessionToken = req.cookies?.sessionToken || 
+                          req.headers?.authorization?.replace('Bearer ', '') ||
+                          req.headers?.['x-session-token'];
+      
+      if (sessionToken) {
+        const env = process.env.NODE_ENV ?? 'development';
+        const hasDatabaseUrl = !!process.env.DATABASE_URL;
+        const sessionsTable = (env === 'development' && !hasDatabaseUrl) ? sessionsSQLite : sessions;
+        
+        const session = await db
+          .select()
+          .from(sessionsTable)
+          .where(eq(sessionsTable.sessionToken, sessionToken))
+          .limit(1);
+        
+        if (session.length > 0) {
+          const sessionData = session[0];
+          // Check if session is expired
+          const expires = sessionData.expires instanceof Date ? sessionData.expires : new Date(sessionData.expires);
+          if (expires > new Date()) {
+            return sessionData.userId;
+          }
+        }
+      }
+      
+      // Fallback to email-based lookup (backward compatible)
+      const email = (req.query?.email as string) || 
+                    (req.body?.email as string) || 
+                    (req.headers?.['x-user-email'] as string);
+      
+      if (email) {
+        return await getUserIdFromEmail(email);
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error getting user ID from session or email:', error);
+      // Fallback to email if session lookup fails
+      const email = (req.query?.email as string) || 
+                    (req.body?.email as string) || 
+                    (req.headers?.['x-user-email'] as string);
+      if (email) {
+        return await getUserIdFromEmail(email);
+      }
+      return null;
     }
   }
 
@@ -1379,6 +1910,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const env = process.env.NODE_ENV ?? 'development';
     const hasDatabaseUrl = !!process.env.DATABASE_URL;
     return (env === 'development' && !hasDatabaseUrl) ? widgetLocationsSQLite : widgetLocations;
+  }
+
+  // Helper function to get widget preferences table based on environment
+  function getWidgetPreferencesTable() {
+    const env = process.env.NODE_ENV ?? 'development';
+    const hasDatabaseUrl = !!process.env.DATABASE_URL;
+    return (env === 'development' && !hasDatabaseUrl) ? widgetPreferencesSQLite : widgetPreferences;
+  }
+
+  // Helper function to ensure widget preferences table exists
+  async function ensureWidgetPreferencesTable() {
+    try {
+      const widgetPreferencesTable = getWidgetPreferencesTable();
+      // Try a simple query to check if table exists
+      await db.select().from(widgetPreferencesTable).limit(1);
+    } catch (error: any) {
+      if (error?.message?.includes('no such table') || error?.message?.includes('does not exist')) {
+        console.warn('Widget preferences table does not exist. Please run database migrations.');
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  // Ensure widget_locations table exists (for SQLite)
+  async function ensureWidgetLocationsTable() {
+    const env = process.env.NODE_ENV ?? 'development';
+    const hasDatabaseUrl = !!process.env.DATABASE_URL;
+    
+    // Only need to ensure table for SQLite (PostgreSQL uses migrations)
+    if (env === 'development' && !hasDatabaseUrl) {
+      try {
+        // Access the SQLite database instance stored in db.sqlite
+        const sqliteDb = (db as any).sqlite;
+        
+        if (sqliteDb && typeof sqliteDb.exec === 'function') {
+          // Use exec for better-sqlite3 (synchronous method)
+          sqliteDb.exec(`
+            CREATE TABLE IF NOT EXISTS widget_locations (
+              id text PRIMARY KEY NOT NULL,
+              user_id text NOT NULL,
+              latitude real NOT NULL,
+              longitude real NOT NULL,
+              location_name text,
+              is_current_location integer NOT NULL DEFAULT 0,
+              created_at integer NOT NULL,
+              updated_at integer NOT NULL,
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+          `);
+          console.log('✅ widget_locations table ensured');
+        } else if (typeof (db as any).execute === 'function') {
+          // Try db.execute if available (for async)
+          await (db as any).execute(`
+            CREATE TABLE IF NOT EXISTS widget_locations (
+              id text PRIMARY KEY NOT NULL,
+              user_id text NOT NULL,
+              latitude real NOT NULL,
+              longitude real NOT NULL,
+              location_name text,
+              is_current_location integer NOT NULL DEFAULT 0,
+              created_at integer NOT NULL,
+              updated_at integer NOT NULL,
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+          `);
+          console.log('✅ widget_locations table ensured (via execute)');
+        } else {
+          console.warn('⚠️ Could not ensure widget_locations table - SQLite database not accessible');
+        }
+      } catch (error: any) {
+        console.error('Error ensuring widget_locations table:', error?.message || error);
+        console.error('Error stack:', error?.stack);
+        // Don't throw - table might already exist or be created via migrations
+      }
+    }
   }
 
   function getNavigationWaypointsTable() {
@@ -1393,9 +2000,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return (env === 'development' && !hasDatabaseUrl) ? navigationRoutesSQLite : navigationRoutes;
   }
 
+  // Ensure navigation tables exist (for SQLite)
+  async function ensureNavigationTables() {
+    const env = process.env.NODE_ENV ?? 'development';
+    const hasDatabaseUrl = !!process.env.DATABASE_URL;
+    
+    if (env === 'development' && !hasDatabaseUrl) {
+      try {
+        const sqliteDb = (db as any).sqlite;
+        if (sqliteDb && typeof sqliteDb.exec === 'function') {
+          // Create navigation_waypoints table
+          sqliteDb.exec(`
+            CREATE TABLE IF NOT EXISTS navigation_waypoints (
+              id text PRIMARY KEY NOT NULL,
+              user_id text NOT NULL,
+              name text NOT NULL,
+              latitude real NOT NULL,
+              longitude real NOT NULL,
+              description text,
+              created_at integer NOT NULL,
+              updated_at integer NOT NULL,
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+          `);
+          
+          // Create navigation_routes table
+          // Note: Drizzle uses snake_case for SQLite column names
+          sqliteDb.exec(`
+            CREATE TABLE IF NOT EXISTS navigation_routes (
+              id text PRIMARY KEY NOT NULL,
+              user_id text NOT NULL,
+              name text NOT NULL,
+              waypoint_ids text NOT NULL,
+              description text,
+              created_at integer NOT NULL,
+              updated_at integer NOT NULL,
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+          `);
+          
+          console.log('✅ Navigation tables ensured');
+        }
+      } catch (error: any) {
+        console.error('Error ensuring navigation tables:', error?.message || error);
+      }
+    }
+  }
+
   // Widget location API endpoints
   app.get("/api/widgets/location", async (req, res) => {
     try {
+      // Ensure table exists before operations
+      await ensureWidgetLocationsTable();
+      
       const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
       
       if (!email) {
@@ -1416,18 +2073,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(1);
 
       if (locations.length === 0) {
+        // Return 404 but don't treat it as an error - it's expected if no location is set
         return res.status(404).json({ error: "No widget location found" });
       }
 
       res.json(locations[0]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching widget location:", error);
-      res.status(500).json({ error: "Failed to fetch widget location" });
+      const errorMessage = error?.message || error?.toString() || "Unknown error";
+      console.error("Error details:", {
+        message: errorMessage,
+        stack: error?.stack,
+        query: req.query
+      });
+      res.status(500).json({ 
+        error: "Failed to fetch widget location",
+        details: errorMessage
+      });
     }
   });
 
   app.post("/api/widgets/location", async (req, res) => {
     try {
+      // Ensure table exists before operations
+      await ensureWidgetLocationsTable();
+      
       const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
       const { latitude, longitude, locationName, isCurrentLocation } = req.body;
 
@@ -1507,10 +2177,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           locationName: locationName || null,
           isCurrentLocation: isCurrentLocation || false,
         };
+        console.log('Insert data:', insertData);
         const insertResult = await db
           .insert(widgetLocationsTable)
           .values(insertData)
           .returning();
+        console.log('Insert result:', insertResult);
         
         if (insertResult && insertResult.length > 0) {
           location = insertResult[0];
@@ -1527,18 +2199,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Created location:', location);
       }
 
+      if (!location) {
+        throw new Error('Location was not created or updated');
+      }
+
       res.json(location);
     } catch (error: any) {
       console.error("Error saving widget location:", error);
       const errorMessage = error?.message || error?.toString() || "Unknown error";
+      const errorCode = error?.code || 'UNKNOWN';
       console.error("Error details:", {
         message: errorMessage,
+        code: errorCode,
         stack: error?.stack,
-        body: req.body
+        body: req.body,
+        error: error
       });
-      res.status(500).json({ 
-        error: "Failed to save widget location",
-        details: errorMessage 
+      
+      // Provide more specific error messages
+      let statusCode = 500;
+      let userMessage = "Failed to save widget location";
+      
+      if (errorMessage.includes('no such table') || errorMessage.includes('relation') || errorMessage.includes('does not exist')) {
+        statusCode = 500;
+        userMessage = "Database table not found. Please run database migrations.";
+      } else if (errorMessage.includes('FOREIGN KEY') || errorMessage.includes('foreign key')) {
+        statusCode = 400;
+        userMessage = "Invalid user. Please ensure you are logged in.";
+      } else if (errorMessage.includes('UNIQUE constraint') || errorMessage.includes('unique constraint')) {
+        statusCode = 409;
+        userMessage = "Location already exists for this user.";
+      }
+      
+      res.status(statusCode).json({ 
+        error: userMessage,
+        details: errorMessage,
+        code: errorCode
       });
     }
   });
@@ -1611,6 +2307,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Navigation waypoints API endpoints
   app.get("/api/navigation/waypoints", async (req, res) => {
     try {
+      // Ensure tables exist before operations
+      await ensureNavigationTables();
+      
       const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
       
       if (!email) {
@@ -1623,16 +2322,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const waypointsTable = getNavigationWaypointsTable();
-      const waypoints = await db
-        .select()
-        .from(waypointsTable)
-        .where(eq(waypointsTable.userId, userId))
-        .orderBy(waypointsTable.createdAt);
+      
+      try {
+        const waypoints = await db
+          .select()
+          .from(waypointsTable)
+          .where(eq(waypointsTable.userId, userId))
+          .orderBy(waypointsTable.createdAt);
 
-      res.json(waypoints);
-    } catch (error) {
+        res.json(waypoints);
+      } catch (dbError: any) {
+        console.error("Database error fetching waypoints:", dbError);
+        // If table doesn't exist, return empty array instead of error
+        if (dbError?.message?.includes('no such table') || dbError?.message?.includes('does not exist')) {
+          console.log('Navigation waypoints table does not exist, returning empty array');
+          return res.json([]);
+        }
+        throw dbError;
+      }
+    } catch (error: any) {
       console.error("Error fetching waypoints:", error);
-      res.status(500).json({ error: "Failed to fetch waypoints" });
+      console.error("Error stack:", error?.stack);
+      res.status(500).json({ 
+        error: "Failed to fetch waypoints",
+        details: error?.message || "Unknown error"
+      });
     }
   });
 
@@ -1709,6 +2423,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Navigation routes API endpoints
   app.get("/api/navigation/routes", async (req, res) => {
     try {
+      // Ensure tables exist before operations
+      await ensureNavigationTables();
+      
       const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
       
       if (!email) {
@@ -1721,16 +2438,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const routesTable = getNavigationRoutesTable();
-      const routes = await db
-        .select()
-        .from(routesTable)
-        .where(eq(routesTable.userId, userId))
-        .orderBy(routesTable.createdAt);
+      
+      try {
+        const routes = await db
+          .select()
+          .from(routesTable)
+          .where(eq(routesTable.userId, userId))
+          .orderBy(routesTable.createdAt);
 
-      res.json(routes);
-    } catch (error) {
+        res.json(routes);
+      } catch (dbError: any) {
+        console.error("Database error fetching routes:", dbError);
+        // If table doesn't exist, return empty array instead of error
+        if (dbError?.message?.includes('no such table') || dbError?.message?.includes('does not exist')) {
+          console.log('Navigation routes table does not exist, returning empty array');
+          return res.json([]);
+        }
+        throw dbError;
+      }
+    } catch (error: any) {
       console.error("Error fetching routes:", error);
-      res.status(500).json({ error: "Failed to fetch routes" });
+      console.error("Error stack:", error?.stack);
+      res.status(500).json({ 
+        error: "Failed to fetch routes",
+        details: error?.message || "Unknown error"
+      });
     }
   });
 
@@ -1803,19 +2535,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Weather API endpoint
+  // Weather API endpoint (XC Weather App)
   app.get("/api/weather", async (req, res) => {
     try {
       let lat = parseFloat(req.query.lat as string);
       let lon = parseFloat(req.query.lon as string);
       const timezone = (req.query.timezone as string) || 'UTC';
-      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+
+      // Try to get user ID from session or email (enhanced authentication)
+      const userId = await getUserIdFromSessionOrEmail(req);
 
       // If coordinates not provided, try to get from saved location
-      if ((isNaN(lat) || isNaN(lon)) && email) {
+      if ((isNaN(lat) || isNaN(lon)) && userId) {
         try {
-          const userId = await getUserIdFromEmail(email);
-          if (userId) {
             const widgetLocationsTable = getWidgetLocationsTable();
             const locations = await db
               .select()
@@ -1827,7 +2559,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (locations.length > 0) {
               lat = locations[0].latitude;
               lon = locations[0].longitude;
-            }
           }
         } catch (error) {
           console.error("Error fetching saved location:", error);
@@ -1847,7 +2578,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           finalLon = coords.lon;
         } else {
           return res.status(400).json({ 
-            error: "Latitude and longitude are required, or provide a valid timezone, or set a widget location" 
+            error: "Latitude and longitude are required, or provide a valid timezone, or set a widget location",
+            errorCode: "MISSING_COORDINATES"
           });
         }
       }
@@ -1856,30 +2588,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!weatherData) {
         return res.status(503).json({ 
-          error: "Weather data unavailable. Please check API configuration." 
+          error: "Weather data unavailable. Please check API configuration.",
+          errorCode: "WEATHER_API_UNAVAILABLE",
+          details: "OpenWeatherMap API key may be missing or invalid"
         });
       }
 
       res.json(weatherData);
-    } catch (error) {
-      console.error("Error in weather endpoint:", error);
-      res.status(500).json({ error: "Failed to fetch weather data" });
+    } catch (error: any) {
+      console.error("Error in XC Weather App endpoint:", error);
+      const errorCode = error?.code || "WEATHER_FETCH_ERROR";
+      const statusCode = error?.statusCode || 500;
+      res.status(statusCode).json({ 
+        error: "Failed to fetch weather data",
+        errorCode,
+        details: error?.message || "Unknown error occurred"
+      });
     }
   });
 
-  // Tides API endpoint
+  // Tides API endpoint (Tide Times App)
   app.get("/api/tides", async (req, res) => {
     try {
       let lat = parseFloat(req.query.lat as string);
       let lon = parseFloat(req.query.lon as string);
       const timezone = (req.query.timezone as string) || 'UTC';
-      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const forceRefresh = req.query.refresh === 'true' || req.query._refresh !== undefined;
+
+      // Try to get user ID from session or email (enhanced authentication)
+      const userId = await getUserIdFromSessionOrEmail(req);
 
       // If coordinates not provided, try to get from saved location
-      if ((isNaN(lat) || isNaN(lon)) && email) {
+      if ((isNaN(lat) || isNaN(lon)) && userId) {
         try {
-          const userId = await getUserIdFromEmail(email);
-          if (userId) {
             const widgetLocationsTable = getWidgetLocationsTable();
             const locations = await db
               .select()
@@ -1891,7 +2632,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (locations.length > 0) {
               lat = locations[0].latitude;
               lon = locations[0].longitude;
-            }
           }
         } catch (error) {
           console.error("Error fetching saved location:", error);
@@ -1911,23 +2651,294 @@ export async function registerRoutes(app: Express): Promise<Server> {
           finalLon = coords.lon;
         } else {
           return res.status(400).json({ 
-            error: "Latitude and longitude are required, or provide a valid timezone, or set a widget location" 
+            error: "Latitude and longitude are required, or provide a valid timezone, or set a widget location",
+            errorCode: "MISSING_COORDINATES"
           });
         }
       }
 
-      const tideData = await getTideData(finalLat, finalLon, timezone);
+      // Clear cache if force refresh is requested
+      if (forceRefresh) {
+        clearTidesCache(finalLat, finalLon);
+        console.log(`🔄 Force refresh requested for tides at ${finalLat}, ${finalLon} (timezone: ${timezone})`);
+      }
+
+      // Log coordinates for Southampton debugging (using correct coordinates: 50.863714, -1.425028)
+      if (Math.abs(finalLat - 50.863714) < 0.1 && Math.abs(finalLon - (-1.425028)) < 0.1) {
+        console.log('🌊 Southampton Tide Request:', {
+          finalLat,
+          finalLon,
+          timezone,
+          providedLat: lat,
+          providedLon: lon,
+          userId,
+          forceRefresh,
+        });
+      }
+
+      const tideData = await getTideData(finalLat, finalLon, timezone, forceRefresh);
 
       if (!tideData) {
         return res.status(503).json({ 
-          error: "Tide data unavailable. Please check API configuration." 
+          error: "Tide data unavailable. Please check API configuration.",
+          errorCode: "TIDE_API_UNAVAILABLE",
+          details: "Stormglass.io API key may be missing or invalid"
         });
       }
 
       res.json(tideData);
+    } catch (error: any) {
+      console.error("Error in Tide Times App endpoint:", error);
+      const errorCode = error?.code || "TIDE_FETCH_ERROR";
+      const statusCode = error?.statusCode || 500;
+      res.status(statusCode).json({ 
+        error: "Failed to fetch tide data",
+        errorCode,
+        details: error?.message || "Unknown error occurred"
+      });
+    }
+  });
+
+  // Widget Preferences API endpoints
+  app.get("/api/widgets/preferences", async (req, res) => {
+    try {
+      await ensureWidgetPreferencesTable();
+      
+      const userId = await getUserIdFromSessionOrEmail(req);
+      if (!userId) {
+        return res.status(401).json({ 
+          error: "Authentication required",
+          errorCode: "UNAUTHORIZED"
+        });
+      }
+
+      const widgetPreferencesTable = getWidgetPreferencesTable();
+      const preferences = await db
+        .select()
+        .from(widgetPreferencesTable)
+        .where(eq(widgetPreferencesTable.userId, userId))
+        .limit(1);
+
+      if (preferences.length === 0) {
+        // Return default preferences if none exist
+        const defaultPreferences = {
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+          clockType: 'digital' as const,
+          enableWeather: false,
+          enableTides: false,
+          enableMoonPhase: false,
+          enableNavigation: false,
+          enableAis: false,
+          weatherAlertsEnabled: true,
+          tideAlertsEnabled: true,
+        };
+        return res.json(defaultPreferences);
+      }
+
+      res.json(preferences[0]);
+    } catch (error: any) {
+      console.error("Error fetching widget preferences:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch widget preferences",
+        errorCode: "PREFERENCES_FETCH_ERROR",
+        details: error?.message
+      });
+    }
+  });
+
+  app.post("/api/widgets/preferences", async (req, res) => {
+    try {
+      await ensureWidgetPreferencesTable();
+      
+      const userId = await getUserIdFromSessionOrEmail(req);
+      if (!userId) {
+        return res.status(401).json({ 
+          error: "Authentication required",
+          errorCode: "UNAUTHORIZED"
+        });
+      }
+
+      const {
+        timezone,
+        clockType,
+        enableWeather,
+        enableTides,
+        enableMoonPhase,
+        enableNavigation,
+        enableAis,
+        weatherAlertsEnabled,
+        tideAlertsEnabled,
+      } = req.body;
+
+      const widgetPreferencesTable = getWidgetPreferencesTable();
+      
+      // Check if preferences already exist
+      const existing = await db
+        .select()
+        .from(widgetPreferencesTable)
+        .where(eq(widgetPreferencesTable.userId, userId))
+        .limit(1);
+
+      const preferencesData = {
+        userId,
+        timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        clockType: clockType || 'digital',
+        enableWeather: enableWeather ?? false,
+        enableTides: enableTides ?? false,
+        enableMoonPhase: enableMoonPhase ?? false,
+        enableNavigation: enableNavigation ?? false,
+        enableAis: enableAis ?? false,
+        weatherAlertsEnabled: weatherAlertsEnabled ?? true,
+        tideAlertsEnabled: tideAlertsEnabled ?? true,
+        updatedAt: new Date(),
+      };
+
+      let result;
+      if (existing.length > 0) {
+        // Update existing preferences
+        const updateResult = await db
+          .update(widgetPreferencesTable)
+          .set(preferencesData)
+          .where(eq(widgetPreferencesTable.userId, userId))
+          .returning();
+        result = updateResult[0];
+      } else {
+        // Create new preferences
+        const insertResult = await db
+          .insert(widgetPreferencesTable)
+          .values(preferencesData)
+          .returning();
+        result = insertResult[0];
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error saving widget preferences:", error);
+      res.status(500).json({ 
+        error: "Failed to save widget preferences",
+        errorCode: "PREFERENCES_SAVE_ERROR",
+        details: error?.message
+      });
+    }
+  });
+
+  // Unified Environment API endpoint (XC Weather App + Tide Times App)
+  app.get("/api/widgets/environment", async (req, res) => {
+    try {
+      let lat = parseFloat(req.query.lat as string);
+      let lon = parseFloat(req.query.lon as string);
+      const timezone = (req.query.timezone as string) || 'UTC';
+
+      // Try to get user ID from session or email
+      const userId = await getUserIdFromSessionOrEmail(req);
+
+      // If coordinates not provided, try to get from saved location
+      if ((isNaN(lat) || isNaN(lon)) && userId) {
+        try {
+          const widgetLocationsTable = getWidgetLocationsTable();
+          const locations = await db
+            .select()
+            .from(widgetLocationsTable)
+            .where(eq(widgetLocationsTable.userId, userId))
+            .orderBy(desc(widgetLocationsTable.updatedAt))
+            .limit(1);
+          
+          if (locations.length > 0) {
+            lat = locations[0].latitude;
+            lon = locations[0].longitude;
+          }
     } catch (error) {
-      console.error("Error in tides endpoint:", error);
-      res.status(500).json({ error: "Failed to fetch tide data" });
+          console.error("Error fetching saved location:", error);
+        }
+      }
+
+      // Validate coordinates or convert from timezone
+      let finalLat = lat;
+      let finalLon = lon;
+
+      if (isNaN(lat) || isNaN(lon)) {
+        const coords = weatherTimezoneToCoordinates(timezone) || tidesTimezoneToCoordinates(timezone);
+        if (coords) {
+          finalLat = coords.lat;
+          finalLon = coords.lon;
+        } else {
+          return res.status(400).json({ 
+            error: "Latitude and longitude are required, or provide a valid timezone, or set a widget location",
+            errorCode: "MISSING_COORDINATES"
+          });
+        }
+      }
+
+      // Fetch both weather and tide data in parallel
+      const [weatherData, tideData] = await Promise.allSettled([
+        getWeatherData(finalLat, finalLon, timezone),
+        getTideData(finalLat, finalLon, timezone),
+      ]);
+
+      const response: any = {
+        location: {
+          latitude: finalLat,
+          longitude: finalLon,
+          timezone,
+        },
+        weather: weatherData.status === 'fulfilled' ? weatherData.value : null,
+        tides: tideData.status === 'fulfilled' ? tideData.value : null,
+      };
+
+      // Add error information if any requests failed
+      if (weatherData.status === 'rejected') {
+        response.weatherError = {
+          error: "Failed to fetch weather data",
+          errorCode: "WEATHER_FETCH_ERROR",
+          details: weatherData.reason?.message || "Unknown error",
+        };
+      }
+
+      if (tideData.status === 'rejected') {
+        response.tideError = {
+          error: "Failed to fetch tide data",
+          errorCode: "TIDE_FETCH_ERROR",
+          details: tideData.reason?.message || "Unknown error",
+        };
+      }
+
+      // Return 200 even if one service fails, but include error info
+      const statusCode = (!response.weather && !response.tides) ? 503 : 200;
+      res.status(statusCode).json(response);
+    } catch (error: any) {
+      console.error("Error in unified environment endpoint:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch environment data",
+        errorCode: "ENVIRONMENT_FETCH_ERROR",
+        details: error?.message || "Unknown error occurred"
+      });
+    }
+  });
+
+  // Clear tides cache endpoint (for debugging/restarting)
+  app.post("/api/tides/clear-cache", async (req, res) => {
+    try {
+      const { lat, lon } = req.body;
+      
+      if (lat !== undefined && lon !== undefined) {
+        clearTidesCache(lat, lon);
+        res.json({ 
+          success: true, 
+          message: `Cache cleared for location ${lat}, ${lon}` 
+        });
+      } else {
+        clearTidesCache(); // Clear all cache
+        res.json({ 
+          success: true, 
+          message: 'All tide cache cleared' 
+        });
+      }
+    } catch (error: any) {
+      console.error("Error clearing tide cache:", error);
+      res.status(500).json({ 
+        error: "Failed to clear cache",
+        details: error?.message 
+      });
     }
   });
 
@@ -1988,6 +2999,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Ports API endpoint
   app.get("/api/ports", async (req, res) => {
     try {
+      const id = req.query.id as string;
       const region = req.query.region as string;
       const type = req.query.type as 'Primary' | 'Secondary' | undefined;
       const search = req.query.search as string;
@@ -1996,6 +3008,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const radiusKm = req.query.radiusKm ? parseFloat(req.query.radiusKm as string) : 100;
 
       let ports;
+
+      // If ID is provided, search for that specific port
+      if (id) {
+        const allPorts = await getPorts({});
+        // Try to find by ID first, then by name (case-insensitive)
+        const port = allPorts.find((p: any) => 
+          p.id === id || 
+          p.id === id.replace('port:', '') ||
+          p.name?.toLowerCase() === id.toLowerCase() ||
+          p.name?.toLowerCase() === id.replace('port:', '').toLowerCase()
+        );
+        if (port) {
+          console.log('Port found:', { id, portId: port.id, name: port.name, lat: port.latitude, lon: port.longitude });
+          return res.json([port]); // Return as array to match expected format
+        } else {
+          console.log('Port not found:', { id, availablePorts: allPorts.slice(0, 5).map((p: any) => ({ id: p.id, name: p.name })) });
+          return res.status(404).json({ error: "Port not found" });
+        }
+      }
 
       if (lat !== undefined && lon !== undefined && !isNaN(lat) && !isNaN(lon)) {
         // Get ports near location
@@ -2174,6 +3205,1417 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error removing user medical facility:", error);
       res.status(500).json({ error: "Failed to remove user medical facility" });
+    }
+  });
+
+  // ============================================================================
+  // DIVE SUPERVISOR CONTROL ROUTES
+  // ============================================================================
+
+  // Helper function to get user ID from email
+  async function getUserIdFromEmailForDiveSupervisor(email: string): Promise<string | null> {
+    try {
+      const userTable = users;
+      const result = await db
+        .select({ id: userTable.id })
+        .from(userTable)
+        .where(eq(userTable.email, email))
+        .limit(1);
+      return result.length > 0 ? result[0].id : null;
+    } catch (error) {
+      console.error("Error getting user ID:", error);
+      return null;
+    }
+  }
+
+  // Team Members CRUD
+  app.get("/api/dive-supervisor/team-members", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      if (!email) {
+        return res.status(400).json({ error: "Email required" });
+      }
+
+      const userId = await getUserIdFromEmailForDiveSupervisor(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const members = await db
+        .select()
+        .from(diveTeamMembers)
+        .where(eq(diveTeamMembers.userId, userId));
+
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/team-members", async (req, res) => {
+    try {
+      const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
+      if (!email) {
+        return res.status(400).json({ error: "Email required" });
+      }
+
+      const userId = await getUserIdFromEmailForDiveSupervisor(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { name, role, age, experienceYears, phone, email: memberEmail, certifications, medicalRunoutDates, competencies, emergencyContact, notes } = req.body;
+
+      const [member] = await db
+        .insert(diveTeamMembers)
+        .values({
+          userId,
+          name,
+          role: role || "DIVER",
+          age,
+          experienceYears,
+          phone,
+          email: memberEmail,
+          certifications: certifications || [],
+          medicalRunoutDates: medicalRunoutDates || [],
+          competencies: competencies || [],
+          emergencyContact: emergencyContact || {},
+          notes,
+        })
+        .returning();
+
+      res.json(member);
+    } catch (error) {
+      console.error("Error creating team member:", error);
+      res.status(500).json({ error: "Failed to create team member" });
+    }
+  });
+
+  app.put("/api/dive-supervisor/team-members/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
+      if (!email) {
+        return res.status(400).json({ error: "Email required" });
+      }
+
+      const userId = await getUserIdFromEmailForDiveSupervisor(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { name, role, age, experienceYears, phone, email: memberEmail, certifications, medicalRunoutDates, competencies, emergencyContact, notes } = req.body;
+
+      const [member] = await db
+        .update(diveTeamMembers)
+        .set({
+          name,
+          role,
+          age,
+          experienceYears,
+          phone,
+          email: memberEmail,
+          certifications: certifications || [],
+          medicalRunoutDates: medicalRunoutDates || [],
+          competencies: competencies || [],
+          emergencyContact: emergencyContact || {},
+          notes,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(diveTeamMembers.id, id), eq(diveTeamMembers.userId, userId)))
+        .returning();
+
+      if (!member) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+
+      res.json(member);
+    } catch (error) {
+      console.error("Error updating team member:", error);
+      res.status(500).json({ error: "Failed to update team member" });
+    }
+  });
+
+  app.delete("/api/dive-supervisor/team-members/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      if (!email) {
+        return res.status(400).json({ error: "Email required" });
+      }
+
+      const userId = await getUserIdFromEmailForDiveSupervisor(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await db
+        .delete(diveTeamMembers)
+        .where(and(eq(diveTeamMembers.id, id), eq(diveTeamMembers.userId, userId)));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting team member:", error);
+      res.status(500).json({ error: "Failed to delete team member" });
+    }
+  });
+
+  // Operations CRUD
+  app.get("/api/dive-supervisor/operations", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      if (!email) {
+        return res.status(400).json({ error: "Email required" });
+      }
+
+      const userId = await getUserIdFromEmailForDiveSupervisor(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const operations = await db
+        .select()
+        .from(diveOperations)
+        .where(eq(diveOperations.userId, userId))
+        .orderBy(desc(diveOperations.createdAt));
+
+      res.json(operations);
+    } catch (error) {
+      console.error("Error fetching operations:", error);
+      res.status(500).json({ error: "Failed to fetch operations" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/operations", async (req, res) => {
+    try {
+      const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
+      if (!email) {
+        return res.status(400).json({ error: "Email required" });
+      }
+
+      const userId = await getUserIdFromEmailForDiveSupervisor(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { title, clientId, location, plannedDate, status, supervisorId } = req.body;
+
+      const [operation] = await db
+        .insert(diveOperations)
+        .values({
+          userId,
+          title,
+          clientId,
+          location,
+          plannedDate: plannedDate ? new Date(plannedDate) : null,
+          status: status || "PLANNED",
+          supervisorId,
+        })
+        .returning();
+
+      res.json(operation);
+    } catch (error) {
+      console.error("Error creating operation:", error);
+      res.status(500).json({ error: "Failed to create operation" });
+    }
+  });
+
+  // Contacts CRUD
+  app.get("/api/dive-supervisor/contacts", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const operationId = req.query.operationId as string;
+
+      if (!email || !operationId) {
+        return res.status(400).json({ error: "Email and operationId required" });
+      }
+
+      const contacts = await db
+        .select()
+        .from(diveOperationContacts)
+        .where(eq(diveOperationContacts.operationId, operationId));
+
+      res.json(contacts);
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+      res.status(500).json({ error: "Failed to fetch contacts" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/contacts", async (req, res) => {
+    try {
+      const { operationId, contactType, name, organization, phone, email: contactEmail, vhfChannel, notes } = req.body;
+
+      if (!operationId || !contactType || !name) {
+        return res.status(400).json({ error: "operationId, contactType, and name required" });
+      }
+
+      const [contact] = await db
+        .insert(diveOperationContacts)
+        .values({
+          operationId,
+          contactType,
+          name,
+          organization,
+          phone,
+          email: contactEmail,
+          vhfChannel,
+          notes,
+        })
+        .returning();
+
+      res.json(contact);
+    } catch (error) {
+      console.error("Error creating contact:", error);
+      res.status(500).json({ error: "Failed to create contact" });
+    }
+  });
+
+  app.put("/api/dive-supervisor/contacts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { contactType, name, organization, phone, email: contactEmail, vhfChannel, notes } = req.body;
+
+      const [contact] = await db
+        .update(diveOperationContacts)
+        .set({
+          contactType,
+          name,
+          organization,
+          phone,
+          email: contactEmail,
+          vhfChannel,
+          notes,
+          updatedAt: new Date(),
+        })
+        .where(eq(diveOperationContacts.id, id))
+        .returning();
+
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+
+      res.json(contact);
+    } catch (error) {
+      console.error("Error updating contact:", error);
+      res.status(500).json({ error: "Failed to update contact" });
+    }
+  });
+
+  app.delete("/api/dive-supervisor/contacts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      await db
+        .delete(diveOperationContacts)
+        .where(eq(diveOperationContacts.id, id));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+      res.status(500).json({ error: "Failed to delete contact" });
+    }
+  });
+
+  // Permits CRUD
+  app.get("/api/dive-supervisor/permits", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const operationId = req.query.operationId as string;
+
+      if (!email || !operationId) {
+        return res.status(400).json({ error: "Email and operationId required" });
+      }
+
+      const permits = await db
+        .select()
+        .from(diveOperationPermits)
+        .where(eq(diveOperationPermits.operationId, operationId));
+
+      res.json(permits);
+    } catch (error) {
+      console.error("Error fetching permits:", error);
+      res.status(500).json({ error: "Failed to fetch permits" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/permits", async (req, res) => {
+    try {
+      const { operationId, permitType, permitNumber, issuedBy, issueDate, expiryDate, status, notes } = req.body;
+
+      if (!operationId || !permitType) {
+        return res.status(400).json({ error: "operationId and permitType required" });
+      }
+
+      const [permit] = await db
+        .insert(diveOperationPermits)
+        .values({
+          operationId,
+          permitType,
+          permitNumber,
+          issuedBy,
+          issueDate: issueDate ? new Date(issueDate) : null,
+          expiryDate: expiryDate ? new Date(expiryDate) : null,
+          status: status || "PENDING",
+          notes,
+        })
+        .returning();
+
+      res.json(permit);
+    } catch (error) {
+      console.error("Error creating permit:", error);
+      res.status(500).json({ error: "Failed to create permit" });
+    }
+  });
+
+  app.put("/api/dive-supervisor/permits/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { permitType, permitNumber, issuedBy, issueDate, expiryDate, status, notes } = req.body;
+
+      const [permit] = await db
+        .update(diveOperationPermits)
+        .set({
+          permitType,
+          permitNumber,
+          issuedBy,
+          issueDate: issueDate ? new Date(issueDate) : null,
+          expiryDate: expiryDate ? new Date(expiryDate) : null,
+          status,
+          notes,
+          updatedAt: new Date(),
+        })
+        .where(eq(diveOperationPermits.id, id))
+        .returning();
+
+      if (!permit) {
+        return res.status(404).json({ error: "Permit not found" });
+      }
+
+      res.json(permit);
+    } catch (error) {
+      console.error("Error updating permit:", error);
+      res.status(500).json({ error: "Failed to update permit" });
+    }
+  });
+
+  app.delete("/api/dive-supervisor/permits/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      await db
+        .delete(diveOperationPermits)
+        .where(eq(diveOperationPermits.id, id));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting permit:", error);
+      res.status(500).json({ error: "Failed to delete permit" });
+    }
+  });
+
+  // Rosters CRUD
+  app.get("/api/dive-supervisor/rosters", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const operationId = req.query.operationId as string;
+
+      if (!email || !operationId) {
+        return res.status(400).json({ error: "Email and operationId required" });
+      }
+
+      const rosters = await db
+        .select()
+        .from(diveTeamRosters)
+        .where(eq(diveTeamRosters.operationId, operationId));
+
+      // Join with team members to get names
+      const rostersWithNames = await Promise.all(
+        rosters.map(async (roster: any) => {
+          if (roster.teamMemberId) {
+            const [member] = await db
+              .select()
+              .from(diveTeamMembers)
+              .where(eq(diveTeamMembers.id, roster.teamMemberId))
+              .limit(1);
+            return { ...roster, teamMemberName: member?.name };
+          }
+          return roster;
+        })
+      );
+
+      res.json(rostersWithNames);
+    } catch (error) {
+      console.error("Error fetching rosters:", error);
+      res.status(500).json({ error: "Failed to fetch rosters" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/rosters", async (req, res) => {
+    try {
+      const { operationId, phase, diverRole, teamMemberId, notes } = req.body;
+
+      if (!operationId || !phase || !diverRole) {
+        return res.status(400).json({ error: "operationId, phase, and diverRole required" });
+      }
+
+      const [roster] = await db
+        .insert(diveTeamRosters)
+        .values({
+          operationId,
+          phase,
+          diverRole,
+          teamMemberId,
+          notes,
+        })
+        .returning();
+
+      res.json(roster);
+    } catch (error) {
+      console.error("Error creating roster:", error);
+      res.status(500).json({ error: "Failed to create roster" });
+    }
+  });
+
+  app.delete("/api/dive-supervisor/rosters/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      await db
+        .delete(diveTeamRosters)
+        .where(eq(diveTeamRosters.id, id));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting roster:", error);
+      res.status(500).json({ error: "Failed to delete roster" });
+    }
+  });
+
+  // Dive Plans CRUD
+  app.get("/api/dive-supervisor/dive-plans", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const operationId = req.query.operationId as string;
+
+      if (!email || !operationId) {
+        return res.status(400).json({ error: "Email and operationId required" });
+      }
+
+      const [plan] = await db
+        .select()
+        .from(divePlans)
+        .where(eq(divePlans.operationId, operationId))
+        .limit(1);
+
+      res.json(plan || null);
+    } catch (error) {
+      console.error("Error fetching dive plan:", error);
+      res.status(500).json({ error: "Failed to fetch dive plan" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/dive-plans", async (req, res) => {
+    try {
+      const { operationId, maxDepth, bottomTime, decompressionProfile, gasMixtures, equipment, riskAssessment } = req.body;
+
+      if (!operationId) {
+        return res.status(400).json({ error: "operationId required" });
+      }
+
+      const [plan] = await db
+        .insert(divePlans)
+        .values({
+          operationId,
+          maxDepth,
+          bottomTime,
+          decompressionProfile: decompressionProfile || [],
+          gasMixtures: gasMixtures || [],
+          equipment: equipment || [],
+          riskAssessment: riskAssessment || {},
+        })
+        .returning();
+
+      res.json(plan);
+    } catch (error) {
+      console.error("Error creating dive plan:", error);
+      res.status(500).json({ error: "Failed to create dive plan" });
+    }
+  });
+
+  app.put("/api/dive-supervisor/dive-plans/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { maxDepth, bottomTime, decompressionProfile, gasMixtures, equipment, riskAssessment } = req.body;
+
+      const [plan] = await db
+        .update(divePlans)
+        .set({
+          maxDepth,
+          bottomTime,
+          decompressionProfile: decompressionProfile || [],
+          gasMixtures: gasMixtures || [],
+          equipment: equipment || [],
+          riskAssessment: riskAssessment || {},
+          updatedAt: new Date(),
+        })
+        .where(eq(divePlans.id, id))
+        .returning();
+
+      if (!plan) {
+        return res.status(404).json({ error: "Dive plan not found" });
+      }
+
+      res.json(plan);
+    } catch (error) {
+      console.error("Error updating dive plan:", error);
+      res.status(500).json({ error: "Failed to update dive plan" });
+    }
+  });
+
+  // DPRs CRUD
+  app.get("/api/dive-supervisor/dprs", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const operationId = req.query.operationId as string;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email required" });
+      }
+
+      const userId = await getUserIdFromEmailForDiveSupervisor(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      let whereConditions = [eq(dailyProjectReports.createdBy, userId)];
+      if (operationId) {
+        whereConditions.push(eq(dailyProjectReports.operationId, operationId));
+      }
+
+      const dprs = await db
+        .select({
+          id: dailyProjectReports.id,
+          operationId: dailyProjectReports.operationId,
+          reportDate: dailyProjectReports.reportDate,
+          reportData: dailyProjectReports.reportData,
+          createdBy: dailyProjectReports.createdBy,
+          createdAt: dailyProjectReports.createdAt,
+          updatedAt: dailyProjectReports.updatedAt,
+          operationTitle: diveOperations.title,
+        })
+        .from(dailyProjectReports)
+        .leftJoin(diveOperations, eq(dailyProjectReports.operationId, diveOperations.id))
+        .where(and(...whereConditions))
+        .orderBy(desc(dailyProjectReports.reportDate));
+
+      res.json(dprs);
+    } catch (error) {
+      console.error("Error fetching DPRs:", error);
+      res.status(500).json({ error: "Failed to fetch DPRs" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/dprs", async (req, res) => {
+    try {
+      const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
+      const { operationId, reportDate, reportData } = req.body;
+
+      if (!email || !operationId || !reportDate || !reportData) {
+        return res.status(400).json({ error: "Email, operationId, reportDate, and reportData required" });
+      }
+
+      const userId = await getUserIdFromEmailForDiveSupervisor(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const [dpr] = await db
+        .insert(dailyProjectReports)
+        .values({
+          operationId,
+          reportDate: new Date(reportDate),
+          reportData,
+          createdBy: userId,
+        })
+        .returning();
+
+      res.json(dpr);
+    } catch (error) {
+      console.error("Error creating DPR:", error);
+      res.status(500).json({ error: "Failed to create DPR" });
+    }
+  });
+
+  app.put("/api/dive-supervisor/dprs/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
+      const { reportDate, reportData } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email required" });
+      }
+
+      const userId = await getUserIdFromEmailForDiveSupervisor(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const [dpr] = await db
+        .update(dailyProjectReports)
+        .set({
+          reportDate: reportDate ? new Date(reportDate) : undefined,
+          reportData,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(dailyProjectReports.id, id), eq(dailyProjectReports.createdBy, userId)))
+        .returning();
+
+      if (!dpr) {
+        return res.status(404).json({ error: "DPR not found" });
+      }
+
+      res.json(dpr);
+    } catch (error) {
+      console.error("Error updating DPR:", error);
+      res.status(500).json({ error: "Failed to update DPR" });
+    }
+  });
+
+  // DPR Export endpoints (placeholder - will be implemented with PDF/DOCX services)
+  app.post("/api/dive-supervisor/dprs/:id/export-pdf", async (req, res) => {
+    try {
+      const { id } = req.params;
+      // TODO: Implement PDF export using PDFExportService
+      res.status(501).json({ error: "PDF export not yet implemented" });
+    } catch (error) {
+      console.error("Error exporting DPR to PDF:", error);
+      res.status(500).json({ error: "Failed to export DPR to PDF" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/dprs/:id/export-docx", async (req, res) => {
+    try {
+      const { id } = req.params;
+      // TODO: Implement DOCX export using DOCXExportService
+      res.status(501).json({ error: "DOCX export not yet implemented" });
+    } catch (error) {
+      console.error("Error exporting DPR to DOCX:", error);
+      res.status(500).json({ error: "Failed to export DPR to DOCX" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/dprs/import", async (req, res) => {
+    try {
+      // TODO: Implement DPR import from PDF/DOCX
+      res.status(501).json({ error: "DPR import not yet implemented" });
+    } catch (error) {
+      console.error("Error importing DPR:", error);
+      res.status(500).json({ error: "Failed to import DPR" });
+    }
+  });
+
+  // ============================================================================
+  // ENHANCED DIVE SUPERVISOR CONTROL ROUTES
+  // ============================================================================
+
+  // CasEvac Drills CRUD
+  app.get("/api/dive-supervisor/cas-evac-drills", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const operationId = req.query.operationId as string;
+
+      if (!email || !operationId) {
+        return res.status(400).json({ error: "Email and operationId required" });
+      }
+
+      const drills = await db
+        .select()
+        .from(casEvacDrills)
+        .where(eq(casEvacDrills.operationId, operationId))
+        .orderBy(desc(casEvacDrills.drillDate));
+
+      res.json(drills);
+    } catch (error) {
+      console.error("Error fetching CasEvac drills:", error);
+      res.status(500).json({ error: "Failed to fetch drills" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/cas-evac-drills", async (req, res) => {
+    try {
+      const { operationId, drillDate, scenario, participants, outcomes, notes } = req.body;
+
+      if (!operationId || !drillDate || !scenario) {
+        return res.status(400).json({ error: "operationId, drillDate, and scenario required" });
+      }
+
+      const [drill] = await db
+        .insert(casEvacDrills)
+        .values({
+          operationId,
+          drillDate: new Date(drillDate),
+          scenario,
+          participants: participants || [],
+          outcomes,
+          notes,
+        })
+        .returning();
+
+      res.json(drill);
+    } catch (error) {
+      console.error("Error creating CasEvac drill:", error);
+      res.status(500).json({ error: "Failed to create drill" });
+    }
+  });
+
+  app.put("/api/dive-supervisor/cas-evac-drills/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { drillDate, scenario, participants, outcomes, notes } = req.body;
+
+      const [drill] = await db
+        .update(casEvacDrills)
+        .set({
+          drillDate: drillDate ? new Date(drillDate) : undefined,
+          scenario,
+          participants: participants || [],
+          outcomes,
+          notes,
+          updatedAt: new Date(),
+        })
+        .where(eq(casEvacDrills.id, id))
+        .returning();
+
+      if (!drill) {
+        return res.status(404).json({ error: "Drill not found" });
+      }
+
+      res.json(drill);
+    } catch (error) {
+      console.error("Error updating CasEvac drill:", error);
+      res.status(500).json({ error: "Failed to update drill" });
+    }
+  });
+
+  app.delete("/api/dive-supervisor/cas-evac-drills/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      await db
+        .delete(casEvacDrills)
+        .where(eq(casEvacDrills.id, id));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting CasEvac drill:", error);
+      res.status(500).json({ error: "Failed to delete drill" });
+    }
+  });
+
+  // Tool Box Talks CRUD
+  app.get("/api/dive-supervisor/toolbox-talks", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const operationId = req.query.operationId as string;
+
+      if (!email || !operationId) {
+        return res.status(400).json({ error: "Email and operationId required" });
+      }
+
+      const talks = await db
+        .select()
+        .from(toolBoxTalks)
+        .where(eq(toolBoxTalks.operationId, operationId))
+        .orderBy(desc(toolBoxTalks.talkDate));
+
+      res.json(talks);
+    } catch (error) {
+      console.error("Error fetching toolbox talks:", error);
+      res.status(500).json({ error: "Failed to fetch toolbox talks" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/toolbox-talks", async (req, res) => {
+    try {
+      const { operationId, talkDate, topics, attendees, presenter, signOffs, notes } = req.body;
+
+      if (!operationId || !talkDate || !presenter) {
+        return res.status(400).json({ error: "operationId, talkDate, and presenter required" });
+      }
+
+      const [talk] = await db
+        .insert(toolBoxTalks)
+        .values({
+          operationId,
+          talkDate: new Date(talkDate),
+          topics: topics || [],
+          attendees: attendees || [],
+          presenter,
+          signOffs: signOffs || [],
+          notes,
+        })
+        .returning();
+
+      res.json(talk);
+    } catch (error) {
+      console.error("Error creating toolbox talk:", error);
+      res.status(500).json({ error: "Failed to create toolbox talk" });
+    }
+  });
+
+  app.put("/api/dive-supervisor/toolbox-talks/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { talkDate, topics, attendees, presenter, signOffs, notes } = req.body;
+
+      const [talk] = await db
+        .update(toolBoxTalks)
+        .set({
+          talkDate: talkDate ? new Date(talkDate) : undefined,
+          topics: topics || [],
+          attendees: attendees || [],
+          presenter,
+          signOffs: signOffs || [],
+          notes,
+          updatedAt: new Date(),
+        })
+        .where(eq(toolBoxTalks.id, id))
+        .returning();
+
+      if (!talk) {
+        return res.status(404).json({ error: "Toolbox talk not found" });
+      }
+
+      res.json(talk);
+    } catch (error) {
+      console.error("Error updating toolbox talk:", error);
+      res.status(500).json({ error: "Failed to update toolbox talk" });
+    }
+  });
+
+  app.delete("/api/dive-supervisor/toolbox-talks/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      await db
+        .delete(toolBoxTalks)
+        .where(eq(toolBoxTalks.id, id));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting toolbox talk:", error);
+      res.status(500).json({ error: "Failed to delete toolbox talk" });
+    }
+  });
+
+  // Hazards CRUD
+  app.get("/api/dive-supervisor/hazards", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const operationId = req.query.operationId as string;
+
+      if (!email || !operationId) {
+        return res.status(400).json({ error: "Email and operationId required" });
+      }
+
+      const hazards = await db
+        .select()
+        .from(diveOperationHazards)
+        .where(eq(diveOperationHazards.operationId, operationId))
+        .orderBy(desc(diveOperationHazards.createdAt));
+
+      res.json(hazards);
+    } catch (error) {
+      console.error("Error fetching hazards:", error);
+      res.status(500).json({ error: "Failed to fetch hazards" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/hazards", async (req, res) => {
+    try {
+      const { operationId, hazardType, description, severity, likelihood, mitigation, status } = req.body;
+
+      if (!operationId || !hazardType || !description || !severity || !likelihood) {
+        return res.status(400).json({ error: "operationId, hazardType, description, severity, and likelihood required" });
+      }
+
+      const [hazard] = await db
+        .insert(diveOperationHazards)
+        .values({
+          operationId,
+          hazardType,
+          description,
+          severity,
+          likelihood,
+          mitigation,
+          status: status || "IDENTIFIED",
+        })
+        .returning();
+
+      res.json(hazard);
+    } catch (error) {
+      console.error("Error creating hazard:", error);
+      res.status(500).json({ error: "Failed to create hazard" });
+    }
+  });
+
+  app.put("/api/dive-supervisor/hazards/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { hazardType, description, severity, likelihood, mitigation, status } = req.body;
+
+      const [hazard] = await db
+        .update(diveOperationHazards)
+        .set({
+          hazardType,
+          description,
+          severity,
+          likelihood,
+          mitigation,
+          status,
+          updatedAt: new Date(),
+        })
+        .where(eq(diveOperationHazards.id, id))
+        .returning();
+
+      if (!hazard) {
+        return res.status(404).json({ error: "Hazard not found" });
+      }
+
+      res.json(hazard);
+    } catch (error) {
+      console.error("Error updating hazard:", error);
+      res.status(500).json({ error: "Failed to update hazard" });
+    }
+  });
+
+  app.delete("/api/dive-supervisor/hazards/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      await db
+        .delete(diveOperationHazards)
+        .where(eq(diveOperationHazards.id, id));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting hazard:", error);
+      res.status(500).json({ error: "Failed to delete hazard" });
+    }
+  });
+
+  // Welfare Records CRUD
+  app.get("/api/dive-supervisor/welfare", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const operationId = req.query.operationId as string;
+
+      if (!email || !operationId) {
+        return res.status(400).json({ error: "Email and operationId required" });
+      }
+
+      const records = await db
+        .select()
+        .from(welfareRecords)
+        .where(eq(welfareRecords.operationId, operationId))
+        .orderBy(desc(welfareRecords.recordDate));
+
+      res.json(records);
+    } catch (error) {
+      console.error("Error fetching welfare records:", error);
+      res.status(500).json({ error: "Failed to fetch welfare records" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/welfare", async (req, res) => {
+    try {
+      const { operationId, recordDate, accommodation, meals, restPeriods, healthNotes } = req.body;
+
+      if (!operationId || !recordDate) {
+        return res.status(400).json({ error: "operationId and recordDate required" });
+      }
+
+      const [record] = await db
+        .insert(welfareRecords)
+        .values({
+          operationId,
+          recordDate: new Date(recordDate),
+          accommodation: accommodation || {},
+          meals: meals || {},
+          restPeriods: restPeriods || [],
+          healthNotes,
+        })
+        .returning();
+
+      res.json(record);
+    } catch (error) {
+      console.error("Error creating welfare record:", error);
+      res.status(500).json({ error: "Failed to create welfare record" });
+    }
+  });
+
+  app.put("/api/dive-supervisor/welfare/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { recordDate, accommodation, meals, restPeriods, healthNotes } = req.body;
+
+      const [record] = await db
+        .update(welfareRecords)
+        .set({
+          recordDate: recordDate ? new Date(recordDate) : undefined,
+          accommodation: accommodation || {},
+          meals: meals || {},
+          restPeriods: restPeriods || [],
+          healthNotes,
+          updatedAt: new Date(),
+        })
+        .where(eq(welfareRecords.id, id))
+        .returning();
+
+      if (!record) {
+        return res.status(404).json({ error: "Welfare record not found" });
+      }
+
+      res.json(record);
+    } catch (error) {
+      console.error("Error updating welfare record:", error);
+      res.status(500).json({ error: "Failed to update welfare record" });
+    }
+  });
+
+  app.delete("/api/dive-supervisor/welfare/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      await db
+        .delete(welfareRecords)
+        .where(eq(welfareRecords.id, id));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting welfare record:", error);
+      res.status(500).json({ error: "Failed to delete welfare record" });
+    }
+  });
+
+  // Shipping Info CRUD
+  app.get("/api/dive-supervisor/shipping", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const operationId = req.query.operationId as string;
+
+      if (!email || !operationId) {
+        return res.status(400).json({ error: "Email and operationId required" });
+      }
+
+      const info = await db
+        .select()
+        .from(shippingInfo)
+        .where(eq(shippingInfo.operationId, operationId))
+        .orderBy(desc(shippingInfo.createdAt));
+
+      res.json(info);
+    } catch (error) {
+      console.error("Error fetching shipping info:", error);
+      res.status(500).json({ error: "Failed to fetch shipping info" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/shipping", async (req, res) => {
+    try {
+      const { operationId, vesselName, vesselType, eta, etd, contact, notes } = req.body;
+
+      if (!operationId) {
+        return res.status(400).json({ error: "operationId required" });
+      }
+
+      const [info] = await db
+        .insert(shippingInfo)
+        .values({
+          operationId,
+          vesselName,
+          vesselType,
+          eta: eta ? new Date(eta) : null,
+          etd: etd ? new Date(etd) : null,
+          contact: contact || {},
+          notes,
+        })
+        .returning();
+
+      res.json(info);
+    } catch (error) {
+      console.error("Error creating shipping info:", error);
+      res.status(500).json({ error: "Failed to create shipping info" });
+    }
+  });
+
+  app.put("/api/dive-supervisor/shipping/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { vesselName, vesselType, eta, etd, contact, notes } = req.body;
+
+      const [info] = await db
+        .update(shippingInfo)
+        .set({
+          vesselName,
+          vesselType,
+          eta: eta ? new Date(eta) : null,
+          etd: etd ? new Date(etd) : null,
+          contact: contact || {},
+          notes,
+          updatedAt: new Date(),
+        })
+        .where(eq(shippingInfo.id, id))
+        .returning();
+
+      if (!info) {
+        return res.status(404).json({ error: "Shipping info not found" });
+      }
+
+      res.json(info);
+    } catch (error) {
+      console.error("Error updating shipping info:", error);
+      res.status(500).json({ error: "Failed to update shipping info" });
+    }
+  });
+
+  app.delete("/api/dive-supervisor/shipping/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      await db
+        .delete(shippingInfo)
+        .where(eq(shippingInfo.id, id));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting shipping info:", error);
+      res.status(500).json({ error: "Failed to delete shipping info" });
+    }
+  });
+
+  // Environmental Data endpoint
+  app.get("/api/dive-supervisor/environmental-data", async (req, res) => {
+    try {
+      const lat = parseFloat(req.query.lat as string);
+      const lon = parseFloat(req.query.lon as string);
+      const timezone = (req.query.timezone as string) || "UTC";
+
+      if (isNaN(lat) || isNaN(lon)) {
+        return res.status(400).json({ error: "Valid latitude and longitude required" });
+      }
+
+      // Use existing services
+      const [weatherData, tideData] = await Promise.all([
+        getWeatherData(lat, lon, timezone),
+        getTideData(lat, lon, timezone),
+      ]);
+
+      res.json({
+        weather: weatherData,
+        tides: tideData,
+      });
+    } catch (error) {
+      console.error("Error fetching environmental data:", error);
+      res.status(500).json({ error: "Failed to fetch environmental data" });
+    }
+  });
+
+  // Notices to Mariners endpoint
+  app.get("/api/dive-supervisor/notices-to-mariners", async (req, res) => {
+    try {
+      const lat = parseFloat(req.query.lat as string);
+      const lon = parseFloat(req.query.lon as string);
+      const radiusKm = parseFloat(req.query.radiusKm as string) || 50;
+
+      if (isNaN(lat) || isNaN(lon)) {
+        return res.status(400).json({ error: "Valid latitude and longitude required" });
+      }
+
+      const notices = await getNoticesToMariners(lat, lon, radiusKm);
+
+      res.json(notices);
+    } catch (error) {
+      console.error("Error fetching notices to mariners:", error);
+      res.status(500).json({ error: "Failed to fetch notices to mariners" });
+    }
+  });
+
+  // RAMS Documents CRUD
+  app.get("/api/dive-supervisor/rams", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const operationId = req.query.operationId as string;
+
+      if (!email || !operationId) {
+        return res.status(400).json({ error: "Email and operationId required" });
+      }
+
+      const rams = await db
+        .select()
+        .from(ramsDocuments)
+        .where(eq(ramsDocuments.operationId, operationId))
+        .orderBy(desc(ramsDocuments.createdAt));
+
+      res.json(rams);
+    } catch (error) {
+      console.error("Error fetching RAMS documents:", error);
+      res.status(500).json({ error: "Failed to fetch RAMS documents" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/rams", async (req, res) => {
+    try {
+      const { operationId, title, documentData, linkedHazardIds, signatures } = req.body;
+      const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
+
+      if (!operationId || !title || !documentData) {
+        return res.status(400).json({ error: "operationId, title, and documentData required" });
+      }
+
+      // Get user ID from email
+      const userId = await getUserIdFromEmailForDiveSupervisor(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const [rams] = await db
+        .insert(ramsDocuments)
+        .values({
+          operationId,
+          title,
+          documentData,
+          linkedHazardIds: linkedHazardIds || [],
+          signatures: signatures || [],
+          createdBy: userId,
+        })
+        .returning();
+
+      res.json(rams);
+    } catch (error) {
+      console.error("Error creating RAMS document:", error);
+      res.status(500).json({ error: "Failed to create RAMS document" });
+    }
+  });
+
+  app.put("/api/dive-supervisor/rams/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { title, documentData, linkedHazardIds, signatures } = req.body;
+
+      const [rams] = await db
+        .update(ramsDocuments)
+        .set({
+          title,
+          documentData,
+          linkedHazardIds: linkedHazardIds || [],
+          signatures: signatures || [],
+          updatedAt: new Date(),
+        })
+        .where(eq(ramsDocuments.id, id))
+        .returning();
+
+      if (!rams) {
+        return res.status(404).json({ error: "RAMS document not found" });
+      }
+
+      res.json(rams);
+    } catch (error) {
+      console.error("Error updating RAMS document:", error);
+      res.status(500).json({ error: "Failed to update RAMS document" });
+    }
+  });
+
+  app.delete("/api/dive-supervisor/rams/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      await db
+        .delete(ramsDocuments)
+        .where(eq(ramsDocuments.id, id));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting RAMS document:", error);
+      res.status(500).json({ error: "Failed to delete RAMS document" });
+    }
+  });
+
+  app.post("/api/dive-supervisor/rams/:id/sign", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { teamMemberId, signature } = req.body;
+
+      if (!teamMemberId || !signature) {
+        return res.status(400).json({ error: "teamMemberId and signature required" });
+      }
+
+      const [rams] = await db
+        .select()
+        .from(ramsDocuments)
+        .where(eq(ramsDocuments.id, id))
+        .limit(1);
+
+      if (!rams) {
+        return res.status(404).json({ error: "RAMS document not found" });
+      }
+
+      const signatures = (rams.signatures as any[]) || [];
+      const signatureIndex = signatures.findIndex((s: any) => s.teamMemberId === teamMemberId);
+      
+      const newSignature = {
+        teamMemberId,
+        name: signatures[signatureIndex]?.name || "",
+        signature,
+        date: new Date().toISOString(),
+        status: "SIGNED" as const,
+      };
+
+      if (signatureIndex >= 0) {
+        signatures[signatureIndex] = newSignature;
+      } else {
+        signatures.push(newSignature);
+      }
+
+      const [updated] = await db
+        .update(ramsDocuments)
+        .set({
+          signatures,
+          updatedAt: new Date(),
+        })
+        .where(eq(ramsDocuments.id, id))
+        .returning();
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error signing RAMS document:", error);
+      res.status(500).json({ error: "Failed to sign RAMS document" });
+    }
+  });
+
+  app.get("/api/dive-supervisor/rams/:id/export-pdf", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const [rams] = await db
+        .select()
+        .from(ramsDocuments)
+        .where(eq(ramsDocuments.id, id))
+        .limit(1);
+
+      if (!rams) {
+        return res.status(404).json({ error: "RAMS document not found" });
+      }
+
+      // TODO: Generate PDF using jsPDF or similar
+      // For now, return a placeholder
+      res.status(501).json({ error: "PDF export not yet implemented" });
+    } catch (error) {
+      console.error("Error exporting RAMS PDF:", error);
+      res.status(500).json({ error: "Failed to export PDF" });
     }
   });
 

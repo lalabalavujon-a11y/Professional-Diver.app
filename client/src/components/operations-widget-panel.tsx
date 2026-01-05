@@ -86,7 +86,7 @@ export default function OperationsWidgetPanel({ collapsed: controlledCollapsed, 
 
   // Fetch user preferences
   const { data: preferences } = useQuery<WidgetPreferences>({
-    queryKey: ['/api/users/preferences'],
+    queryKey: ['userPreferences'],
     queryFn: async () => {
       const storedPrefs = localStorage.getItem('userPreferences');
       if (storedPrefs) {
@@ -114,7 +114,8 @@ export default function OperationsWidgetPanel({ collapsed: controlledCollapsed, 
         enableAIS: false,
       };
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always refetch when invalidated
+    refetchOnWindowFocus: true,
   });
 
   const prefs = preferences || {
@@ -215,7 +216,14 @@ export default function OperationsWidgetPanel({ collapsed: controlledCollapsed, 
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <LocationSelector />
+              <LocationSelector 
+                trigger={
+                  <Button variant="outline" className="w-full" size="sm">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Configure Location
+                  </Button>
+                }
+              />
             </CardContent>
           </Card>
 

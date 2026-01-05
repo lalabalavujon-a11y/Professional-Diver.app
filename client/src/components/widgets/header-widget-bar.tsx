@@ -98,7 +98,8 @@ export default function HeaderWidgetBar() {
       }
       return defaultPreferences;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always refetch when invalidated
+    refetchOnWindowFocus: true,
   });
 
   const prefs = preferences || defaultPreferences;

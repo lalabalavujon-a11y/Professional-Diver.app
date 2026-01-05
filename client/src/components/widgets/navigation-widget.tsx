@@ -138,9 +138,9 @@ export default function NavigationWidget({ latitude, longitude }: NavigationWidg
     staleTime: 60 * 60 * 1000, // Cache for 1 hour
   });
 
-  // Default location (Southampton, UK - River Test swinging grounds)
-  const DEFAULT_LAT = 50.9097;
-  const DEFAULT_LON = -1.4044;
+  // Default location (Southampton, UK - Current Location)
+  const DEFAULT_LAT = 50.863714;
+  const DEFAULT_LON = -1.425028;
 
   // Priority: 1) Provided props, 2) GPS/widgetLocation (PRIMARY), 3) Location preference port/city (SECONDARY), 4) Default
   const currentLat = latitude !== undefined 
