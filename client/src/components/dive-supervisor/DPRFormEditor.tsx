@@ -40,6 +40,23 @@ interface DPRFormEditorProps {
   onCancel: () => void;
 }
 
+type MutationInput = {
+  reportDate: string;
+  reportData: {
+    weather: string;
+    seaConditions: string;
+    visibility: string;
+    workCompleted: string;
+    issues: string;
+    nextSteps: string;
+    safetyNotes: string;
+    equipmentUsed: string;
+    personnel: string;
+    hoursWorked: string;
+  };
+  silent?: boolean;
+};
+
 export default function DPRFormEditor({ dpr, operationId, onSave, onCancel }: DPRFormEditorProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -68,10 +85,10 @@ export default function DPRFormEditor({ dpr, operationId, onSave, onCancel }: DP
     return () => clearInterval(interval);
   }, [dpr, formData]);
 
-  const mutation = useMutation({
-    mutationFn: async (data: any) => {
+  const mutation = useMutation<any, Error, MutationInput>({
+    mutationFn: async ({ silent: _silent, ...data }: MutationInput) => {
       const email = localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com';
-      const url = dpr 
+      const url = dpr
         ? `/api/dive-supervisor/dprs/${dpr.id}`
         : '/api/dive-supervisor/dprs';
       const response = await fetch(url, {
@@ -86,9 +103,9 @@ export default function DPRFormEditor({ dpr, operationId, onSave, onCancel }: DP
       if (!response.ok) throw new Error('Failed to save DPR');
       return response.json();
     },
-    onSuccess: (data, variables, context) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/dive-supervisor/dprs"] });
-      if (!context?.silent) {
+      if (!variables?.silent) {
         toast({
           title: "Success",
           description: dpr ? "DPR updated" : "DPR created",
@@ -120,7 +137,8 @@ export default function DPRFormEditor({ dpr, operationId, onSave, onCancel }: DP
         personnel: formData.personnel,
         hoursWorked: formData.hoursWorked,
       },
-    }, { context: { silent } });
+      silent,
+    });
   };
 
   return (

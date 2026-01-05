@@ -215,21 +215,21 @@ export class PartnerService {
       }
 
       // Get affiliate stats
-      try {
-        const affiliate = await affiliateService.getAffiliateByUserId(userId);
-        if (affiliate) {
-          const dashboard = await affiliateService.getAffiliateDashboard(
-            affiliate.id
-          );
-          return {
-            isPartner: true,
-            partnerStatus: "ACTIVE",
-            totalReferrals: dashboard.totalReferrals || 0,
-            totalEarnings: dashboard.totalEarnings || 0,
-            monthlyEarnings: dashboard.monthlyEarnings || 0,
-          };
-        }
-      } catch (error) {
+        try {
+          const affiliate = await affiliateService.getAffiliateByUserId(userId);
+          if (affiliate) {
+            const dashboard = await affiliateService.getAffiliateDashboard(
+              affiliate.id
+            );
+            return {
+              isPartner: true,
+              partnerStatus: "ACTIVE",
+              totalReferrals: dashboard.stats.totalReferrals || 0,
+              totalEarnings: dashboard.stats.totalEarnings || 0,
+              monthlyEarnings: dashboard.stats.monthlyEarnings || 0,
+            };
+          }
+        } catch (error) {
         console.error("Error getting affiliate stats:", error);
       }
 

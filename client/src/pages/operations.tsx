@@ -358,10 +358,12 @@ export default function Operations() {
     const savedOrder = localStorage.getItem('operationsAppsOrder');
     if (savedOrder) {
       try {
-        const parsedOrder = JSON.parse(savedOrder);
-        // Validate that all app IDs are present
-        const defaultOrder = operationalApps.map(app => app.id);
-        const validOrder = parsedOrder.filter((id: string) => defaultOrder.includes(id));
+          const parsedOrder = JSON.parse(savedOrder);
+          // Validate that all app IDs are present
+          const defaultOrder = operationalApps.map(app => app.id);
+          const validOrder = parsedOrder.filter((id: string): id is typeof operationalApps[number]["id"] =>
+            defaultOrder.includes(id as typeof operationalApps[number]["id"])
+          );
         // Add any missing apps to the end
         const missingApps = defaultOrder.filter(id => !validOrder.includes(id));
         setAppsOrder([...validOrder, ...missingApps]);

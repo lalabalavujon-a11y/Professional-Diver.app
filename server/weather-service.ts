@@ -114,10 +114,10 @@ export async function getWeatherData(
     }
     
     // Return cached data if available (even if stale) for network errors
-    if (cached && error.name === 'TypeError' || error.message?.includes('fetch')) {
-      console.warn('Using stale cache due to network error');
-      return cached.data;
-    }
+      if (cached && (error.name === 'TypeError' || error.message?.includes('fetch'))) {
+        console.warn('Using stale cache due to network error');
+        return cached.data;
+      }
     
     // For other errors, wrap and throw
     const wrappedError: any = new Error(error.message || 'Failed to fetch weather data');
