@@ -62,32 +62,56 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
   const { data: currentLocation, isLoading } = useQuery<WidgetLocation>({
     queryKey: ['/api/widgets/location', userEmail],
     queryFn: async () => {
-      const response = await fetch(`/api/widgets/location?email=${encodeURIComponent(userEmail)}`);
-      if (response.status === 404) {
-        return null;
+      try {
+        const response = await fetch(`/api/widgets/location?email=${encodeURIComponent(userEmail)}`);
+        if (response.status === 404) {
+          // 404 is expected if no location is set - return null gracefully
+          return null;
+        }
+        if (!response.ok) {
+          console.error('Failed to fetch widget location:', response.status, response.statusText);
+          return null; // Return null instead of throwing
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Error fetching widget location:', error);
+        return null; // Return null on error
       }
-      if (!response.ok) {
-        throw new Error('Failed to fetch widget location');
-      }
-      return response.json();
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: false, // Don't retry on 404
   });
 
   // Initialize form with current location when dialog opens
   useEffect(() => {
-    if (isOpen && currentLocation) {
-      setLatitude(currentLocation.latitude.toString());
-      setLongitude(currentLocation.longitude.toString());
-      setLocationName(currentLocation.locationName || '');
-    } else if (isOpen && !currentLocation) {
-      // Reset form if no location
-      setLatitude('');
-      setLongitude('');
-      setLocationName('');
-      setAddressSearch('');
+    if (isOpen) {
+      if (currentLocation) {
+        console.log('Initializing form with current location:', currentLocation);
+        setLatitude(currentLocation.latitude.toString());
+        setLongitude(currentLocation.longitude.toString());
+        setLocationName(currentLocation.locationName || '');
+        setSelectedLocationValue(''); // Reset dropdown selection
+      } else {
+        // Reset form if no location
+        console.log('No current location, resetting form');
+        setLatitude('');
+        setLongitude('');
+        setLocationName('');
+        setAddressSearch('');
+        setSelectedLocationValue('');
+      }
     }
   }, [isOpen, currentLocation]);
+
+  // Debug: Log when coordinates change
+  useEffect(() => {
+    if (isOpen) {
+      const latStr = latitude?.trim() || '';
+      const lonStr = longitude?.trim() || '';
+      const isValid = latStr && lonStr && !isNaN(parseFloat(latStr)) && !isNaN(parseFloat(lonStr));
+      console.log('Coordinates changed:', { latitude, longitude, isValid });
+    }
+  }, [latitude, longitude, isOpen]);
 
   // Save location mutation
   const saveLocationMutation = useMutation({
@@ -105,13 +129,20 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+        }
         console.error('Failed to save location:', {
           status: response.status,
           statusText: response.statusText,
-          error: errorData
+          error: errorData,
+          requestData: { email: userEmail, ...data }
         });
-        throw new Error(errorData.error || errorData.details || 'Failed to save location');
+        const errorMessage = errorData.error || errorData.details || errorData.message || `Failed to save location (${response.status})`;
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -147,18 +178,16 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
         maximumAge: 0,
       });
       
+      console.log('GPS position received:', position);
+      
+      // Populate fields but don't auto-save - let user click Save button
       setLatitude(position.latitude.toString());
       setLongitude(position.longitude.toString());
       setLocationName('Current Location');
       
-      // Auto-save GPS location
-      saveLocationMutation.mutate({
-        latitude: position.latitude,
-        longitude: position.longitude,
-        locationName: 'Current Location',
-        isCurrentLocation: true,
-      });
+      console.log('GPS fields populated - latitude:', position.latitude, 'longitude:', position.longitude);
     } catch (error: any) {
+      console.error('GPS error:', error);
       toast({
         title: "Location error",
         description: error.message || 'Failed to get location',
@@ -186,12 +215,39 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
     });
   };
 
+  // Validate coordinates
+  const isValidCoordinates = () => {
+    const latStr = latitude?.trim() || '';
+    const lonStr = longitude?.trim() || '';
+    
+    // Check if both fields have values
+    if (!latStr || !lonStr) {
+      return false;
+    }
+    
+    // Parse as numbers
+    const lat = parseFloat(latStr);
+    const lon = parseFloat(lonStr);
+    
+    // Check if parsing was successful and values are finite
+    if (isNaN(lat) || isNaN(lon) || !isFinite(lat) || !isFinite(lon)) {
+      return false;
+    }
+    
+    // Check valid ranges
+    if (lat < -90 || lat > 90) {
+      return false;
+    }
+    if (lon < -180 || lon > 180) {
+      return false;
+    }
+    
+    return true;
+  };
+
   // Validate and save location
   const handleSave = () => {
-    const lat = parseFloat(latitude);
-    const lon = parseFloat(longitude);
-
-    if (isNaN(lat) || isNaN(lon)) {
+    if (!isValidCoordinates()) {
       toast({
         title: "Invalid coordinates",
         description: "Please enter valid latitude and longitude values.",
@@ -200,19 +256,25 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
       return;
     }
 
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    const lat = parseFloat(latitude.trim());
+    const lon = parseFloat(longitude.trim());
+
+    // Double-check the values are valid numbers
+    if (isNaN(lat) || isNaN(lon) || !isFinite(lat) || !isFinite(lon)) {
       toast({
         title: "Invalid coordinates",
-        description: "Latitude must be between -90 and 90, longitude between -180 and 180.",
+        description: "Please enter valid numeric values for latitude and longitude.",
         variant: "destructive",
       });
       return;
     }
 
+    console.log('Saving location with values:', { lat, lon, locationName });
+
     saveLocationMutation.mutate({
       latitude: lat,
       longitude: lon,
-      locationName: locationName || undefined,
+      locationName: locationName?.trim() || undefined,
       isCurrentLocation: false,
     });
   };
@@ -273,26 +335,40 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
                       try {
                         const locationDetails = await getLocationDetails(value);
                         if (locationDetails) {
-                          setLatitude(locationDetails.latitude.toString());
-                          setLongitude(locationDetails.longitude.toString());
-                          setLocationName(locationDetails.name);
+                          console.log('Location details loaded:', locationDetails);
+                          // Ensure coordinates are valid numbers
+                          const lat = Number(locationDetails.latitude);
+                          const lon = Number(locationDetails.longitude);
                           
-                          // Auto-save the selected location
-                          saveLocationMutation.mutate({
-                            latitude: locationDetails.latitude,
-                            longitude: locationDetails.longitude,
-                            locationName: locationDetails.name,
-                            isCurrentLocation: false,
+                          if (isNaN(lat) || isNaN(lon)) {
+                            throw new Error('Invalid coordinates from location details');
+                          }
+                          
+                          // Preserve full precision when setting coordinates
+                          setLatitude(lat.toFixed(6));
+                          setLongitude(lon.toFixed(6));
+                          setLocationName(locationDetails.name || '');
+                          console.log('Fields updated - latitude:', lat.toFixed(6), 'longitude:', lon.toFixed(6), 'from location:', locationDetails);
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: "Failed to load location details. Please try again or enter coordinates manually.",
+                            variant: "destructive",
                           });
                         }
                       } catch (error) {
                         console.error('Error fetching location details:', error);
                         toast({
                           title: "Error",
-                          description: "Failed to load location details",
+                          description: error instanceof Error ? error.message : "Failed to load location details",
                           variant: "destructive",
                         });
                       }
+                    } else {
+                      // Clear fields if no selection
+                      setLatitude('');
+                      setLongitude('');
+                      setLocationName('');
                     }
                   }}
                   disabled={saveLocationMutation.isPending}
@@ -451,7 +527,7 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
               <Button
                 type="button"
                 onClick={handleSave}
-                disabled={saveLocationMutation.isPending || !latitude || !longitude}
+                disabled={saveLocationMutation.isPending || !isValidCoordinates()}
               >
                 {saveLocationMutation.isPending ? (
                   <>

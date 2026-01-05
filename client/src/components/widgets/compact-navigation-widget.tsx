@@ -52,7 +52,7 @@ export default function CompactNavigationWidget({ latitude, longitude }: Compact
       try {
         const response = await fetch(`/api/widgets/location?email=${encodeURIComponent(userEmail)}`);
         if (response.status === 404) {
-          console.log('No saved location found, using default');
+          // 404 is expected if no location is saved - not an error
           return null;
         }
         if (!response.ok) {
@@ -60,7 +60,6 @@ export default function CompactNavigationWidget({ latitude, longitude }: Compact
           return null; // Return null instead of throwing to use default
         }
         const data = await response.json();
-        console.log('Widget location loaded:', data);
         return data;
       } catch (error) {
         console.error('Error fetching widget location:', error);
@@ -102,9 +101,9 @@ export default function CompactNavigationWidget({ latitude, longitude }: Compact
     staleTime: 60 * 60 * 1000, // Cache for 1 hour
   });
 
-  // Default location (Southampton, UK - River Test swinging grounds)
-  const DEFAULT_LAT = 50.9097;
-  const DEFAULT_LON = -1.4044;
+  // Default location (Southampton, UK - Current Location)
+  const DEFAULT_LAT = 50.863714;
+  const DEFAULT_LON = -1.425028;
 
   // Use provided coordinates first, then widget location (no default fallback)
   // Priority: 1) Provided props, 2) GPS/widgetLocation (PRIMARY), 3) Location preference port/city (SECONDARY), 4) Default

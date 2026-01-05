@@ -125,3 +125,4 @@ export default function UseLogHistory({ itemId }: UseLogHistoryProps) {
     </Card>
   );
 }
+

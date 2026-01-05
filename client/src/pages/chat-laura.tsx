@@ -199,7 +199,9 @@ export default function ChatLaura() {
           sessionId: `session-${Date.now()}`,
           userContext: {
             currentTab: activeTab,
-            hasAnalytics: !!platformAnalytics
+            hasAnalytics: !!platformAnalytics,
+            userRole: currentUser?.role || 'USER',
+            isSuperAdmin: isSuperAdmin
           }
         }),
       });

@@ -44,9 +44,9 @@ export default function CompactAISWidget({ latitude, longitude }: CompactAISWidg
     ? (localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com')
     : 'lalabalavu.jon@gmail.com';
 
-  // Default location (Southampton, UK)
-  const DEFAULT_LAT = 50.9097;
-  const DEFAULT_LON = -1.4044;
+  // Default location (Southampton, UK - Current Location)
+  const DEFAULT_LAT = 50.863714;
+  const DEFAULT_LON = -1.425028;
 
   // Fetch widget location
   const { data: widgetLocation } = useQuery<WidgetLocation | null>({
