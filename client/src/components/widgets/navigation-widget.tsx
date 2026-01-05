@@ -472,7 +472,6 @@ export default function NavigationWidget({ latitude, longitude }: NavigationWidg
               <div className="absolute bottom-2 right-2 text-xs text-slate-500 bg-white/80 px-2 py-1 rounded">
                 Map view (enhance with Leaflet/OpenSeaMap)
               </div>
-            </div>
             </>
           </div>
         )}
