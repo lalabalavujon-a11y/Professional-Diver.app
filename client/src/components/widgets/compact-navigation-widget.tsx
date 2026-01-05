@@ -72,9 +72,66 @@ export default function CompactNavigationWidget({ latitude, longitude }: Compact
     retry: 1, // Only retry once
   });
 
+
+  // Get location preference from Profile Settings (ports/cities) - SECONDARY fallback
+  const { data: locationPreference } = useQuery({
+    queryKey: ['userPreferences'],
+    queryFn: async () => {
+      const storedPrefs = localStorage.getItem('userPreferences');
+      if (storedPrefs) {
+        try {
+          const prefs = JSON.parse(storedPrefs);
+          return prefs.location || prefs.timezone || null;
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Get coordinates from location preference (port/city) - SECONDARY fallback
+  const { data: preferenceCoordinates } = useQuery({
+    queryKey: ['locationPreferenceCoordinates', locationPreference],
+    queryFn: async () => {
+      if (!locationPreference) return null;
+      return await getLocationDetails(locationPreference);
+    },
+    enabled: !!locationPreference,
+    staleTime: 60 * 60 * 1000, // Cache for 1 hour
+  });
+
+  // Default location (Southampton, UK - River Test swinging grounds)
+  const DEFAULT_LAT = 50.9097;
+  const DEFAULT_LON = -1.4044;
+
   // Use provided coordinates first, then widget location (no default fallback)
-  const currentLat = latitude !== undefined ? latitude : (widgetLocation?.latitude);
-  const currentLon = longitude !== undefined ? longitude : (widgetLocation?.longitude);
+  // Priority: 1) Provided props, 2) GPS/widgetLocation (PRIMARY), 3) Location preference port/city (SECONDARY), 4) Default
+  const currentLat = latitude !== undefined 
+    ? latitude 
+    : (widgetLocation?.latitude !== undefined && widgetLocation?.isCurrentLocation)
+      ? widgetLocation.latitude  // GPS takes priority (PRIMARY)
+      : (widgetLocation?.latitude !== undefined)
+        ? widgetLocation.latitude  // Saved widget location
+        : (preferenceCoordinates?.latitude !== undefined)
+          ? preferenceCoordinates.latitude  // Port/City preference (SECONDARY fallback)
+          : DEFAULT_LAT;
+
+  const currentLon = longitude !== undefined 
+    ? longitude 
+    : (widgetLocation?.longitude !== undefined && widgetLocation?.isCurrentLocation)
+      ? widgetLocation.longitude  // GPS takes priority (PRIMARY)
+      : (widgetLocation?.longitude !== undefined)
+        ? widgetLocation.longitude  // Saved widget location
+        : (preferenceCoordinates?.longitude !== undefined)
+          ? preferenceCoordinates.longitude  // Port/City preference (SECONDARY fallback)
+          : DEFAULT_LON;
+
+  // Ensure currentLat and currentLon are always numbers (fallback to defaults if undefined)
+  const safeLat = typeof currentLat === 'number' && !isNaN(currentLat) ? currentLat : DEFAULT_LAT;
+  const safeLon = typeof currentLon === 'number' && !isNaN(currentLon) ? currentLon : DEFAULT_LON;
+
 
   const hasSetLocation = widgetLocation !== null && widgetLocation !== undefined;
 
@@ -148,8 +205,8 @@ export default function CompactNavigationWidget({ latitude, longitude }: Compact
     );
   }
 
-  const latDMS = decimalToDMS(currentLat, true);
-  const lonDMS = decimalToDMS(currentLon, false);
+  const latDMS = decimalToDMS(safeLat, true);
+  const lonDMS = decimalToDMS(safeLon, false);
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-200">
@@ -159,12 +216,12 @@ export default function CompactNavigationWidget({ latitude, longitude }: Compact
           <MapPin className="w-3 h-3 inline mr-1" />
           {widgetLocation?.locationName || 'No location set'}
         </div>
-        <div className="text-[10px] text-slate-600 leading-tight font-mono" title={`Latitude: ${currentLat.toFixed(6)}°`}>
-          {latDMS}
-        </div>
-        <div className="text-[10px] text-slate-600 leading-tight font-mono" title={`Longitude: ${currentLon.toFixed(6)}°`}>
-          {lonDMS}
-        </div>
+          <div className="text-[10px] text-slate-600 leading-tight font-mono" title={`Latitude: ${safeLat.toFixed(6)}°`}>
+            {latDMS}
+          </div>
+          <div className="text-[10px] text-slate-600 leading-tight font-mono" title={`Longitude: ${safeLon.toFixed(6)}°`}>
+            {lonDMS}
+          </div>
       </div>
       <Button
         variant="outline"
