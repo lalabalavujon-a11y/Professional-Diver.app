@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useToast } from '@/hooks/use-toast';
 import { useGPS } from '@/hooks/use-gps';
 import { Compass, MapPin, Navigation, Plus, Trash2, Route, X, AlertCircle, Loader2 } from 'lucide-react';
+import { getLocationDetails } from '@/utils/locations';
 
 // Convert decimal degrees to Degrees, Minutes, Seconds format
 function decimalToDMS(decimal: number, isLatitude: boolean): string {
@@ -108,11 +109,60 @@ export default function NavigationWidget({ latitude, longitude }: NavigationWidg
     retry: 1, // Only retry once
   });
 
-  // Use provided coordinates first, then widget location (no default fallback)
-  const currentLat = latitude !== undefined ? latitude : (widgetLocation?.latitude);
-  const currentLon = longitude !== undefined ? longitude : (widgetLocation?.longitude);
+  // Get location preference from Profile Settings (ports/cities) - SECONDARY fallback
+  const { data: locationPreference } = useQuery({
+    queryKey: ['userPreferences'],
+    queryFn: async () => {
+      const storedPrefs = localStorage.getItem('userPreferences');
+      if (storedPrefs) {
+        try {
+          const prefs = JSON.parse(storedPrefs);
+          return prefs.location || prefs.timezone || null;
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // Fetch waypoints
+  // Get coordinates from location preference (port/city) - SECONDARY fallback
+  const { data: preferenceCoordinates } = useQuery({
+    queryKey: ['locationPreferenceCoordinates', locationPreference],
+    queryFn: async () => {
+      if (!locationPreference) return null;
+      return await getLocationDetails(locationPreference);
+    },
+    enabled: !!locationPreference,
+    staleTime: 60 * 60 * 1000, // Cache for 1 hour
+  });
+
+  // Default location (Southampton, UK - River Test swinging grounds)
+  const DEFAULT_LAT = 50.9097;
+  const DEFAULT_LON = -1.4044;
+
+  // Priority: 1) Provided props, 2) GPS/widgetLocation (PRIMARY), 3) Location preference port/city (SECONDARY), 4) Default
+  const currentLat = latitude !== undefined 
+    ? latitude 
+    : (widgetLocation?.latitude !== undefined && widgetLocation?.isCurrentLocation)
+      ? widgetLocation.latitude  // GPS takes priority (PRIMARY)
+      : (widgetLocation?.latitude !== undefined)
+        ? widgetLocation.latitude  // Saved widget location
+        : (preferenceCoordinates?.latitude !== undefined)
+          ? preferenceCoordinates.latitude  // Port/City preference (SECONDARY fallback)
+          : DEFAULT_LAT;
+
+  const currentLon = longitude !== undefined 
+    ? longitude 
+    : (widgetLocation?.longitude !== undefined && widgetLocation?.isCurrentLocation)
+      ? widgetLocation.longitude  // GPS takes priority (PRIMARY)
+      : (widgetLocation?.longitude !== undefined)
+        ? widgetLocation.longitude  // Saved widget location
+        : (preferenceCoordinates?.longitude !== undefined)
+          ? preferenceCoordinates.longitude  // Port/City preference (SECONDARY fallback)
+          : DEFAULT_LON;
+    
   const { data: waypoints = [], isLoading: waypointsLoading } = useQuery<NavigationWaypoint[]>({
     queryKey: ['/api/navigation/waypoints', userEmail],
     queryFn: async () => {
