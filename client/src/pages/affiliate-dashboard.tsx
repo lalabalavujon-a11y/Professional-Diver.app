@@ -14,11 +14,11 @@ import {
   TrendingUp, 
   ExternalLink, 
   Copy, 
-  Target
+  Target,
+  RefreshCw
 } from "lucide-react";
 import { Link } from "wouter";
-import Footer from "@/components/footer";
-import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
+import RoleBasedNavigation from "@/components/role-based-navigation";
 
 interface DashboardData {
   stats: {
@@ -45,9 +45,19 @@ export default function AffiliateDashboard() {
   const [copiedLink, setCopiedLink] = useState(false);
   const { toast } = useToast();
 
+  // Get user email for affiliate dashboard
+  const userEmail = typeof window !== 'undefined' 
+    ? (localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com')
+    : 'lalabalavu.jon@gmail.com';
+
   // Fetch affiliate dashboard data
-  const { data: dashboardData, isLoading } = useQuery<DashboardData>({
-    queryKey: ['/api/affiliate/dashboard'],
+  const { data: dashboardData, isLoading, refetch: refetchDashboard } = useQuery<DashboardData>({
+    queryKey: ['/api/affiliate/dashboard', userEmail],
+    queryFn: async () => {
+      const response = await fetch(`/api/affiliate/dashboard?email=${encodeURIComponent(userEmail)}`);
+      if (!response.ok) throw new Error('Failed to fetch affiliate dashboard');
+      return response.json();
+    },
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
@@ -69,14 +79,33 @@ export default function AffiliateDashboard() {
     }
   };
 
+  const handleRefreshReferralLink = async () => {
+    try {
+      await refetchDashboard();
+      toast({
+        title: "Refreshed!",
+        description: "Referral link data has been updated",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to refresh referral link. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading affiliate dashboard...</p>
+      <>
+        <RoleBasedNavigation />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50 flex items-center justify-center" data-sidebar-content="true">
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-slate-600">Loading affiliate dashboard...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -100,41 +129,10 @@ export default function AffiliateDashboard() {
   const recentClicks = dashboardData?.recentClicks || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50">
-      {/* Header */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/">
-              <a className="flex items-center space-x-3">
-                <img 
-                  src={diverWellLogo} 
-                  alt="Professional Diver - Diver Well Training" 
-                  className="w-10 h-10 rounded-lg"
-                />
-                <div>
-                  <div className="text-lg font-bold text-slate-900">Professional Diver</div>
-                  <div className="text-xs text-slate-500">Affiliate Program</div>
-                </div>
-              </a>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard">
-                <a className="text-slate-600 hover:text-slate-900 font-medium">
-                  Dashboard
-                </a>
-              </Link>
-              <Link href="/">
-                <a className="text-slate-600 hover:text-slate-900 font-medium">
-                  Home
-                </a>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <RoleBasedNavigation />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
@@ -161,6 +159,14 @@ export default function AffiliateDashboard() {
                 className="font-mono text-sm"
                 data-testid="input-referral-link"
               />
+              <Button 
+                onClick={handleRefreshReferralLink}
+                variant="outline"
+                data-testid="button-refresh-link"
+                title="Refresh referral link"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
               <Button 
                 onClick={copyReferralLink}
                 variant={copiedLink ? "default" : "outline"}
@@ -455,9 +461,8 @@ export default function AffiliateDashboard() {
             </div>
           </CardContent>
         </Card>
-      </main>
-
-      <Footer />
-    </div>
+        </main>
+      </div>
+    </>
   );
 }

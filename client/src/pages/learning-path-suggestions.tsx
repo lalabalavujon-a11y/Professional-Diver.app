@@ -23,7 +23,7 @@ import {
   DollarSign
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
+import RoleBasedNavigation from "@/components/role-based-navigation";
 
 interface LearningPathSuggestion {
   id: string;
@@ -163,34 +163,10 @@ export default function LearningPathSuggestions() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50">
-      {/* Header */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <img 
-                src={diverWellLogo} 
-                alt="Professional Diver - Diver Well Training" 
-                className="w-10 h-10 rounded-lg"
-              />
-              <div>
-                <div className="text-lg font-bold text-slate-900">Professional Diver</div>
-                <div className="text-xs text-slate-500">AI Learning Path Suggestions</div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard">
-                <Button variant="outline">
-                  Back to Dashboard
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <RoleBasedNavigation />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="flex items-center space-x-2 mb-2">
             <Brain className="w-8 h-8 text-blue-600" />
@@ -497,7 +473,8 @@ export default function LearningPathSuggestions() {
             )}
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }

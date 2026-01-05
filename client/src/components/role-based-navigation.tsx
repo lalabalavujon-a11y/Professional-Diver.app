@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
 import UserProfileDropdown from "@/components/user-profile-dropdown";
 import LauraAssistant from "@/components/laura-assistant";
+import HeaderWidgetBar from "@/components/widgets/header-widget-bar";
 import {
   SidebarProvider,
   Sidebar,
@@ -393,11 +394,12 @@ export default function RoleBasedNavigation() {
       <SidebarInset className="flex flex-col">
         {/* Header - Fixed position to stay at top, CSS handles positioning */}
         <header 
-          className="fixed top-0 right-0 z-50 flex h-14 md:h-16 shrink-0 items-center gap-3 md:gap-4 border-b bg-background/95 backdrop-blur-sm px-3 sm:px-4" 
+          className="fixed top-0 right-0 z-50 flex min-h-20 shrink-0 items-center gap-3 md:gap-4 border-b bg-background/95 backdrop-blur-sm px-3 sm:px-4 py-2" 
           data-testid="navigation-header"
         >
-          <SidebarTrigger className="-ml-1 h-9 w-9 md:h-10 md:w-10" />
-          <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
+          <SidebarTrigger className="-ml-1 h-9 w-9 md:h-10 md:w-10 flex-shrink-0" />
+          <HeaderWidgetBar />
+          <div className="flex items-center justify-end gap-2 md:gap-4 flex-shrink-0">
             <UserProfileDropdown />
           </div>
         </header>

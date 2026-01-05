@@ -1,10 +1,10 @@
 import { OpenAIEmbeddings } from '@langchain/openai';
-import { MemoryVectorStore } from 'langchain/vectorstores/memory';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { Document } from '@langchain/core/documents';
 import { db } from './db';
 import * as schema from '@shared/schema';
 import LangChainConfig from './langchain-config';
+import { MemoryVectorStore } from './memory-vector-store';
 
 export class ProfessionalDivingVectorStore {
   private static instance: ProfessionalDivingVectorStore;
@@ -291,7 +291,7 @@ Career Advancement:
       // Split documents into chunks
       const splitDocuments = await textSplitter.splitDocuments(documents);
       
-      // Create vector store with embeddings
+      // Create vector store with embeddings using custom MemoryVectorStore
       this.vectorStore = await MemoryVectorStore.fromDocuments(
         splitDocuments,
         this.config.getEmbeddings()

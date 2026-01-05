@@ -93,6 +93,47 @@ export class TempDatabaseStorage {
     }
   }
 
+  async updateLesson(id: string, data: Partial<{
+    trackId: string;
+    title: string;
+    order: number;
+    content: string;
+    estimatedMinutes?: number;
+    isRequired?: boolean;
+  }>) {
+    try {
+      const updateFields: any = {
+        updatedAt: new Date(),
+      };
+
+      if (data.trackId !== undefined) updateFields.trackId = data.trackId;
+      if (data.title !== undefined) updateFields.title = data.title;
+      if (data.order !== undefined) updateFields.order = data.order;
+      if (data.content !== undefined) updateFields.content = data.content;
+      if (data.estimatedMinutes !== undefined) updateFields.estimatedMinutes = data.estimatedMinutes;
+      if (data.isRequired !== undefined) updateFields.isRequired = data.isRequired;
+
+      const [updatedLesson] = await db
+        .update(lessons)
+        .set(updateFields)
+        .where(eq(lessons.id, id))
+        .returning({
+          id: lessons.id,
+          trackId: lessons.trackId,
+          title: lessons.title,
+          order: lessons.order,
+          content: lessons.content,
+          createdAt: lessons.createdAt,
+          updatedAt: lessons.updatedAt,
+        });
+
+      return updatedLesson || undefined;
+    } catch (error) {
+      console.error('Error updating lesson:', error);
+      throw error;
+    }
+  }
+
   async getQuizByLessonId(lessonId: string) {
     try {
       const [quiz] = await db.select({

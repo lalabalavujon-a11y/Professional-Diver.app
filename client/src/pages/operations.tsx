@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { 
   Crown, 
   Lock, 
@@ -19,11 +20,30 @@ import {
   Calendar,
   MapPin,
   Timer,
-  Settings
+  Settings,
+  Package,
+  HeartPulse,
+  Phone,
+  Mail,
+  Globe,
+  Navigation,
+  Waves
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
 import RoleBasedNavigation from "@/components/role-based-navigation";
+import { useUnitsPreference } from "@/hooks/use-units-preference";
+import { formatDepthFromString } from "@/lib/units-converter";
+import OperationsCalendarWidget from "@/components/widgets/operations-calendar-widget";
+import OperationsWidgetPanel from "@/components/operations-widget-panel";
+import EquipmentDashboard from "@/components/equipment/EquipmentDashboard";
+import EquipmentInventory from "@/components/equipment/EquipmentInventory";
+import EquipmentDetail from "@/components/equipment/EquipmentDetail";
+import MaintenanceSchedule from "@/components/equipment/MaintenanceSchedule";
+import UseLogForm from "@/components/equipment/UseLogForm";
+import MedOpsApp from "@/components/med-ops/MedOpsApp";
+import DMTMedOpsApp from "@/components/dmt-med-ops/DMTMedOpsApp";
+import DiverWellOperationsApp from "@/components/operations/DiverWellOperationsApp";
 
 // Mock operational data - in real app this would come from backend
 const operationalData = {
@@ -105,9 +125,42 @@ export default function Operations() {
     }
   });
 
+  // Get user preferences for operations calendar
+  const { data: preferences } = useQuery({
+    queryKey: ['/api/users/preferences'],
+    queryFn: async () => {
+      const storedPrefs = localStorage.getItem('userPreferences');
+      if (storedPrefs) {
+        try {
+          return JSON.parse(storedPrefs);
+        } catch {
+          return { enableOperationsCalendar: false, timezone: 'UTC' };
+        }
+      }
+      return { enableOperationsCalendar: false, timezone: 'UTC' };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const hasOperationsAccess = currentUser?.subscriptionType === 'LIFETIME' || currentUser?.role === 'ADMIN';
 
   const operationalApps = [
+    {
+      id: "diver-well",
+      title: "Diver Well AI Consultant",
+      description: "Commercial diving operations AI consultant - dive planning, safety protocols, operational guidance, and expert advice",
+      icon: <Waves className="w-8 h-8 text-cyan-600" />,
+      color: "cyan",
+      features: [
+        "Dive Planning & Risk Assessment",
+        "Safety Protocols & Procedures",
+        "Operational Guidance & Best Practices",
+        "Equipment Recommendations",
+        "Emergency Response Procedures",
+        "Industry Standards & Compliance"
+      ],
+      userRole: "All Operations Personnel"
+    },
     {
       id: "dive-supervisor",
       title: "Dive Supervisor Operations",
@@ -155,6 +208,54 @@ export default function Operations() {
         "Certification compliance tracking"
       ],
       userRole: "NDT Inspector"
+    },
+    {
+      id: "equipment-manager",
+      title: "Equipment Manager",
+      description: "Comprehensive equipment maintenance scheduling, inventory management, and use log tracking",
+      icon: <Package className="w-8 h-8 text-teal-600" />,
+      color: "teal",
+      features: [
+        "Equipment inventory management",
+        "Maintenance schedule tracking",
+        "Before/after use logs",
+        "Maintenance task management",
+        "Equipment status tracking",
+        "Maintenance history & reporting"
+      ],
+      userRole: "Equipment Manager"
+    },
+    {
+      id: "med-ops",
+      title: "MED OPS / Emergency OPS",
+      description: "Emergency medical operations - connect with nearest A&E, Critical Care, and Diving Doctors worldwide",
+      icon: <HeartPulse className="w-8 h-8 text-red-600" />,
+      color: "red",
+      features: [
+        "Find nearest A&E facilities",
+        "Locate Critical Care units",
+        "Connect with Diving Doctors",
+        "Hyperbaric chamber locations",
+        "24/7 emergency contact",
+        "Location-based facility search"
+      ],
+      userRole: "Medical Operations"
+    },
+    {
+      id: "dmt-med-ops",
+      title: "DMT Diver Medic Operations",
+      description: "Medical equipment management, incident reporting, and medical documentation for Diver Medic Technicians",
+      icon: <HeartPulse className="w-8 h-8 text-pink-600" />,
+      color: "pink",
+      features: [
+        "Medical equipment inventory (O2 Cylinders, etc.)",
+        "Before/after use checks",
+        "CSV/Excel import & export",
+        "Incident report forms",
+        "Glaucoma screening forms",
+        "Medical documentation management"
+      ],
+      userRole: "Diver Medic Technician"
     }
   ];
 
@@ -168,22 +269,34 @@ export default function Operations() {
 
   const renderAppContent = (appId: string) => {
     switch (appId) {
+      case "diver-well":
+        return <DiverWellOperationsApp />;
       case "dive-supervisor":
         return <DiveSupervisorApp />;
       case "lst-manager":
         return <LSTManagerApp />;
       case "ndt-inspector":
         return <NDTInspectorApp />;
+      case "equipment-manager":
+        return <EquipmentManagerApp />;
+      case "med-ops":
+        return <MedOpsApp />;
+      case "dmt-med-ops":
+        return <DMTMedOpsApp />;
       default:
         return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <>
       <RoleBasedNavigation />
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <div className="flex h-[calc(100vh-5rem)] mt-20 overflow-hidden">
+          {/* Main Content Area */}
+          <ResizablePanelGroup direction="horizontal" className="w-full h-full">
+            <ResizablePanel defaultSize={75} minSize={50} className="overflow-auto">
+              <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-auto">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -200,6 +313,13 @@ export default function Operations() {
             )}
           </div>
         </div>
+
+        {/* Operations Calendar Widget */}
+        {preferences?.enableOperationsCalendar && (
+          <div className="mb-8">
+            <OperationsCalendarWidget timezone={preferences.timezone || 'UTC'} />
+          </div>
+        )}
 
         {selectedApp ? (
           <div className="space-y-6">
@@ -342,13 +462,26 @@ export default function Operations() {
             </div>
           </DialogContent>
         </Dialog>
-      </main>
-    </div>
+              </main>
+            </ResizablePanel>
+            
+            <ResizableHandle withHandle className="w-2 bg-slate-200 hover:bg-slate-300 transition-colors" />
+            
+            {/* Widget Control Panel - Right Sidebar */}
+            <ResizablePanel defaultSize={25} minSize={20} maxSize={40} className="hidden lg:block">
+              <OperationsWidgetPanel />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
+      </div>
+    </>
   );
 }
 
 // Individual operational app components
 function DiveSupervisorApp() {
+  const unitsPreference = useUnitsPreference();
+  
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -371,7 +504,7 @@ function DiveSupervisorApp() {
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm text-slate-600">
                     <div>Date: {operation.date}</div>
-                    <div>Depth: {operation.depth}</div>
+                    <div>Depth: {formatDepthFromString(operation.depth, unitsPreference)}</div>
                     <div>Supervisor: {operation.supervisor}</div>
                     <div>Divers: {operation.divers}</div>
                   </div>
@@ -531,6 +664,73 @@ function NDTInspectorApp() {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+function EquipmentManagerApp() {
+  const [view, setView] = useState<"dashboard" | "inventory" | "detail" | "maintenance" | "use-log">("dashboard");
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [showUseLogForm, setShowUseLogForm] = useState(false);
+
+  return (
+    <div className="space-y-6">
+      {view === "dashboard" && (
+        <>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Equipment Dashboard</h2>
+            <Button onClick={() => setView("inventory")} variant="outline">
+              View Inventory
+            </Button>
+          </div>
+          <EquipmentDashboard />
+        </>
+      )}
+
+      {view === "inventory" && (
+        <>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Equipment Inventory</h2>
+            <Button onClick={() => setView("dashboard")} variant="outline">
+              Back to Dashboard
+            </Button>
+          </div>
+          <EquipmentInventory
+            onItemClick={(item) => {
+              setSelectedItemId(item.id);
+              setView("detail");
+            }}
+          />
+        </>
+      )}
+
+      {view === "detail" && selectedItemId && (
+        <EquipmentDetail
+          itemId={selectedItemId}
+          onBack={() => setView("inventory")}
+          onLogUse={() => setShowUseLogForm(true)}
+        />
+      )}
+
+      {showUseLogForm && selectedItemId && (
+        <div className="max-w-2xl mx-auto">
+          <UseLogForm
+            equipmentItemId={selectedItemId}
+            onComplete={() => setShowUseLogForm(false)}
+          />
+        </div>
+      )}
+
+      {view === "maintenance" && (
+        <>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Maintenance Schedule</h2>
+            <Button onClick={() => setView("dashboard")} variant="outline">
+              Back to Dashboard
+            </Button>
+          </div>
+          <MaintenanceSchedule />
+        </>
+      )}
     </div>
   );
 }

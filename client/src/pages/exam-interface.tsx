@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useRoute } from "wouter";
+import { useRoute, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Timer, Mic, MicOff, Volume2, ChevronLeft, ChevronRight, Clock, Brain, FileText } from "lucide-react";
+import { Timer, Mic, MicOff, Volume2, ChevronLeft, ChevronRight, Clock, Brain, FileText, ArrowLeft } from "lucide-react";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import { apiRequest } from "@/lib/queryClient";
 // Import comprehensive exam questions for SRS (Spaced Repetition System)
@@ -109,9 +109,36 @@ const SRS_CONFIG = {
   REVIEW_QUESTIONS: 10,  // Number of review questions per session
 };
 
+// Helper function to duplicate questions to reach target count
+const expandQuestionsToCount = (questions: ExamQuestion[], targetCount: number): ExamQuestion[] => {
+  if (questions.length === 0) return [];
+  if (questions.length >= targetCount) return questions.slice(0, targetCount);
+  
+  const expanded: ExamQuestion[] = [...questions];
+  let currentIndex = 0;
+  
+  while (expanded.length < targetCount) {
+    const question = questions[currentIndex % questions.length];
+    expanded.push({
+      ...question,
+      id: `${question.id}-dup-${Math.floor(expanded.length / questions.length)}`,
+      order: expanded.length + 1
+    });
+    currentIndex++;
+  }
+  
+  // Shuffle the expanded questions
+  for (let i = expanded.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [expanded[i], expanded[j]] = [expanded[j], expanded[i]];
+  }
+  
+  return expanded.slice(0, targetCount);
+};
+
 // SRS Algorithm: Select questions based on spaced repetition principles
-const getQuestionsForExam = (slug: string): ExamQuestion[] => {
-  console.log('Getting questions for slug:', slug);
+const getQuestionsForExam = (slug: string, isSRS: boolean = false): ExamQuestion[] => {
+  console.log('Getting questions for slug:', slug, 'isSRS:', isSRS);
   console.log('Available exam questions keys:', Object.keys(examQuestions));
   
   const allQuestions = examQuestions[slug as keyof typeof examQuestions];
@@ -120,16 +147,17 @@ const getQuestionsForExam = (slug: string): ExamQuestion[] => {
     return [];
   }
   
-  // For demo purposes, return all questions to show full exam capability
-  // In production, this would implement the full SRS algorithm
-  console.log('SRS: Returning full question set for comprehensive exam:', allQuestions.length);
-  return allQuestions;
-  
-  // TODO: Implement full SRS algorithm:
-  // 1. Get user's question performance history
-  // 2. Calculate next review dates for each question
-  // 3. Select questions due for review + new questions
-  // 4. Shuffle and return optimized question set
+  if (isSRS) {
+    // SRS Test: Return exactly 15 questions
+    const srsQuestions = expandQuestionsToCount(allQuestions, 15);
+    console.log('SRS: Returning 15 questions for SRS test:', srsQuestions.length);
+    return srsQuestions;
+  } else {
+    // Full Exam: Return exactly 75 questions
+    const fullExamQuestions = expandQuestionsToCount(allQuestions, 75);
+    console.log('Full Exam: Returning 75 questions for full exam:', fullExamQuestions.length);
+    return fullExamQuestions;
+  }
 };
 
 export default function ExamInterface() {
@@ -141,28 +169,58 @@ export default function ExamInterface() {
   const [showExplanations, setShowExplanations] = useState(false);
   const [examSubmitted, setExamSubmitted] = useState(false);
 
-  // Get appropriate time limit based on exam type (in seconds)
-  const getTimeLimit = (slug: string): number => {
-    const timeLimits: Record<string, number> = {
-      'ndt-inspection': 7200,           // 120 minutes (2 hours) for NDT Inspection
-      'diver-medic': 5400,              // 90 minutes for Diver Medic Technician
-      'commercial-supervisor': 9000,    // 150 minutes (2.5 hours) for Commercial Supervisor
-      'saturation-diving': 8100,        // 135 minutes for Saturation Diving
-      'underwater-welding': 6000,       // 100 minutes for Underwater Welding
-      'hyperbaric-operations': 5400,    // 90 minutes for Hyperbaric Operations
-      'alst': 7200,                     // 120 minutes for Advanced Life Support Technician
-      'lst': 6000                       // 100 minutes for Life Support Technician
-    };
-    return timeLimits[slug] || 5400; // Default to 90 minutes
-  };
+  // Check if this is an SRS test from URL parameters
+  const isSRS = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('srs') === 'true';
 
-  const [timeRemaining, setTimeRemaining] = useState(
-    match ? getTimeLimit(params.slug) : (resultsMatch ? getTimeLimit(resultsParams.slug) : 1800)
-  );
+  // Get appropriate time limit based on exam type and SRS vs Full Exam (in seconds)
+  const getTimeLimit = (slug: string, isSRS: boolean): number => {
+    if (isSRS) {
+      // SRS test time limits (in seconds)
+      const srsTimeLimits: Record<string, number> = {
+        'ndt-inspection': 1800,        // 30 minutes
+        'diver-medic': 1500,           // 25 minutes
+        'commercial-supervisor': 1800, // 30 minutes
+        'saturation-diving': 1800,      // 30 minutes
+        'underwater-welding': 1500,    // 25 minutes
+        'hyperbaric-operations': 1500, // 25 minutes
+        'alst': 1800,                  // 30 minutes
+        'lst': 1500                    // 25 minutes
+      };
+      return srsTimeLimits[slug] || 1800; // Default to 30 minutes
+    } else {
+      // Full exam time limits (in seconds)
+      const fullExamTimeLimits: Record<string, number> = {
+        'ndt-inspection': 7200,           // 120 minutes (2 hours)
+        'diver-medic': 5400,              // 90 minutes
+        'commercial-supervisor': 9000,    // 150 minutes (2.5 hours)
+        'saturation-diving': 8100,        // 135 minutes
+        'underwater-welding': 6000,       // 100 minutes
+        'hyperbaric-operations': 5400,    // 90 minutes
+        'alst': 7200,                     // 120 minutes
+        'lst': 6000                       // 100 minutes
+      };
+      return fullExamTimeLimits[slug] || 5400; // Default to 90 minutes
+    }
+  };
 
   // Get questions based on exam slug (for both start and results views)
   const currentSlug = match ? params.slug : (resultsMatch ? resultsParams.slug : '');
-  const questions = currentSlug ? getQuestionsForExam(currentSlug) : [];
+  
+  // Initialize questions only once when component mounts or slug/SRS changes
+  const [questions, setQuestions] = useState<ExamQuestion[]>([]);
+  
+  useEffect(() => {
+    if (currentSlug) {
+      const examQuestions = getQuestionsForExam(currentSlug, isSRS);
+      setQuestions(examQuestions);
+    } else {
+      setQuestions([]);
+    }
+  }, [currentSlug, isSRS]);
+  
+  const [timeRemaining, setTimeRemaining] = useState(
+    currentSlug ? getTimeLimit(currentSlug, isSRS) : 1800
+  );
   const currentQuestion = questions[currentQuestionIndex];
   const totalQuestions = questions.length;
   const progressPercentage = totalQuestions > 0 ? ((currentQuestionIndex + 1) / totalQuestions) * 100 : 0;
@@ -195,8 +253,9 @@ export default function ExamInterface() {
   // Handle case when no questions are found
   if ((match || resultsMatch) && totalQuestions === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <>
         <RoleBasedNavigation />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
         <div className="container mx-auto px-4 py-8">
           <Card>
             <CardContent className="p-8 text-center">
@@ -210,7 +269,8 @@ export default function ExamInterface() {
             </CardContent>
           </Card>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
@@ -339,12 +399,24 @@ export default function ExamInterface() {
   if (!match && !resultsMatch) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
       <RoleBasedNavigation />
-      
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Exam Header */}
         <div className="mb-6">
+          <div className="mb-4">
+            <Link href="/dashboard">
+              <Button 
+                variant="ghost" 
+                className="mb-4 text-slate-600 hover:text-slate-900"
+                data-testid="button-back-to-exams"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Professional Exams
+              </Button>
+            </Link>
+          </div>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900" data-testid="text-exam-title">
@@ -352,12 +424,25 @@ export default function ExamInterface() {
               </h1>
               <p className="text-slate-600">Prepare for Commercial Diving Certification Exams</p>
               <div className="flex items-center space-x-2 mt-2">
-                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
-                  🧠 Spaced Repetition System (SRS)
-                </span>
-                <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-                  {totalQuestions} Questions Available
-                </span>
+                {isSRS ? (
+                  <>
+                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                      🧠 SRS Learning Test
+                    </span>
+                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                      {totalQuestions} Questions
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium">
+                      📝 Full Exam
+                    </span>
+                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                      {totalQuestions} Questions
+                    </span>
+                  </>
+                )}
               </div>
             </div>
             <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-mono text-lg font-bold ${
@@ -585,5 +670,6 @@ export default function ExamInterface() {
         )}
       </div>
     </div>
+    </>
   );
 }

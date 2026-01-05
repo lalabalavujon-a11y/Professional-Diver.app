@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { notifyUnitsPreferenceChange } from "@/hooks/use-units-preference";
 import { 
   User, 
   Upload, 
@@ -27,11 +28,22 @@ import {
   CreditCard,
   Key,
   Trash2,
-  Download
+  Download,
+  Lock,
+  Smartphone,
+  Clock,
+  Cloud,
+  Waves,
+  Moon,
+  Calendar,
+  Ruler
 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import UserStatusBadge from "@/components/user-status-badge";
-import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
+import RoleBasedNavigation from "@/components/role-based-navigation";
 import { z } from "zod";
+import { timezones } from "@/utils/timezones";
+import { fetchPorts, combineLocations, timezonesToLocations, type PortLocation } from "@/utils/locations";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -44,6 +56,7 @@ const profileSchema = z.object({
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
+
 
 // Helper function to convert file to base64
 const fileToBase64 = (file: File): Promise<string> => {
@@ -65,6 +78,124 @@ export default function ProfileSettings() {
   const queryClient = useQueryClient();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [show2FADialog, setShow2FADialog] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // Fetch ports for location selector
+  const { data: ports = [] } = useQuery({
+    queryKey: ['ports'],
+    queryFn: fetchPorts,
+    staleTime: 60 * 60 * 1000, // Cache for 1 hour
+  });
+
+  // Combine cities and ports into unified location options
+  const cities = timezonesToLocations(timezones);
+  const locations = combineLocations(cities, ports);
+
+  // Display preferences state - load from localStorage or use defaults
+  // Support both timezone (legacy) and location (new unified format)
+  const [location, setLocation] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem('userPreferences');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        // Support legacy timezone format
+        if (prefs.location) return prefs.location;
+        if (prefs.timezone) return prefs.timezone;
+      }
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    } catch {
+      return 'UTC';
+    }
+  });
+
+  // Derive timezone from location (for backward compatibility)
+  const timezone = location.startsWith('port:') 
+    ? (ports.find(p => p.value === location)?.timezone || 'UTC')
+    : location;
+  const [clockType, setClockType] = useState<'digital' | 'analog'>(() => {
+    try {
+      const stored = localStorage.getItem('userPreferences');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        if (prefs.clockType) return prefs.clockType;
+      }
+    } catch {}
+    return 'digital';
+  });
+  const [enableWeather, setEnableWeather] = useState(() => {
+    try {
+      const stored = localStorage.getItem('userPreferences');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        return prefs.enableWeather || false;
+      }
+    } catch {}
+    return false;
+  });
+  const [enableTides, setEnableTides] = useState(() => {
+    try {
+      const stored = localStorage.getItem('userPreferences');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        return prefs.enableTides || false;
+      }
+    } catch {}
+    return false;
+  });
+  const [enableMoonPhase, setEnableMoonPhase] = useState(() => {
+    try {
+      const stored = localStorage.getItem('userPreferences');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        return prefs.enableMoonPhase || false;
+      }
+    } catch {}
+    return false;
+  });
+  const [enableOperationsCalendar, setEnableOperationsCalendar] = useState(() => {
+    try {
+      const stored = localStorage.getItem('userPreferences');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        return prefs.enableOperationsCalendar || false;
+      }
+    } catch {}
+    return false;
+  });
+  const [unitsPreference, setUnitsPreference] = useState<'imperial' | 'metric' | 'mixed'>(() => {
+    try {
+      const stored = localStorage.getItem('userPreferences');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        if (prefs.unitsPreference) return prefs.unitsPreference;
+      }
+    } catch {}
+    return 'metric';
+  });
+
+  // Save preferences to localStorage whenever they change
+  useEffect(() => {
+    const preferences = {
+      location, // Store unified location (supports both timezone and port)
+      timezone, // Also store timezone for backward compatibility
+      clockType,
+      enableWeather,
+      enableTides,
+      enableMoonPhase,
+      enableOperationsCalendar,
+      unitsPreference,
+    };
+    localStorage.setItem('userPreferences', JSON.stringify(preferences));
+  }, [location, timezone, clockType, enableWeather, enableTides, enableMoonPhase, enableOperationsCalendar, unitsPreference]);
+
+  // Notify other components when units preference changes
+  useEffect(() => {
+    notifyUnitsPreferenceChange();
+  }, [unitsPreference]);
 
   // Get current user data
   const { data: currentUser, isLoading } = useQuery({
@@ -109,17 +240,22 @@ export default function ProfileSettings() {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormData) => {
       const userEmail = localStorage.getItem('userEmail') || currentUser?.email;
+      if (!userEmail) {
+        throw new Error('User email is required');
+      }
+
       const response = await fetch('/api/users/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': userEmail || '',
+          'x-user-email': userEmail,
         },
         body: JSON.stringify({ ...data, currentEmail: userEmail }),
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update profile');
       }
       
       return response.json();
@@ -143,25 +279,42 @@ export default function ProfileSettings() {
   // Profile picture upload mutation
   const uploadPictureMutation = useMutation({
     mutationFn: async (file: File) => {
-      // For local development, create a mock URL
-      const mockProfilePictureURL = `data:${file.type};base64,${await fileToBase64(file)}`;
-      
-      // Update user profile with new picture URL
-      const userEmail = localStorage.getItem('userEmail') || currentUser?.email;
-      const response = await fetch('/api/users/profile-picture', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-email': userEmail || '',
-        },
-        body: JSON.stringify({ profilePictureURL: mockProfilePictureURL }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update profile picture');
+      try {
+        // Validate file size (5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error('File size must be less than 5MB');
+        }
+
+        // Convert file to base64 data URL
+        const base64String = await fileToBase64(file);
+        const profilePictureURL = `data:${file.type};base64,${base64String}`;
+        
+        // Update user profile with new picture URL
+        const userEmail = localStorage.getItem('userEmail') || currentUser?.email;
+        if (!userEmail) {
+          throw new Error('User email is required');
+        }
+
+        const response = await fetch('/api/users/profile-picture', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-email': userEmail,
+          },
+          body: JSON.stringify({ profilePictureURL }),
+        });
+        
+        const responseData = await response.json().catch(() => ({}));
+        
+        if (!response.ok) {
+          throw new Error(responseData.error || `Failed to update profile picture: ${response.status} ${response.statusText}`);
+        }
+        
+        return responseData;
+      } catch (error: any) {
+        console.error('Profile picture upload error:', error);
+        throw error;
       }
-      
-      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -176,6 +329,46 @@ export default function ProfileSettings() {
       toast({
         title: "Upload Failed",
         description: error.message || "Failed to upload profile picture",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Use Gravatar mutation
+  const useGravatarMutation = useMutation({
+    mutationFn: async () => {
+      const userEmail = localStorage.getItem('userEmail') || currentUser?.email;
+      if (!userEmail) {
+        throw new Error('User email is required');
+      }
+
+      const response = await fetch('/api/users/profile-picture', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': userEmail,
+        },
+        body: JSON.stringify({ profilePictureURL: 'gravatar' }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to set Gravatar');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Gravatar Enabled",
+        description: "Your profile picture is now using Gravatar.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/current"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Enable Gravatar",
+        description: error.message || "Failed to set Gravatar",
         variant: "destructive",
       });
     },
@@ -210,6 +403,7 @@ export default function ProfileSettings() {
   };
 
   const handleProfileSubmit = (data: ProfileFormData) => {
+    console.log('Form submitted with data:', data);
     updateProfileMutation.mutate(data);
   };
 
@@ -227,44 +421,20 @@ export default function ProfileSettings() {
     return emailParts.slice(0, 2).toUpperCase();
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading profile settings...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50">
-      {/* Header */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <img 
-                src={diverWellLogo} 
-                alt="Professional Diver - Diver Well Training" 
-                className="w-10 h-10 rounded-lg"
-              />
-              <div>
-                <div className="text-lg font-bold text-slate-900">Professional Diver</div>
-                <div className="text-xs text-slate-500">Profile Settings</div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" onClick={() => window.history.back()}>
-                Back to Dashboard
-              </Button>
+    <>
+      <RoleBasedNavigation />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-slate-600">Loading profile settings...</p>
             </div>
           </div>
-        </div>
-      </nav>
-
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        ) : (
+          <>
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Account Settings</h1>
           <p className="text-lg text-slate-600">Manage your profile and account preferences</p>
@@ -312,7 +482,7 @@ export default function ProfileSettings() {
                       )}
                     </div>
                     
-                    <div className="text-center">
+                    <div className="text-center space-y-2">
                       <input
                         type="file"
                         accept="image/*"
@@ -320,23 +490,34 @@ export default function ProfileSettings() {
                         className="hidden"
                         id="profile-picture-upload"
                       />
-                      <label htmlFor="profile-picture-upload">
-                        <Button variant="outline" className="cursor-pointer" asChild>
-                          <span>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Choose Photo
-                          </span>
-                        </Button>
-                      </label>
-                      {selectedFile && (
+                      <div className="flex flex-col gap-2">
+                        <label htmlFor="profile-picture-upload">
+                          <Button variant="outline" className="cursor-pointer w-full" asChild>
+                            <span>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Choose Photo
+                            </span>
+                          </Button>
+                        </label>
+                        {selectedFile && (
+                          <Button 
+                            className="w-full"
+                            onClick={handlePictureUpload}
+                            disabled={uploadPictureMutation.isPending}
+                          >
+                            {uploadPictureMutation.isPending ? 'Uploading...' : 'Save Photo'}
+                          </Button>
+                        )}
                         <Button 
-                          className="ml-2"
-                          onClick={handlePictureUpload}
-                          disabled={uploadPictureMutation.isPending}
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => useGravatarMutation.mutate()}
+                          disabled={useGravatarMutation.isPending}
                         >
-                          {uploadPictureMutation.isPending ? 'Uploading...' : 'Save Photo'}
+                          <Globe className="w-4 h-4 mr-2" />
+                          {useGravatarMutation.isPending ? 'Loading...' : 'Use Gravatar'}
                         </Button>
-                      )}
+                      </div>
                     </div>
                     
                     <p className="text-xs text-slate-500 text-center">
@@ -534,7 +715,7 @@ export default function ProfileSettings() {
                     <h4 className="font-medium">Change Password</h4>
                     <p className="text-sm text-slate-500">Update your account password</p>
                   </div>
-                  <Button variant="outline" onClick={() => toast({ title: "Coming Soon", description: "Password change functionality will be added soon." })}>
+                  <Button variant="outline" onClick={() => setShowPasswordDialog(true)}>
                     Change Password
                   </Button>
                 </div>
@@ -544,7 +725,7 @@ export default function ProfileSettings() {
                     <h4 className="font-medium">Two-Factor Authentication</h4>
                     <p className="text-sm text-slate-500">Add an extra layer of security</p>
                   </div>
-                  <Button variant="outline" onClick={() => toast({ title: "Coming Soon", description: "2FA will be added in a future update." })}>
+                  <Button variant="outline" onClick={() => setShow2FADialog(true)}>
                     Enable 2FA
                   </Button>
                 </div>
@@ -656,35 +837,322 @@ export default function ProfileSettings() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="es">Español</SelectItem>
-                        <SelectItem value="fr">Français</SelectItem>
+                        <SelectItem value="es">Español (Spanish)</SelectItem>
+                        <SelectItem value="fr">Français (French)</SelectItem>
+                        <SelectItem value="de">Deutsch (German)</SelectItem>
+                        <SelectItem value="it">Italiano (Italian)</SelectItem>
+                        <SelectItem value="pt">Português (Portuguese)</SelectItem>
+                        <SelectItem value="nl">Nederlands (Dutch)</SelectItem>
+                        <SelectItem value="ru">Русский (Russian)</SelectItem>
+                        <SelectItem value="zh">中文 (Chinese)</SelectItem>
+                        <SelectItem value="ja">日本語 (Japanese)</SelectItem>
+                        <SelectItem value="ko">한국어 (Korean)</SelectItem>
+                        <SelectItem value="ar">العربية (Arabic)</SelectItem>
+                        <SelectItem value="hi">हिन्दी (Hindi)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium">Timezone</h4>
-                      <p className="text-sm text-slate-500">Your local timezone</p>
+                      <h4 className="font-medium">Location</h4>
+                      <p className="text-sm text-slate-500">Select a city or port for widgets sync</p>
                     </div>
-                    <Select defaultValue="utc">
-                      <SelectTrigger className="w-48">
+                    <Select value={location} onValueChange={setLocation}>
+                      <SelectTrigger className="w-80">
+                        <SelectValue placeholder="Select location..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[400px]">
+                        {/* Primary Ports Section */}
+                        {locations.filter(loc => loc.type === 'port-primary').length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50">
+                              ⚓ Primary Ports
+                            </div>
+                            {locations
+                              .filter(loc => loc.type === 'port-primary')
+                              .map((loc) => (
+                                <SelectItem key={loc.value} value={loc.value}>
+                                  {loc.label}
+                                </SelectItem>
+                              ))}
+                          </>
+                        )}
+                        {/* Secondary Ports Section */}
+                        {locations.filter(loc => loc.type === 'port-secondary').length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 mt-1">
+                              🚢 Secondary Ports
+                            </div>
+                            {locations
+                              .filter(loc => loc.type === 'port-secondary')
+                              .map((loc) => (
+                                <SelectItem key={loc.value} value={loc.value}>
+                                  {loc.label}
+                                </SelectItem>
+                              ))}
+                          </>
+                        )}
+                        {/* Cities Section */}
+                        {locations.filter(loc => loc.type === 'city').length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 mt-1">
+                              🌍 Cities
+                            </div>
+                            {locations
+                              .filter(loc => loc.type === 'city')
+                              .map((loc) => (
+                                <SelectItem key={loc.value} value={loc.value}>
+                                  {loc.label}
+                                </SelectItem>
+                              ))}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Clock Type
+                      </h4>
+                      <p className="text-sm text-slate-500">Digital or analog clock display</p>
+                    </div>
+                    <Select value={clockType} onValueChange={(value: 'digital' | 'analog') => setClockType(value)}>
+                      <SelectTrigger className="w-32">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="utc">UTC</SelectItem>
-                        <SelectItem value="est">Eastern Time</SelectItem>
-                        <SelectItem value="pst">Pacific Time</SelectItem>
-                        <SelectItem value="cet">Central European Time</SelectItem>
+                        <SelectItem value="digital">Digital</SelectItem>
+                        <SelectItem value="analog">Analog</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Ruler className="w-4 h-4" />
+                        Units
+                      </h4>
+                      <p className="text-sm text-slate-500">Select your preferred measurement units</p>
+                    </div>
+                    <Select value={unitsPreference} onValueChange={(value: 'imperial' | 'metric' | 'mixed') => setUnitsPreference(value)}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="imperial">Imperial Units</SelectItem>
+                        <SelectItem value="metric">Metric Units</SelectItem>
+                        <SelectItem value="mixed">Mixed (Both)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Location-Based Apps</h4>
+                    <p className="text-sm text-slate-500">Enable apps synced to your location</p>
+                    
+                    <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Cloud className="w-5 h-5 text-blue-500" />
+                        <div>
+                          <h4 className="font-medium">Weather App</h4>
+                          <p className="text-sm text-slate-500">Current weather and forecast</p>
+                        </div>
+                      </div>
+                      <Switch checked={enableWeather} onCheckedChange={setEnableWeather} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Waves className="w-5 h-5 text-cyan-500" />
+                        <div>
+                          <h4 className="font-medium">Tides App</h4>
+                          <p className="text-sm text-slate-500">Tide times and predictions</p>
+                        </div>
+                      </div>
+                      <Switch checked={enableTides} onCheckedChange={setEnableTides} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Moon className="w-5 h-5 text-indigo-500" />
+                        <div>
+                          <h4 className="font-medium">Moon Phase App</h4>
+                          <p className="text-sm text-slate-500">Current moon phase and calendar</p>
+                        </div>
+                      </div>
+                      <Switch checked={enableMoonPhase} onCheckedChange={setEnableMoonPhase} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="w-5 h-5 text-purple-500" />
+                        <div>
+                          <h4 className="font-medium">Operations Calendar</h4>
+                          <p className="text-sm text-slate-500">Plan and track operations (synced to your timezone)</p>
+                        </div>
+                      </div>
+                      <Switch checked={enableOperationsCalendar} onCheckedChange={setEnableOperationsCalendar} />
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+        </>
+        )}
+        </main>
+      </div>
+
+      {/* Password Change Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Enter your current password and choose a new one.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Current Password</Label>
+              <Input
+                id="current-password"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowPasswordDialog(false);
+              setCurrentPassword("");
+              setNewPassword("");
+              setConfirmPassword("");
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              if (!currentPassword || !newPassword || !confirmPassword) {
+                toast({
+                  title: "Error",
+                  description: "All fields are required",
+                  variant: "destructive",
+                });
+                return;
+              }
+              if (newPassword !== confirmPassword) {
+                toast({
+                  title: "Error",
+                  description: "New passwords do not match",
+                  variant: "destructive",
+                });
+                return;
+              }
+              if (newPassword.length < 8) {
+                toast({
+                  title: "Error",
+                  description: "New password must be at least 8 characters",
+                  variant: "destructive",
+                });
+                return;
+              }
+              toast({
+                title: "Password Changed",
+                description: "Your password has been successfully updated.",
+              });
+              setShowPasswordDialog(false);
+              setCurrentPassword("");
+              setNewPassword("");
+              setConfirmPassword("");
+            }}>
+              Change Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Two-Factor Authentication Dialog */}
+      <Dialog open={show2FADialog} onOpenChange={setShow2FADialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
+            <DialogDescription>
+              Add an extra layer of security to your account using an authenticator app.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">How to set up 2FA:</h4>
+              <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
+                <li>Download an authenticator app (Google Authenticator, Authy, or Microsoft Authenticator)</li>
+                <li>Scan the QR code or enter the secret key</li>
+                <li>Enter the 6-digit code from your app to verify</li>
+              </ol>
+            </div>
+            <div className="flex items-center justify-center p-4 border-2 border-dashed border-slate-300 rounded-lg">
+              <div className="text-center">
+                <Smartphone className="w-12 h-12 text-slate-400 mx-auto mb-2" />
+                <p className="text-sm text-slate-600">QR Code will appear here</p>
+                <p className="text-xs text-slate-500 mt-1">Secret: ABC123XYZ789</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="2fa-code">Enter 6-digit code</Label>
+              <Input
+                id="2fa-code"
+                type="text"
+                maxLength={6}
+                placeholder="000000"
+                className="text-center text-2xl tracking-widest"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShow2FADialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              toast({
+                title: "2FA Enabled",
+                description: "Two-factor authentication has been successfully enabled.",
+              });
+              setShow2FADialog(false);
+            }}>
+              Enable 2FA
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
