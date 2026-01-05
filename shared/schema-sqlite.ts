@@ -145,12 +145,16 @@ export const learningPaths = sqliteTable("learning_paths", {
 
 export const clients = sqliteTable("clients", {
   id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }), // Optional foreign key to users
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   subscriptionType: text("subscription_type", { enum: ["TRIAL", "MONTHLY", "ANNUAL", "LIFETIME"] }).default("TRIAL").notNull(),
   status: text("status", { enum: ["ACTIVE", "PAUSED", "CANCELLED"] }).default("ACTIVE").notNull(),
   subscriptionDate: integer("subscription_date", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
   monthlyRevenue: integer("monthly_revenue").default(0), // in cents
+  partnerStatus: text("partner_status", { enum: ["NONE", "PENDING", "ACTIVE", "INACTIVE"] }).default("NONE").notNull(),
+  conversionDate: integer("conversion_date", { mode: "timestamp" }), // When user became partner
+  highlevelContactId: text("highlevel_contact_id"), // HighLevel contact ID for sync
   notes: text("notes"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
@@ -163,6 +167,22 @@ export const widgetLocations = sqliteTable("widget_locations", {
   longitude: real("longitude").notNull(),
   locationName: text("location_name"), // Optional label for the location
   isCurrentLocation: integer("is_current_location", { mode: "boolean" }).default(false).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const widgetPreferences = sqliteTable("widget_preferences", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  timezone: text("timezone").notNull().default("UTC"),
+  clockType: text("clock_type", { enum: ["digital", "analog"] }).notNull().default("digital"),
+  enableWeather: integer("enable_weather", { mode: "boolean" }).default(false).notNull(),
+  enableTides: integer("enable_tides", { mode: "boolean" }).default(false).notNull(),
+  enableMoonPhase: integer("enable_moon_phase", { mode: "boolean" }).default(false).notNull(),
+  enableNavigation: integer("enable_navigation", { mode: "boolean" }).default(false).notNull(),
+  enableAis: integer("enable_ais", { mode: "boolean" }).default(false).notNull(),
+  weatherAlertsEnabled: integer("weather_alerts_enabled", { mode: "boolean" }).default(true).notNull(),
+  tideAlertsEnabled: integer("tide_alerts_enabled", { mode: "boolean" }).default(true).notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
@@ -298,6 +318,52 @@ export const equipmentUseLogs = sqliteTable("equipment_use_logs", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
+// Support Tickets Table
+export const supportTickets = sqliteTable("support_tickets", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  ticketId: text("ticket_id").notNull().unique(), // Human-readable ticket ID like PDT-1234567890
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }), // Optional - may not have account
+  email: text("email").notNull(),
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  priority: text("priority", { enum: ["low", "medium", "high", "urgent"] }).default("medium").notNull(),
+  status: text("status", { enum: ["pending", "in_progress", "completed", "closed", "cancelled"] }).default("pending").notNull(),
+  assignedTo: text("assigned_to").references(() => users.id, { onDelete: "set null" }), // Admin user who handles it
+  assignedToLaura: integer("assigned_to_laura", { mode: "boolean" }).default(false).notNull(), // Whether Laura is handling it
+  response: text("response"), // Admin/Laura response
+  resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+// Operations Calendar Tables
+export const operationsCalendar = sqliteTable("operations_calendar", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  operationDate: integer("operation_date", { mode: "timestamp" }).notNull(),
+  startTime: text("start_time"), // Optional time string like "09:00"
+  endTime: text("end_time"), // Optional time string like "17:00"
+  location: text("location"),
+  type: text("type", { enum: ["DIVE", "INSPECTION", "MAINTENANCE", "TRAINING", "OTHER"] }).default("DIVE").notNull(),
+  status: text("status", { enum: ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"] }).default("SCHEDULED").notNull(),
+  color: text("color").default("#8b5cf6"), // Purple default color
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const calendarShareLinks = sqliteTable("calendar_share_links", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  shareToken: text("share_token").notNull().unique(), // Unique token for share link
+  isPublic: integer("is_public", { mode: "boolean" }).default(false).notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }), // Optional expiration
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   accounts: many(accounts),
@@ -307,12 +373,17 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   quizAttempts: many(quizAttempts),
   learningPaths: many(learningPaths),
   widgetLocations: many(widgetLocations),
+  widgetPreferences: one(widgetPreferences),
   navigationWaypoints: many(navigationWaypoints),
   navigationRoutes: many(navigationRoutes),
   medicalFacilitySelections: many(userMedicalFacilitySelections),
   assignedMaintenanceTasks: many(maintenanceTasks),
   performedMaintenanceLogs: many(maintenanceLogs),
   equipmentUseLogs: many(equipmentUseLogs),
+  supportTickets: many(supportTickets),
+  assignedSupportTickets: many(supportTickets),
+  operationsCalendar: many(operationsCalendar),
+  calendarShareLinks: many(calendarShareLinks),
 }));
 
 export const tracksRelations = relations(tracks, ({ one, many }) => ({
@@ -380,6 +451,13 @@ export const learningPathsRelations = relations(learningPaths, ({ one }) => ({
 export const widgetLocationsRelations = relations(widgetLocations, ({ one }) => ({
   user: one(users, {
     fields: [widgetLocations.userId],
+    references: [users.id],
+  }),
+}));
+
+export const widgetPreferencesRelations = relations(widgetPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [widgetPreferences.userId],
     references: [users.id],
   }),
 }));
@@ -481,6 +559,31 @@ export const equipmentUseLogsRelations = relations(equipmentUseLogs, ({ one }) =
   }),
 }));
 
+export const supportTicketsRelations = relations(supportTickets, ({ one }) => ({
+  user: one(users, {
+    fields: [supportTickets.userId],
+    references: [users.id],
+  }),
+  assignedUser: one(users, {
+    fields: [supportTickets.assignedTo],
+    references: [users.id],
+  }),
+}));
+
+export const operationsCalendarRelations = relations(operationsCalendar, ({ one }) => ({
+  user: one(users, {
+    fields: [operationsCalendar.userId],
+    references: [users.id],
+  }),
+}));
+
+export const calendarShareLinksRelations = relations(calendarShareLinks, ({ one }) => ({
+  user: one(users, {
+    fields: [calendarShareLinks.userId],
+    references: [users.id],
+  }),
+}));
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -518,6 +621,12 @@ export const insertAttemptSchema = createInsertSchema(quizAttempts).omit({
 });
 
 export const insertWidgetLocationSchema = createInsertSchema(widgetLocations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWidgetPreferencesSchema = createInsertSchema(widgetPreferences).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -583,6 +692,26 @@ export const insertEquipmentUseLogSchema = createInsertSchema(equipmentUseLogs).
   updatedAt: true,
 });
 
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({
+  id: true,
+  ticketId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOperationsCalendarSchema = createInsertSchema(operationsCalendar).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCalendarShareLinkSchema = createInsertSchema(calendarShareLinks).omit({
+  id: true,
+  shareToken: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -604,6 +733,8 @@ export type UserProgress = typeof userProgress.$inferSelect;
 export type LearningPath = typeof learningPaths.$inferSelect;
 export type WidgetLocation = typeof widgetLocations.$inferSelect;
 export type InsertWidgetLocation = z.infer<typeof insertWidgetLocationSchema>;
+export type WidgetPreferences = typeof widgetPreferences.$inferSelect;
+export type InsertWidgetPreferences = z.infer<typeof insertWidgetPreferencesSchema>;
 export type NavigationWaypoint = typeof navigationWaypoints.$inferSelect;
 export type InsertNavigationWaypoint = z.infer<typeof insertNavigationWaypointSchema>;
 export type NavigationRoute = typeof navigationRoutes.$inferSelect;
@@ -624,3 +755,9 @@ export type MaintenanceLog = typeof maintenanceLogs.$inferSelect;
 export type InsertMaintenanceLog = z.infer<typeof insertMaintenanceLogSchema>;
 export type EquipmentUseLog = typeof equipmentUseLogs.$inferSelect;
 export type InsertEquipmentUseLog = z.infer<typeof insertEquipmentUseLogSchema>;
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type OperationsCalendar = typeof operationsCalendar.$inferSelect;
+export type InsertOperationsCalendar = z.infer<typeof insertOperationsCalendarSchema>;
+export type CalendarShareLink = typeof calendarShareLinks.$inferSelect;
+export type InsertCalendarShareLink = z.infer<typeof insertCalendarShareLinkSchema>;

@@ -187,14 +187,20 @@ export const scenarioAttempts = pgTable("scenario_attempts", {
   completedAt: timestamp("completed_at").defaultNow().notNull(),
 });
 
+export const partnerStatusEnum = pgEnum("partner_status", ["NONE", "PENDING", "ACTIVE", "INACTIVE"]);
+
 export const clients = pgTable("clients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }), // Optional foreign key to users
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   subscriptionType: subscriptionTypeEnum("subscription_type").default("TRIAL").notNull(),
   status: clientStatusEnum("status").default("ACTIVE").notNull(),
   subscriptionDate: timestamp("subscription_date").defaultNow().notNull(),
   monthlyRevenue: integer("monthly_revenue").default(0).notNull(), // Revenue in cents (e.g., 2500 for $25.00)
+  partnerStatus: partnerStatusEnum("partner_status").default("NONE").notNull(),
+  conversionDate: timestamp("conversion_date"), // When user became partner
+  highlevelContactId: text("highlevel_contact_id"), // HighLevel contact ID for sync
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -226,6 +232,22 @@ export const widgetLocations = pgTable("widget_locations", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const widgetPreferences = pgTable("widget_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  timezone: text("timezone").notNull().default("UTC"),
+  clockType: text("clock_type", { enum: ["digital", "analog"] }).notNull().default("digital"),
+  enableWeather: boolean("enable_weather").default(false).notNull(),
+  enableTides: boolean("enable_tides").default(false).notNull(),
+  enableMoonPhase: boolean("enable_moon_phase").default(false).notNull(),
+  enableNavigation: boolean("enable_navigation").default(false).notNull(),
+  enableAis: boolean("enable_ais").default(false).notNull(),
+  weatherAlertsEnabled: boolean("weather_alerts_enabled").default(true).notNull(),
+  tideAlertsEnabled: boolean("tide_alerts_enabled").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const navigationWaypoints = pgTable("navigation_waypoints", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -248,6 +270,18 @@ export const navigationRoutes = pgTable("navigation_routes", {
 });
 
 export const medicalFacilityTypeEnum = pgEnum("medical_facility_type", ["A_E", "CRITICAL_CARE", "DIVING_DOCTOR", "HYPERBARIC"]);
+
+// Dive Supervisor Control Enums
+export const diveOperationStatusEnum = pgEnum("dive_operation_status", ["PLANNED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "ON_HOLD"]);
+export const contactTypeEnum = pgEnum("contact_type", ["CLIENT", "CLIENT_REP", "VTS", "HARBOUR_MASTER", "DIVING_DOCTOR", "A_E", "CRITICAL_CARE", "POLICE", "FIRE", "AMBULANCE", "SHIPPING", "OTHER"]);
+export const permitTypeEnum = pgEnum("permit_type", ["DIVE_PERMIT", "HOTWORKS", "ENVIRONMENTAL", "SAFETY", "OTHER"]);
+export const permitStatusEnum = pgEnum("permit_status", ["PENDING", "ISSUED", "EXPIRED", "REVOKED"]);
+export const divePhaseEnum = pgEnum("dive_phase", ["PRE_DIVE", "DIVE", "POST_DIVE", "STANDBY", "DECOMPRESSION"]);
+export const diverRoleEnum = pgEnum("diver_role", ["DIVER_1", "DIVER_2", "STANDBY_DIVER", "TENDER", "SUPERVISOR", "LST", "DMT", "OTHER"]);
+export const hazardTypeEnum = pgEnum("hazard_type", ["ENVIRONMENTAL", "EQUIPMENT", "OPERATIONAL", "PERSONNEL", "STRUCTURAL", "OTHER"]);
+export const hazardSeverityEnum = pgEnum("hazard_severity", ["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
+export const hazardLikelihoodEnum = pgEnum("hazard_likelihood", ["RARE", "UNLIKELY", "POSSIBLE", "LIKELY", "ALMOST_CERTAIN"]);
+export const hazardStatusEnum = pgEnum("hazard_status", ["IDENTIFIED", "ASSESSED", "MITIGATED", "RESOLVED", "MONITORING"]);
 
 export const medicalFacilities = pgTable("medical_facilities", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -281,8 +315,182 @@ export const userMedicalFacilitySelections = pgTable("user_medical_facility_sele
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Dive Supervisor Control Tables
+export const diveTeamMembers = pgTable("dive_team_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  role: text("role").default("DIVER"), // SUPERVISOR, DIVER, etc.
+  age: integer("age"),
+  experienceYears: integer("experience_years"), // Years of diving experience
+  phone: text("phone"),
+  email: text("email"),
+  certifications: json("certifications").default([]), // Array of certification objects
+  medicalRunoutDates: json("medical_runout_dates").default([]), // Array of {type, date} objects
+  competencies: json("competencies").default([]), // Array of competency objects
+  emergencyContact: json("emergency_contact").default({}), // Emergency contact info
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const diveOperations = pgTable("dive_operations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  clientId: varchar("client_id").references(() => clients.id, { onDelete: "set null" }),
+  location: text("location"),
+  plannedDate: timestamp("planned_date"),
+  status: diveOperationStatusEnum("status").default("PLANNED").notNull(),
+  supervisorId: varchar("supervisor_id").references(() => diveTeamMembers.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const diveOperationContacts = pgTable("dive_operation_contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationId: varchar("operation_id").notNull().references(() => diveOperations.id, { onDelete: "cascade" }),
+  contactType: contactTypeEnum("contact_type").notNull(),
+  name: text("name").notNull(),
+  organization: text("organization"),
+  phone: text("phone"),
+  email: text("email"),
+  vhfChannel: text("vhf_channel"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const diveOperationPermits = pgTable("dive_operation_permits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationId: varchar("operation_id").notNull().references(() => diveOperations.id, { onDelete: "cascade" }),
+  permitType: permitTypeEnum("permit_type").notNull(),
+  permitNumber: text("permit_number"),
+  issuedBy: text("issued_by"),
+  issueDate: timestamp("issue_date"),
+  expiryDate: timestamp("expiry_date"),
+  status: permitStatusEnum("status").default("PENDING").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const diveTeamRosters = pgTable("dive_team_rosters", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationId: varchar("operation_id").notNull().references(() => diveOperations.id, { onDelete: "cascade" }),
+  phase: divePhaseEnum("phase").notNull(),
+  diverRole: diverRoleEnum("diver_role").notNull(),
+  teamMemberId: varchar("team_member_id").references(() => diveTeamMembers.id, { onDelete: "set null" }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const divePlans = pgTable("dive_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationId: varchar("operation_id").notNull().references(() => diveOperations.id, { onDelete: "cascade" }),
+  maxDepth: real("max_depth"), // in meters
+  bottomTime: integer("bottom_time"), // in minutes
+  decompressionProfile: json("decompression_profile").default([]), // Array of decompression stops
+  gasMixtures: json("gas_mixtures").default([]), // Array of gas mixture objects
+  equipment: json("equipment").default([]), // Array of equipment IDs or names
+  riskAssessment: json("risk_assessment").default({}), // Risk assessment data
+  isNightOps: boolean("is_night_ops").default(false).notNull(),
+  nightOpsConsiderations: json("night_ops_considerations").default({}), // Night ops specific considerations
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const dailyProjectReports = pgTable("daily_project_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationId: varchar("operation_id").notNull().references(() => diveOperations.id, { onDelete: "cascade" }),
+  reportDate: timestamp("report_date").notNull(),
+  reportData: json("report_data").notNull(), // Full form data as JSON
+  createdBy: varchar("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Enhanced Dive Supervisor Control Tables
+export const casEvacDrills = pgTable("cas_evac_drills", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationId: varchar("operation_id").notNull().references(() => diveOperations.id, { onDelete: "cascade" }),
+  drillDate: timestamp("drill_date").notNull(),
+  scenario: text("scenario").notNull(),
+  participants: json("participants").default([]), // Array of participant objects
+  outcomes: text("outcomes"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const toolBoxTalks = pgTable("tool_box_talks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationId: varchar("operation_id").notNull().references(() => diveOperations.id, { onDelete: "cascade" }),
+  talkDate: timestamp("talk_date").notNull(),
+  topics: json("topics").default([]), // Array of topic strings
+  attendees: json("attendees").default([]), // Array of attendee objects
+  presenter: text("presenter").notNull(),
+  signOffs: json("sign_offs").default([]), // Array of sign-off objects
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const diveOperationHazards = pgTable("dive_operation_hazards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationId: varchar("operation_id").notNull().references(() => diveOperations.id, { onDelete: "cascade" }),
+  hazardType: hazardTypeEnum("hazard_type").notNull(),
+  description: text("description").notNull(),
+  severity: hazardSeverityEnum("severity").notNull(),
+  likelihood: hazardLikelihoodEnum("likelihood").notNull(),
+  mitigation: text("mitigation"),
+  status: hazardStatusEnum("status").default("IDENTIFIED").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const welfareRecords = pgTable("welfare_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationId: varchar("operation_id").notNull().references(() => diveOperations.id, { onDelete: "cascade" }),
+  recordDate: timestamp("record_date").notNull(),
+  accommodation: json("accommodation").default({}), // Accommodation details
+  meals: json("meals").default({}), // Meal planning information
+  restPeriods: json("rest_periods").default([]), // Array of rest period objects
+  healthNotes: text("health_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const shippingInfo = pgTable("shipping_info", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationId: varchar("operation_id").notNull().references(() => diveOperations.id, { onDelete: "cascade" }),
+  vesselName: text("vessel_name"),
+  vesselType: text("vessel_type"),
+  eta: timestamp("eta"), // Estimated time of arrival
+  etd: timestamp("etd"), // Estimated time of departure
+  contact: json("contact").default({}), // Contact information
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// RAMS (Risk Assessment and Method Statement)
+export const ramsDocuments = pgTable("rams_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationId: varchar("operation_id").notNull().references(() => diveOperations.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  documentData: json("document_data").notNull(), // Full RAMS document content
+  linkedHazardIds: json("linked_hazard_ids").default([]), // Array of hazard IDs from diveOperationHazards
+  signatures: json("signatures").default([]), // Array of {teamMemberId, name, signature, date, status}
+  pdfData: text("pdf_data"), // Base64 encoded PDF if imported
+  createdBy: varchar("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   accounts: many(accounts),
   sessions: many(sessions),
   attempts: many(attempts),
@@ -292,9 +500,13 @@ export const usersRelations = relations(users, ({ many }) => ({
   scenarioAttempts: many(scenarioAttempts),
   learningPaths: many(learningPaths),
   widgetLocations: many(widgetLocations),
+  widgetPreferences: one(widgetPreferences),
   navigationWaypoints: many(navigationWaypoints),
   navigationRoutes: many(navigationRoutes),
   medicalFacilitySelections: many(userMedicalFacilitySelections),
+  diveTeamMembers: many(diveTeamMembers),
+  diveOperations: many(diveOperations),
+  dailyProjectReports: many(dailyProjectReports),
 }));
 
 export const aiTutorsRelations = relations(aiTutors, ({ many }) => ({
@@ -423,6 +635,13 @@ export const widgetLocationsRelations = relations(widgetLocations, ({ one }) => 
   }),
 }));
 
+export const widgetPreferencesRelations = relations(widgetPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [widgetPreferences.userId],
+    references: [users.id],
+  }),
+}));
+
 export const navigationWaypointsRelations = relations(navigationWaypoints, ({ one }) => ({
   user: one(users, {
     fields: [navigationWaypoints.userId],
@@ -449,6 +668,132 @@ export const userMedicalFacilitySelectionsRelations = relations(userMedicalFacil
   facility: one(medicalFacilities, {
     fields: [userMedicalFacilitySelections.facilityId],
     references: [medicalFacilities.id],
+  }),
+}));
+
+// Dive Supervisor Control Relations
+export const diveTeamMembersRelations = relations(diveTeamMembers, ({ one, many }) => ({
+  user: one(users, {
+    fields: [diveTeamMembers.userId],
+    references: [users.id],
+  }),
+  operationsAsSupervisor: many(diveOperations),
+  rosterAssignments: many(diveTeamRosters),
+}));
+
+export const diveOperationsRelations = relations(diveOperations, ({ one, many }) => ({
+  user: one(users, {
+    fields: [diveOperations.userId],
+    references: [users.id],
+  }),
+  client: one(clients, {
+    fields: [diveOperations.clientId],
+    references: [clients.id],
+  }),
+  supervisor: one(diveTeamMembers, {
+    fields: [diveOperations.supervisorId],
+    references: [diveTeamMembers.id],
+  }),
+  contacts: many(diveOperationContacts),
+  permits: many(diveOperationPermits),
+  rosters: many(diveTeamRosters),
+  divePlans: many(divePlans),
+  dailyProjectReports: many(dailyProjectReports),
+  casEvacDrills: many(casEvacDrills),
+  toolBoxTalks: many(toolBoxTalks),
+  hazards: many(diveOperationHazards),
+  welfareRecords: many(welfareRecords),
+  shippingInfo: many(shippingInfo),
+  ramsDocuments: many(ramsDocuments),
+}));
+
+export const diveOperationContactsRelations = relations(diveOperationContacts, ({ one }) => ({
+  operation: one(diveOperations, {
+    fields: [diveOperationContacts.operationId],
+    references: [diveOperations.id],
+  }),
+}));
+
+export const diveOperationPermitsRelations = relations(diveOperationPermits, ({ one }) => ({
+  operation: one(diveOperations, {
+    fields: [diveOperationPermits.operationId],
+    references: [diveOperations.id],
+  }),
+}));
+
+export const diveTeamRostersRelations = relations(diveTeamRosters, ({ one }) => ({
+  operation: one(diveOperations, {
+    fields: [diveTeamRosters.operationId],
+    references: [diveOperations.id],
+  }),
+  teamMember: one(diveTeamMembers, {
+    fields: [diveTeamRosters.teamMemberId],
+    references: [diveTeamMembers.id],
+  }),
+}));
+
+export const divePlansRelations = relations(divePlans, ({ one }) => ({
+  operation: one(diveOperations, {
+    fields: [divePlans.operationId],
+    references: [diveOperations.id],
+  }),
+}));
+
+export const dailyProjectReportsRelations = relations(dailyProjectReports, ({ one }) => ({
+  operation: one(diveOperations, {
+    fields: [dailyProjectReports.operationId],
+    references: [diveOperations.id],
+  }),
+  creator: one(users, {
+    fields: [dailyProjectReports.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Enhanced Dive Supervisor Control Relations
+export const casEvacDrillsRelations = relations(casEvacDrills, ({ one }) => ({
+  operation: one(diveOperations, {
+    fields: [casEvacDrills.operationId],
+    references: [diveOperations.id],
+  }),
+}));
+
+export const toolBoxTalksRelations = relations(toolBoxTalks, ({ one }) => ({
+  operation: one(diveOperations, {
+    fields: [toolBoxTalks.operationId],
+    references: [diveOperations.id],
+  }),
+}));
+
+export const diveOperationHazardsRelations = relations(diveOperationHazards, ({ one }) => ({
+  operation: one(diveOperations, {
+    fields: [diveOperationHazards.operationId],
+    references: [diveOperations.id],
+  }),
+}));
+
+export const welfareRecordsRelations = relations(welfareRecords, ({ one }) => ({
+  operation: one(diveOperations, {
+    fields: [welfareRecords.operationId],
+    references: [diveOperations.id],
+  }),
+}));
+
+export const shippingInfoRelations = relations(shippingInfo, ({ one }) => ({
+  operation: one(diveOperations, {
+    fields: [shippingInfo.operationId],
+    references: [diveOperations.id],
+  }),
+}));
+
+export const ramsDocumentsRelations = relations(ramsDocuments, ({ one }) => ({
+  operation: one(diveOperations, {
+    fields: [ramsDocuments.operationId],
+    references: [diveOperations.id],
+  }),
+  creator: one(users, {
+    fields: [ramsDocuments.createdBy],
+    references: [users.id],
   }),
 }));
 
@@ -498,6 +843,12 @@ export const insertWidgetLocationSchema = createInsertSchema(widgetLocations).om
   updatedAt: true,
 });
 
+export const insertWidgetPreferencesSchema = createInsertSchema(widgetPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertNavigationWaypointSchema = createInsertSchema(navigationWaypoints).omit({
   id: true,
   createdAt: true,
@@ -517,6 +868,86 @@ export const insertMedicalFacilitySchema = createInsertSchema(medicalFacilities)
 });
 
 export const insertUserMedicalFacilitySelectionSchema = createInsertSchema(userMedicalFacilitySelections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Dive Supervisor Control Insert Schemas
+export const insertDiveTeamMemberSchema = createInsertSchema(diveTeamMembers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDiveOperationSchema = createInsertSchema(diveOperations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDiveOperationContactSchema = createInsertSchema(diveOperationContacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDiveOperationPermitSchema = createInsertSchema(diveOperationPermits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDiveTeamRosterSchema = createInsertSchema(diveTeamRosters).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDivePlanSchema = createInsertSchema(divePlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDailyProjectReportSchema = createInsertSchema(dailyProjectReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Enhanced Dive Supervisor Control Insert Schemas
+export const insertCasEvacDrillSchema = createInsertSchema(casEvacDrills).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertToolBoxTalkSchema = createInsertSchema(toolBoxTalks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDiveOperationHazardSchema = createInsertSchema(diveOperationHazards).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWelfareRecordSchema = createInsertSchema(welfareRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertShippingInfoSchema = createInsertSchema(shippingInfo).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRamsDocumentSchema = createInsertSchema(ramsDocuments).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -583,6 +1014,8 @@ export type LearningPath = typeof learningPaths.$inferSelect;
 export type InsertLearningPath = z.infer<typeof insertLearningPathSchema>;
 export type WidgetLocation = typeof widgetLocations.$inferSelect;
 export type InsertWidgetLocation = z.infer<typeof insertWidgetLocationSchema>;
+export type WidgetPreferences = typeof widgetPreferences.$inferSelect;
+export type InsertWidgetPreferences = z.infer<typeof insertWidgetPreferencesSchema>;
 export type NavigationWaypoint = typeof navigationWaypoints.$inferSelect;
 export type InsertNavigationWaypoint = z.infer<typeof insertNavigationWaypointSchema>;
 export type NavigationRoute = typeof navigationRoutes.$inferSelect;
@@ -591,3 +1024,33 @@ export type MedicalFacility = typeof medicalFacilities.$inferSelect;
 export type InsertMedicalFacility = z.infer<typeof insertMedicalFacilitySchema>;
 export type UserMedicalFacilitySelection = typeof userMedicalFacilitySelections.$inferSelect;
 export type InsertUserMedicalFacilitySelection = z.infer<typeof insertUserMedicalFacilitySelectionSchema>;
+
+// Dive Supervisor Control Types
+export type DiveTeamMember = typeof diveTeamMembers.$inferSelect;
+export type InsertDiveTeamMember = z.infer<typeof insertDiveTeamMemberSchema>;
+export type DiveOperation = typeof diveOperations.$inferSelect;
+export type InsertDiveOperation = z.infer<typeof insertDiveOperationSchema>;
+export type DiveOperationContact = typeof diveOperationContacts.$inferSelect;
+export type InsertDiveOperationContact = z.infer<typeof insertDiveOperationContactSchema>;
+export type DiveOperationPermit = typeof diveOperationPermits.$inferSelect;
+export type InsertDiveOperationPermit = z.infer<typeof insertDiveOperationPermitSchema>;
+export type DiveTeamRoster = typeof diveTeamRosters.$inferSelect;
+export type InsertDiveTeamRoster = z.infer<typeof insertDiveTeamRosterSchema>;
+export type DivePlan = typeof divePlans.$inferSelect;
+export type InsertDivePlan = z.infer<typeof insertDivePlanSchema>;
+export type DailyProjectReport = typeof dailyProjectReports.$inferSelect;
+export type InsertDailyProjectReport = z.infer<typeof insertDailyProjectReportSchema>;
+
+// Enhanced Dive Supervisor Control Types
+export type CasEvacDrill = typeof casEvacDrills.$inferSelect;
+export type InsertCasEvacDrill = z.infer<typeof insertCasEvacDrillSchema>;
+export type ToolBoxTalk = typeof toolBoxTalks.$inferSelect;
+export type InsertToolBoxTalk = z.infer<typeof insertToolBoxTalkSchema>;
+export type DiveOperationHazard = typeof diveOperationHazards.$inferSelect;
+export type InsertDiveOperationHazard = z.infer<typeof insertDiveOperationHazardSchema>;
+export type WelfareRecord = typeof welfareRecords.$inferSelect;
+export type InsertWelfareRecord = z.infer<typeof insertWelfareRecordSchema>;
+export type ShippingInfo = typeof shippingInfo.$inferSelect;
+export type InsertShippingInfo = z.infer<typeof insertShippingInfoSchema>;
+export type RamsDocument = typeof ramsDocuments.$inferSelect;
+export type InsertRamsDocument = z.infer<typeof insertRamsDocumentSchema>;

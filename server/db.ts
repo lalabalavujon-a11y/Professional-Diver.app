@@ -39,6 +39,8 @@ if (env !== 'development' && hasDatabaseUrl) {
   const { drizzle: drizzleSQLite } = require("drizzle-orm/better-sqlite3") as typeof import("drizzle-orm/better-sqlite3");
   const sqlite = new Database(file);
   db = drizzleSQLite(sqlite, { schema: sqliteSchema });
+  // Store reference to SQLite instance for table creation
+  (db as any).sqlite = sqlite;
 }
 
 export { db };

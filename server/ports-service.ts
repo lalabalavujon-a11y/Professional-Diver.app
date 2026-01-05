@@ -57,7 +57,7 @@ const portsDatabase: Port[] = [
   { id: '25', name: 'Port of Sydney', country: 'Australia', region: 'Oceania', type: 'Primary', callsign: 'AUSYD', vhfChannels: ['12', '14', '16'], phone: '+61 2 9296 4999', latitude: -33.8688, longitude: 151.2093, timezone: 'Australia/Sydney' },
   { id: '26', name: 'Port of Melbourne', country: 'Australia', region: 'Oceania', type: 'Primary', callsign: 'AUMEL', vhfChannels: ['12', '14', '16'], phone: '+61 3 9628 2800', latitude: -37.8136, longitude: 144.9631, timezone: 'Australia/Melbourne' },
   { id: '27', name: 'Port of Felixstowe', country: 'United Kingdom', region: 'Europe', type: 'Primary', callsign: 'GBFEL', vhfChannels: ['12', '14', '16'], phone: '+44 1394 604500', email: 'info@portoffelixstowe.co.uk', latitude: 51.9614, longitude: 1.3514, timezone: 'Europe/London' },
-  { id: '28', name: 'Port of Southampton', country: 'United Kingdom', region: 'Europe', type: 'Primary', callsign: 'GBSOU', vhfChannels: ['12', '14', '16'], phone: '+44 23 8048 8000', email: 'info@abports.co.uk', latitude: 50.9097, longitude: -1.4044, timezone: 'Europe/London' },
+  { id: '28', name: 'Port of Southampton', country: 'United Kingdom', region: 'Europe', type: 'Primary', callsign: 'GBSOU', vhfChannels: ['12', '14', '16'], phone: '+44 23 8048 8000', email: 'info@abports.co.uk', latitude: 50.863714, longitude: -1.425028, timezone: 'Europe/London' },
   { id: '29', name: 'Port of Le Havre', country: 'France', region: 'Europe', type: 'Primary', callsign: 'FRLEH', vhfChannels: ['12', '14', '16'], phone: '+33 2 32 74 70 00', latitude: 49.4944, longitude: 0.1079, timezone: 'Europe/Paris' },
   { id: '30', name: 'Port of Marseille', country: 'France', region: 'Europe', type: 'Primary', callsign: 'FRMRS', vhfChannels: ['12', '14', '16'], phone: '+33 4 91 39 40 00', latitude: 43.2965, longitude: 5.3698, timezone: 'Europe/Paris' },
   
@@ -192,4 +192,5 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
+
 

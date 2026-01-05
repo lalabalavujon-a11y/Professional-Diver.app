@@ -37,8 +37,10 @@ export async function getWeatherData(
   const apiKey = process.env.OPENWEATHER_API_KEY;
 
   if (!apiKey) {
-    console.warn('OpenWeatherMap API key not configured');
-    return null;
+    const error: any = new Error('OpenWeatherMap API key not configured');
+    error.code = 'WEATHER_API_KEY_MISSING';
+    error.statusCode = 503;
+    throw error;
   }
 
   // Create cache key from coordinates (rounded to 2 decimal places)
@@ -57,17 +59,25 @@ export async function getWeatherData(
     
     if (!response.ok) {
       if (response.status === 401) {
-        console.error('OpenWeatherMap API: Invalid API key');
-        return null;
+        const error: any = new Error('OpenWeatherMap API: Invalid API key');
+        error.code = 'WEATHER_API_KEY_INVALID';
+        error.statusCode = 401;
+        throw error;
       }
       if (response.status === 429) {
         console.warn('OpenWeatherMap API: Rate limit exceeded, using cache if available');
         if (cached) {
           return cached.data; // Return stale cache if rate limited
         }
-        return null;
+        const error: any = new Error('OpenWeatherMap API: Rate limit exceeded');
+        error.code = 'WEATHER_RATE_LIMIT';
+        error.statusCode = 429;
+        throw error;
       }
-      throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
+      const error: any = new Error(`Weather API error: ${response.status} ${response.statusText}`);
+      error.code = 'WEATHER_API_ERROR';
+      error.statusCode = response.status;
+      throw error;
     }
 
     const data = await response.json();
@@ -95,16 +105,26 @@ export async function getWeatherData(
     });
 
     return weatherData;
-  } catch (error) {
-    console.error('Error fetching weather data:', error);
+  } catch (error: any) {
+    console.error('Error fetching weather data (XC Weather App):', error);
     
-    // Return cached data if available (even if stale)
-    if (cached) {
-      console.warn('Using stale cache due to error');
+    // If it's a known error with code, re-throw it
+    if (error.code) {
+      throw error;
+    }
+    
+    // Return cached data if available (even if stale) for network errors
+    if (cached && error.name === 'TypeError' || error.message?.includes('fetch')) {
+      console.warn('Using stale cache due to network error');
       return cached.data;
     }
     
-    return null;
+    // For other errors, wrap and throw
+    const wrappedError: any = new Error(error.message || 'Failed to fetch weather data');
+    wrappedError.code = 'WEATHER_FETCH_ERROR';
+    wrappedError.statusCode = 500;
+    wrappedError.originalError = error;
+    throw wrappedError;
   }
 }
 

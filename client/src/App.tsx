@@ -28,6 +28,7 @@ import LearningPath from "@/pages/learning-path";
 import ChatLaura from "@/pages/chat-laura";
 import ChatDiverWell from "@/pages/chat-diver-well";
 import Operations from "@/pages/operations";
+import OperationsCalendarShared from "@/pages/operations-calendar-shared";
 import Equipment from "@/pages/equipment";
 import Tracks from "@/pages/tracks";
 import Terms from "@/pages/terms";
@@ -69,6 +70,7 @@ function Router() {
       <Route path="/chat/laura" component={ChatLaura} />
       <Route path="/chat/diver-well" component={ChatDiverWell} />
             <Route path="/operations" component={Operations} />
+            <Route path="/operations-calendar/shared/:token" component={OperationsCalendarShared} />
             <Route path="/equipment" component={Equipment} />
       <Route path="/tracks" component={Tracks} />
       <Route path="/terms" component={Terms} />

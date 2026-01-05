@@ -199,3 +199,66 @@ export async function getLauraOracleInfo(req: Request, res: Response) {
     });
   }
 }
+
+/**
+ * Get pending support tickets assigned to Laura
+ */
+export async function getPendingTickets(req: Request, res: Response) {
+  try {
+    const result = await lauraOracle.getPendingTickets();
+
+    res.json({
+      success: result.success,
+      tickets: result.tickets,
+      count: result.count,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Error getting pending tickets:', error);
+    res.status(500).json({
+      error: 'Failed to get pending support tickets',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
+
+/**
+ * Auto-handle a support ticket using Laura
+ */
+export async function autoHandleTicket(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const { userContext } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        error: 'Ticket ID is required'
+      });
+    }
+
+    const result = await lauraOracle.autoHandleTicket(id, userContext);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        ticket: result.ticket,
+        response: result.response,
+        message: result.message,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.message
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error auto-handling ticket:', error);
+    res.status(500).json({
+      error: 'Failed to auto-handle support ticket',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
