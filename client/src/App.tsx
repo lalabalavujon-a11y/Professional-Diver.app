@@ -28,6 +28,7 @@ import LearningPath from "@/pages/learning-path";
 import ChatLaura from "@/pages/chat-laura";
 import ChatDiverWell from "@/pages/chat-diver-well";
 import Operations from "@/pages/operations";
+import Equipment from "@/pages/equipment";
 import Tracks from "@/pages/tracks";
 import Terms from "@/pages/terms";
 import ProfessionalExams from "@/pages/professional-exams";
@@ -67,7 +68,8 @@ function Router() {
       <Route path="/learning-path" component={LearningPath} />
       <Route path="/chat/laura" component={ChatLaura} />
       <Route path="/chat/diver-well" component={ChatDiverWell} />
-      <Route path="/operations" component={Operations} />
+            <Route path="/operations" component={Operations} />
+            <Route path="/equipment" component={Equipment} />
       <Route path="/tracks" component={Tracks} />
       <Route path="/terms" component={Terms} />
       <Route component={NotFound} />
