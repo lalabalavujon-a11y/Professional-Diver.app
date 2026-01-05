@@ -76,7 +76,9 @@ export default function CompactClockWidget({ timezone, clockType }: CompactClock
       </div>
       <div className="flex flex-col">
         <div className="text-xs font-medium text-slate-700 leading-tight">{formatDate(currentTime)}</div>
-        <div className="text-xs text-slate-500 leading-tight">{timezone.split('/').pop()?.replace('_', ' ')}</div>
+          <div className="text-xs text-slate-500 leading-tight">
+            {timezone ? (timezone.split('/').pop()?.replace(/_/g, ' ') || timezone) : 'UTC'}
+          </div>
       </div>
     </div>
   );
