@@ -1,0 +1,45 @@
+import { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.diverwell.training',
+  appName: 'Professional Diver Training',
+  webDir: 'dist/client',
+  server: {
+    androidScheme: 'https',
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: true,
+      backgroundColor: '#0066CC',
+      androidSplashResourceName: 'splash',
+      androidScaleType: 'CENTER_CROP',
+      showSpinner: false,
+      iosSpinnerStyle: 'small',
+      spinnerColor: '#ffffff',
+    },
+    Keyboard: {
+      resize: 'body',
+      style: 'dark',
+      resizeOnFullScreen: true,
+    },
+    Geolocation: {
+      permissions: {
+        location: {
+          always: 'Allow location access for navigation and tracking features',
+          whenInUse: 'Allow location access for navigation and tracking features',
+        },
+      },
+    },
+  },
+  android: {
+    allowMixedContent: true,
+  },
+  ios: {
+    scheme: 'Professional Diver Training',
+    contentInset: 'automatic',
+  },
+};
+
+export default config;
+

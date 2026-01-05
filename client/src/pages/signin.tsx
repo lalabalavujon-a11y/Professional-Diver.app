@@ -35,7 +35,8 @@ export default function SignIn() {
 
   const credentialsSignInMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string; rememberMe: boolean }) => {
-      return apiRequest("POST", "/api/auth/credentials", credentials);
+      const response = await apiRequest("POST", "/api/auth/credentials", credentials);
+      return response.json();
     },
     onSuccess: (data) => {
       // Handle remember me functionality
@@ -67,7 +68,8 @@ export default function SignIn() {
 
   const magicLinkMutation = useMutation({
     mutationFn: async (emailData: { email: string }) => {
-      return apiRequest("POST", "/api/auth/magic-link", emailData);
+      const response = await apiRequest("POST", "/api/auth/magic-link", emailData);
+      return response.json();
     },
     onSuccess: () => {
       setMagicLinkSent(true);
@@ -296,14 +298,6 @@ export default function SignIn() {
                   </Button>
                 </form>
               )}
-
-              {/* Demo Account Alert */}
-              <Alert className="mt-6 border-primary-200 bg-primary-50">
-                <AlertCircle className="h-4 w-4 text-primary-600" />
-                <AlertDescription className="text-primary-700">
-                  <strong>Demo Account:</strong> admin@diverwell.app / admin123
-                </AlertDescription>
-              </Alert>
 
               {/* Footer Links */}
               <div className="mt-6 text-center">

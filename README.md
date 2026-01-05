@@ -22,6 +22,7 @@ A comprehensive, brand-neutral training and revision platform for commercial div
 - **Database**: PostgreSQL (Production) / SQLite (Development)
 - **AI Integration**: LangChain, LangSmith, OpenAI
 - **Styling**: Tailwind CSS
+- **Mobile**: Capacitor (iOS & Android native apps)
 - **Deployment**: Vercel-ready
 
 ## Quick Start
@@ -70,6 +71,15 @@ LANGSMITH_PROJECT=professional-diver-training-app
 
 # Database Configuration
 NODE_ENV=development
+
+# Weather API Configuration (optional - for weather widget)
+OPENWEATHER_API_KEY=74b55691a7171ca1c37f50bf8a9b2abc
+# Get your free API key at: https://openweathermap.org/api
+
+# Tides API Configuration (optional - for tides widget)
+STORMGLASS_API_KEY=df87c788-e994-11f0-b5c3-0242ac130003-df87c81e-e994-11f0-b5c3-0242ac130003
+# Get your free API key at: https://stormglass.io/
+# Alternative: NOAA_TIDES_API_KEY for NOAA Tides API
 ```
 
 ## Scripts
@@ -80,6 +90,19 @@ NODE_ENV=development
 - `npm run dev:reset` - Kill existing servers and restart
 - `npm run typecheck` - Run TypeScript type checking
 - `npm run build` - Build for production
+- `npm run mobile:build` - Build web app and sync to native mobile projects
+- `npm run mobile:ios` - Build, sync, and open iOS project in Xcode
+- `npm run mobile:android` - Build, sync, and open Android project in Android Studio
+- `npm run cap:sync` - Sync web build to native projects
+
+## Mobile Apps
+
+This platform supports native iOS and Android apps built with **Capacitor**. The web app is fully mobile-responsive, and Capacitor wraps it as native apps for distribution via App Store and Google Play Store.
+
+**Android**: ✅ Fully configured and ready for development
+**iOS**: ✅ Fully configured and ready for development
+
+For detailed mobile setup instructions, see [MOBILE_SETUP.md](./MOBILE_SETUP.md).
 
 ## CI/CD
 

@@ -172,10 +172,10 @@ export default function CRMDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
+    <>
       <RoleBasedNavigation />
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-slate-900" data-testid="text-crm-title">
@@ -414,8 +414,9 @@ export default function CRMDashboard() {
             </DialogContent>
           </Dialog>
         )}
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }
 

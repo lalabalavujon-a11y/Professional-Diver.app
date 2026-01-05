@@ -9,19 +9,50 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 // import { AILearningPathService } from "./ai-learning-path";
 import { z } from "zod";
 // LangChain AI Tutor routes are now handled by ai-tutor.ts router
-import { insertLessonSchema, insertInviteSchema, insertAttemptSchema } from "@shared/schema";
-import { insertLessonSchema as insertLessonSchemaSQLite } from "@shared/schema-sqlite";
-import { eq } from "drizzle-orm";
-import { randomBytes } from "crypto";
+import { insertLessonSchema, insertInviteSchema, insertAttemptSchema, insertWidgetLocationSchema, insertNavigationWaypointSchema, insertNavigationRouteSchema, widgetLocations, navigationWaypoints, navigationRoutes, users } from "@shared/schema";
+import { insertLessonSchema as insertLessonSchemaSQLite, widgetLocations as widgetLocationsSQLite, navigationWaypoints as navigationWaypointsSQLite, navigationRoutes as navigationRoutesSQLite, users as usersSQLite } from "@shared/schema-sqlite";
+import { eq, and, desc } from "drizzle-orm";
+import { randomBytes, createHash } from "crypto";
 import { db } from "./db";
 import { registerSrsRoutes } from "./srs-routes";
+import { registerEquipmentRoutes } from "./routes/equipment-routes";
+import { getWeatherData, timezoneToCoordinates as weatherTimezoneToCoordinates } from "./weather-service";
+import { getTideData, timezoneToCoordinates as tidesTimezoneToCoordinates } from "./tides-service";
+import { getPorts, getPortsNearLocation } from "./ports-service";
+import { getNoticesToMariners } from "./notices-to-mariners-service";
+import { 
+  getMedicalFacilities, 
+  getUserMedicalFacilities, 
+  addUserMedicalFacility, 
+  removeUserMedicalFacility,
+  MedicalFacilityType 
+} from "./medical-facilities-service";
 
 // In-memory store for user profile data (for demo purposes)
 const userProfileStore = new Map<string, any>();
 
+// Helper function to generate Gravatar URL
+function getGravatarUrl(email: string, size: number = 200): string {
+  const normalizedEmail = email.trim().toLowerCase();
+  const hash = createHash('md5').update(normalizedEmail).digest('hex');
+  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=mp`;
+}
+
+// Helper function to get profile picture URL (handles Gravatar)
+function getProfilePictureUrl(profilePictureUrl: string | null | undefined, email: string): string | null {
+  if (!profilePictureUrl) return null;
+  if (profilePictureUrl === 'gravatar') {
+    return getGravatarUrl(email);
+  }
+  return profilePictureUrl;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // SRS (Phase 2–4) routes
   registerSrsRoutes(app);
+  
+  // Equipment Maintenance routes
+  registerEquipmentRoutes(app);
 
   // Object storage routes
   app.post("/api/objects/upload", async (req, res) => {
@@ -941,9 +972,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User email is required" });
       }
 
-      // Normalize the object storage URL
-      const objectStorageService = new ObjectStorageService();
-      const normalizedPath = objectStorageService.normalizeObjectEntityPath(profilePictureURL);
+      // Handle profile picture URL (gravatar, data URLs, or object storage URLs)
+      let normalizedPath = profilePictureURL;
+      
+      // If it's not "gravatar" and not a data URL, normalize object storage URLs
+      if (profilePictureURL !== 'gravatar' && !profilePictureURL.startsWith('data:')) {
+        const objectStorageService = new ObjectStorageService();
+        normalizedPath = objectStorageService.normalizeObjectEntityPath(profilePictureURL);
+      }
 
       // Get existing profile or create new one
       const existingProfile = userProfileStore.get(userEmail) || {};
@@ -969,6 +1005,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: userEmail,
         role,
         subscriptionType,
+        profilePictureUrl: getProfilePictureUrl(normalizedPath, userEmail), // Convert "gravatar" to actual URL
       };
 
       res.json(updatedUser);
@@ -1041,7 +1078,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         company: storedProfile.company || '',
         jobTitle: storedProfile.jobTitle || '',
         location: storedProfile.location || '',
-        profilePictureUrl: storedProfile.profilePictureUrl || null,
+        profilePictureUrl: getProfilePictureUrl(storedProfile.profilePictureUrl, email),
         updatedAt: storedProfile.updatedAt || baseUser.createdAt,
       };
 
@@ -1183,22 +1220,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register import routes for GitHub repository content
   registerImportRoutes(app);
 
-  const httpServer = createServer(app);
-  return httpServer;
-}
-
-        location: storedProfile.location || '',
-        profilePictureUrl: storedProfile.profilePictureUrl || null,
-        updatedAt: storedProfile.updatedAt || baseUser.createdAt,
-      };
-
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching current user:", error);
-      res.status(500).json({ error: "Failed to fetch current user" });
-    }
-  });
-
   // User progress routes
   app.get("/api/users/:userId/progress", async (req, res) => {
     try {
@@ -1329,6 +1350,832 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register import routes for GitHub repository content
   registerImportRoutes(app);
+
+  // Helper function to get user ID from email
+  async function getUserIdFromEmail(email: string): Promise<string | null> {
+    try {
+      const env = process.env.NODE_ENV ?? 'development';
+      const hasDatabaseUrl = !!process.env.DATABASE_URL;
+      const usersTable = (env === 'development' && !hasDatabaseUrl) ? usersSQLite : users;
+      
+      const user = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+      if (user.length > 0) {
+        return user[0].id;
+      }
+      // If user doesn't exist, return a fallback based on email
+      if (email === 'lalabalavu.jon@gmail.com') {
+        return 'admin-1';
+      }
+      // For other users, try to create a user or use email as fallback
+      return email; // Fallback to email as ID
+    } catch (error) {
+      console.error('Error getting user ID from email:', error);
+      return email; // Fallback to email
+    }
+  }
+
+  // Helper function to get widget locations table based on environment
+  function getWidgetLocationsTable() {
+    const env = process.env.NODE_ENV ?? 'development';
+    const hasDatabaseUrl = !!process.env.DATABASE_URL;
+    return (env === 'development' && !hasDatabaseUrl) ? widgetLocationsSQLite : widgetLocations;
+  }
+
+  function getNavigationWaypointsTable() {
+    const env = process.env.NODE_ENV ?? 'development';
+    const hasDatabaseUrl = !!process.env.DATABASE_URL;
+    return (env === 'development' && !hasDatabaseUrl) ? navigationWaypointsSQLite : navigationWaypoints;
+  }
+
+  function getNavigationRoutesTable() {
+    const env = process.env.NODE_ENV ?? 'development';
+    const hasDatabaseUrl = !!process.env.DATABASE_URL;
+    return (env === 'development' && !hasDatabaseUrl) ? navigationRoutesSQLite : navigationRoutes;
+  }
+
+  // Widget location API endpoints
+  app.get("/api/widgets/location", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const widgetLocationsTable = getWidgetLocationsTable();
+      const locations = await db
+        .select()
+        .from(widgetLocationsTable)
+        .where(eq(widgetLocationsTable.userId, userId))
+        .orderBy(desc(widgetLocationsTable.updatedAt))
+        .limit(1);
+
+      if (locations.length === 0) {
+        return res.status(404).json({ error: "No widget location found" });
+      }
+
+      res.json(locations[0]);
+    } catch (error) {
+      console.error("Error fetching widget location:", error);
+      res.status(500).json({ error: "Failed to fetch widget location" });
+    }
+  });
+
+  app.post("/api/widgets/location", async (req, res) => {
+    try {
+      const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
+      const { latitude, longitude, locationName, isCurrentLocation } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+        return res.status(400).json({ error: "Valid latitude and longitude are required" });
+      }
+
+      if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        return res.status(400).json({ error: "Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const widgetLocationsTable = getWidgetLocationsTable();
+      
+      console.log('Saving widget location:', {
+        email,
+        userId,
+        latitude,
+        longitude,
+        locationName,
+        isCurrentLocation,
+        table: widgetLocationsTable === widgetLocationsSQLite ? 'SQLite' : 'PostgreSQL'
+      });
+      
+      // Check if location already exists for this user
+      const existing = await db
+        .select()
+        .from(widgetLocationsTable)
+        .where(eq(widgetLocationsTable.userId, userId))
+        .limit(1);
+
+      console.log('Existing locations:', existing.length);
+
+      let location;
+      if (existing.length > 0) {
+        // Update existing location
+        console.log('Updating existing location:', existing[0].id);
+        const updateResult = await db
+          .update(widgetLocationsTable)
+          .set({
+            latitude,
+            longitude,
+            locationName: locationName || null,
+            isCurrentLocation: isCurrentLocation || false,
+            updatedAt: new Date(),
+          })
+          .where(eq(widgetLocationsTable.id, existing[0].id))
+          .returning();
+        
+        if (updateResult && updateResult.length > 0) {
+          location = updateResult[0];
+        } else {
+          // If returning doesn't work, fetch the updated record
+          const [updated] = await db
+            .select()
+            .from(widgetLocationsTable)
+            .where(eq(widgetLocationsTable.id, existing[0].id))
+            .limit(1);
+          location = updated;
+        }
+        console.log('Updated location:', location);
+      } else {
+        // Create new location
+        console.log('Creating new location');
+        const insertData = {
+          userId,
+          latitude,
+          longitude,
+          locationName: locationName || null,
+          isCurrentLocation: isCurrentLocation || false,
+        };
+        const insertResult = await db
+          .insert(widgetLocationsTable)
+          .values(insertData)
+          .returning();
+        
+        if (insertResult && insertResult.length > 0) {
+          location = insertResult[0];
+        } else {
+          // If returning doesn't work, fetch the created record
+          const created = await db
+            .select()
+            .from(widgetLocationsTable)
+            .where(eq(widgetLocationsTable.userId, userId))
+            .orderBy(desc(widgetLocationsTable.createdAt))
+            .limit(1);
+          location = created[0];
+        }
+        console.log('Created location:', location);
+      }
+
+      res.json(location);
+    } catch (error: any) {
+      console.error("Error saving widget location:", error);
+      const errorMessage = error?.message || error?.toString() || "Unknown error";
+      console.error("Error details:", {
+        message: errorMessage,
+        stack: error?.stack,
+        body: req.body
+      });
+      res.status(500).json({ 
+        error: "Failed to save widget location",
+        details: errorMessage 
+      });
+    }
+  });
+
+  app.post("/api/widgets/location/gps", async (req, res) => {
+    try {
+      const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
+      const { latitude, longitude, locationName } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+        return res.status(400).json({ error: "Valid latitude and longitude are required" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const widgetLocationsTable = getWidgetLocationsTable();
+      
+      // Check if location already exists for this user
+      const existing = await db
+        .select()
+        .from(widgetLocationsTable)
+        .where(eq(widgetLocationsTable.userId, userId))
+        .limit(1);
+
+      let location;
+      if (existing.length > 0) {
+        // Update existing location
+        const [updated] = await db
+          .update(widgetLocationsTable)
+          .set({
+            latitude,
+            longitude,
+            locationName: locationName || "Current Location",
+            isCurrentLocation: true,
+            updatedAt: new Date(),
+          })
+          .where(eq(widgetLocationsTable.id, existing[0].id))
+          .returning();
+        location = updated;
+      } else {
+        // Create new location
+        const insertData = {
+          userId,
+          latitude,
+          longitude,
+          locationName: locationName || "Current Location",
+          isCurrentLocation: true,
+        };
+        const [created] = await db
+          .insert(widgetLocationsTable)
+          .values(insertData)
+          .returning();
+        location = created;
+      }
+
+      res.json(location);
+    } catch (error) {
+      console.error("Error saving GPS location:", error);
+      res.status(500).json({ error: "Failed to save GPS location" });
+    }
+  });
+
+  // Navigation waypoints API endpoints
+  app.get("/api/navigation/waypoints", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const waypointsTable = getNavigationWaypointsTable();
+      const waypoints = await db
+        .select()
+        .from(waypointsTable)
+        .where(eq(waypointsTable.userId, userId))
+        .orderBy(waypointsTable.createdAt);
+
+      res.json(waypoints);
+    } catch (error) {
+      console.error("Error fetching waypoints:", error);
+      res.status(500).json({ error: "Failed to fetch waypoints" });
+    }
+  });
+
+  app.post("/api/navigation/waypoints", async (req, res) => {
+    try {
+      const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
+      const { name, latitude, longitude, description } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      if (!name || typeof latitude !== 'number' || typeof longitude !== 'number') {
+        return res.status(400).json({ error: "Name, latitude, and longitude are required" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const waypointsTable = getNavigationWaypointsTable();
+      const insertData = {
+        userId,
+        name,
+        latitude,
+        longitude,
+        description: description || null,
+      };
+
+      const [waypoint] = await db
+        .insert(waypointsTable)
+        .values(insertData)
+        .returning();
+
+      res.status(201).json(waypoint);
+    } catch (error) {
+      console.error("Error creating waypoint:", error);
+      res.status(500).json({ error: "Failed to create waypoint" });
+    }
+  });
+
+  app.delete("/api/navigation/waypoints/:id", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const { id } = req.params;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const waypointsTable = getNavigationWaypointsTable();
+      const deleted = await db
+        .delete(waypointsTable)
+        .where(and(eq(waypointsTable.id, id), eq(waypointsTable.userId, userId)))
+        .returning();
+
+      if (deleted.length === 0) {
+        return res.status(404).json({ error: "Waypoint not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting waypoint:", error);
+      res.status(500).json({ error: "Failed to delete waypoint" });
+    }
+  });
+
+  // Navigation routes API endpoints
+  app.get("/api/navigation/routes", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const routesTable = getNavigationRoutesTable();
+      const routes = await db
+        .select()
+        .from(routesTable)
+        .where(eq(routesTable.userId, userId))
+        .orderBy(routesTable.createdAt);
+
+      res.json(routes);
+    } catch (error) {
+      console.error("Error fetching routes:", error);
+      res.status(500).json({ error: "Failed to fetch routes" });
+    }
+  });
+
+  app.post("/api/navigation/routes", async (req, res) => {
+    try {
+      const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
+      const { name, waypointIds, description } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      if (!name || !Array.isArray(waypointIds) || waypointIds.length === 0) {
+        return res.status(400).json({ error: "Name and waypointIds array are required" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const routesTable = getNavigationRoutesTable();
+      const insertData = {
+        userId,
+        name,
+        waypointIds: Array.isArray(waypointIds) ? waypointIds : JSON.parse(waypointIds),
+        description: description || null,
+      };
+
+      const [route] = await db
+        .insert(routesTable)
+        .values(insertData)
+        .returning();
+
+      res.status(201).json(route);
+    } catch (error) {
+      console.error("Error creating route:", error);
+      res.status(500).json({ error: "Failed to create route" });
+    }
+  });
+
+  app.delete("/api/navigation/routes/:id", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const { id } = req.params;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const routesTable = getNavigationRoutesTable();
+      const deleted = await db
+        .delete(routesTable)
+        .where(and(eq(routesTable.id, id), eq(routesTable.userId, userId)))
+        .returning();
+
+      if (deleted.length === 0) {
+        return res.status(404).json({ error: "Route not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting route:", error);
+      res.status(500).json({ error: "Failed to delete route" });
+    }
+  });
+
+  // Weather API endpoint
+  app.get("/api/weather", async (req, res) => {
+    try {
+      let lat = parseFloat(req.query.lat as string);
+      let lon = parseFloat(req.query.lon as string);
+      const timezone = (req.query.timezone as string) || 'UTC';
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+
+      // If coordinates not provided, try to get from saved location
+      if ((isNaN(lat) || isNaN(lon)) && email) {
+        try {
+          const userId = await getUserIdFromEmail(email);
+          if (userId) {
+            const widgetLocationsTable = getWidgetLocationsTable();
+            const locations = await db
+              .select()
+              .from(widgetLocationsTable)
+              .where(eq(widgetLocationsTable.userId, userId))
+              .orderBy(desc(widgetLocationsTable.updatedAt))
+              .limit(1);
+            
+            if (locations.length > 0) {
+              lat = locations[0].latitude;
+              lon = locations[0].longitude;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching saved location:", error);
+          // Continue with fallback to timezone
+        }
+      }
+
+      // Validate coordinates or convert from timezone
+      let finalLat = lat;
+      let finalLon = lon;
+
+      if (isNaN(lat) || isNaN(lon)) {
+        // Try to get coordinates from timezone
+        const coords = weatherTimezoneToCoordinates(timezone);
+        if (coords) {
+          finalLat = coords.lat;
+          finalLon = coords.lon;
+        } else {
+          return res.status(400).json({ 
+            error: "Latitude and longitude are required, or provide a valid timezone, or set a widget location" 
+          });
+        }
+      }
+
+      const weatherData = await getWeatherData(finalLat, finalLon, timezone);
+
+      if (!weatherData) {
+        return res.status(503).json({ 
+          error: "Weather data unavailable. Please check API configuration." 
+        });
+      }
+
+      res.json(weatherData);
+    } catch (error) {
+      console.error("Error in weather endpoint:", error);
+      res.status(500).json({ error: "Failed to fetch weather data" });
+    }
+  });
+
+  // Tides API endpoint
+  app.get("/api/tides", async (req, res) => {
+    try {
+      let lat = parseFloat(req.query.lat as string);
+      let lon = parseFloat(req.query.lon as string);
+      const timezone = (req.query.timezone as string) || 'UTC';
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+
+      // If coordinates not provided, try to get from saved location
+      if ((isNaN(lat) || isNaN(lon)) && email) {
+        try {
+          const userId = await getUserIdFromEmail(email);
+          if (userId) {
+            const widgetLocationsTable = getWidgetLocationsTable();
+            const locations = await db
+              .select()
+              .from(widgetLocationsTable)
+              .where(eq(widgetLocationsTable.userId, userId))
+              .orderBy(desc(widgetLocationsTable.updatedAt))
+              .limit(1);
+            
+            if (locations.length > 0) {
+              lat = locations[0].latitude;
+              lon = locations[0].longitude;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching saved location:", error);
+          // Continue with fallback to timezone
+        }
+      }
+
+      // Validate coordinates or convert from timezone
+      let finalLat = lat;
+      let finalLon = lon;
+
+      if (isNaN(lat) || isNaN(lon)) {
+        // Try to get coordinates from timezone
+        const coords = tidesTimezoneToCoordinates(timezone);
+        if (coords) {
+          finalLat = coords.lat;
+          finalLon = coords.lon;
+        } else {
+          return res.status(400).json({ 
+            error: "Latitude and longitude are required, or provide a valid timezone, or set a widget location" 
+          });
+        }
+      }
+
+      const tideData = await getTideData(finalLat, finalLon, timezone);
+
+      if (!tideData) {
+        return res.status(503).json({ 
+          error: "Tide data unavailable. Please check API configuration." 
+        });
+      }
+
+      res.json(tideData);
+    } catch (error) {
+      console.error("Error in tides endpoint:", error);
+      res.status(500).json({ error: "Failed to fetch tide data" });
+    }
+  });
+
+  // AIS Vessels API endpoint
+  app.get("/api/ais/vessels", async (req, res) => {
+    try {
+      const lat = parseFloat(req.query.lat as string);
+      const lon = parseFloat(req.query.lon as string);
+      const radius = parseFloat(req.query.radius as string) || 10; // Default 10 nautical miles
+
+      if (isNaN(lat) || isNaN(lon)) {
+        return res.status(400).json({ error: "Latitude and longitude are required" });
+      }
+
+      // For now, return mock/demo data
+      // In production, this would connect to a real AIS API service
+      // Options include: MarineTraffic API, VesselFinder API, or other AIS providers
+      
+      const vessels = generateMockAISVessels(lat, lon, radius);
+
+      res.json({ vessels });
+    } catch (error) {
+      console.error("Error in AIS vessels endpoint:", error);
+      res.status(500).json({ error: "Failed to fetch AIS data" });
+    }
+  });
+
+  // Helper function to generate mock AIS vessels for demonstration
+  function generateMockAISVessels(lat: number, lon: number, radius: number): any[] {
+    const vessels: any[] = [];
+    const shipNames = ['Ocean Explorer', 'Sea Breeze', 'Maritime Star', 'Coastal Voyager', 'Harbor Master', 'Blue Horizon'];
+    const shipTypes = ['Cargo', 'Tanker', 'Container', 'Fishing', 'Passenger', 'Tug'];
+
+    const count = Math.floor(Math.random() * 5) + 3; // 3-7 vessels
+
+    for (let i = 0; i < count; i++) {
+      const distance = Math.random() * radius;
+      const bearing = Math.random() * 360;
+      const offsetLat = (distance / 60) * Math.cos(bearing * Math.PI / 180);
+      const offsetLon = (distance / (60 * Math.cos(lat * Math.PI / 180))) * Math.sin(bearing * Math.PI / 180);
+
+      vessels.push({
+        mmsi: String(230000000 + i),
+        name: shipNames[i % shipNames.length],
+        latitude: lat + offsetLat,
+        longitude: lon + offsetLon,
+        speed: Math.random() * 15 + 5,
+        course: Math.random() * 360,
+        shipType: shipTypes[i % shipTypes.length],
+        heading: Math.random() * 360,
+        destination: 'Port',
+      });
+    }
+
+    return vessels;
+  }
+
+  // Ports API endpoint
+  app.get("/api/ports", async (req, res) => {
+    try {
+      const region = req.query.region as string;
+      const type = req.query.type as 'Primary' | 'Secondary' | undefined;
+      const search = req.query.search as string;
+      const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+      const lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+      const radiusKm = req.query.radiusKm ? parseFloat(req.query.radiusKm as string) : 100;
+
+      let ports;
+
+      if (lat !== undefined && lon !== undefined && !isNaN(lat) && !isNaN(lon)) {
+        // Get ports near location
+        ports = await getPortsNearLocation(lat, lon, radiusKm);
+      } else {
+        // Get all ports with filters
+        ports = await getPorts({
+          region: region || undefined,
+          type: type || undefined,
+          search: search || undefined,
+        });
+      }
+
+      res.json({ ports });
+    } catch (error) {
+      console.error("Error in ports endpoint:", error);
+      res.status(500).json({ error: "Failed to fetch ports data" });
+    }
+  });
+
+  // Notices to Mariners API endpoint
+  app.get("/api/notices-to-mariners", async (req, res) => {
+    try {
+      let lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+      let lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const radiusKm = req.query.radiusKm ? parseFloat(req.query.radiusKm as string) : 200;
+
+      // If coordinates not provided, try to get from saved location
+      if ((lat === undefined || lon === undefined || isNaN(lat) || isNaN(lon)) && email) {
+        try {
+          const userId = await getUserIdFromEmail(email);
+          if (userId) {
+            const widgetLocationsTable = getWidgetLocationsTable();
+            const locations = await db
+              .select()
+              .from(widgetLocationsTable)
+              .where(eq(widgetLocationsTable.userId, userId))
+              .orderBy(desc(widgetLocationsTable.updatedAt))
+              .limit(1);
+            
+            if (locations.length > 0) {
+              lat = locations[0].latitude;
+              lon = locations[0].longitude;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching saved location:", error);
+          // Continue without location
+        }
+      }
+
+      const notices = await getNoticesToMariners(lat, lon, radiusKm);
+
+      res.json({ notices });
+    } catch (error) {
+      console.error("Error in notices to mariners endpoint:", error);
+      res.status(500).json({ error: "Failed to fetch notices to mariners" });
+    }
+  });
+
+  // Medical Facilities API endpoints
+  app.get("/api/medical-facilities", async (req, res) => {
+    try {
+      let lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+      let lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const radiusKm = req.query.radiusKm ? parseFloat(req.query.radiusKm as string) : 200;
+      const types = req.query.types ? (req.query.types as string).split(',') as MedicalFacilityType[] : undefined;
+      const country = req.query.country as string | undefined;
+      const region = req.query.region as string | undefined;
+      const available24h = req.query.available24h === 'true' ? true : req.query.available24h === 'false' ? false : undefined;
+
+      // If coordinates not provided, try to get from saved location
+      if ((lat === undefined || lon === undefined || isNaN(lat) || isNaN(lon)) && email) {
+        try {
+          const userId = await getUserIdFromEmail(email);
+          if (userId) {
+            const widgetLocationsTable = getWidgetLocationsTable();
+            const locations = await db
+              .select()
+              .from(widgetLocationsTable)
+              .where(eq(widgetLocationsTable.userId, userId))
+              .orderBy(desc(widgetLocationsTable.updatedAt))
+              .limit(1);
+            
+            if (locations.length > 0) {
+              lat = locations[0].latitude;
+              lon = locations[0].longitude;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching saved location:", error);
+          // Continue without location
+        }
+      }
+
+      const facilities = await getMedicalFacilities({
+        latitude: lat,
+        longitude: lon,
+        radiusKm: radiusKm,
+        types: types,
+        country: country,
+        region: region,
+        available24h: available24h,
+      });
+
+      res.json({ facilities });
+    } catch (error) {
+      console.error("Error in medical facilities endpoint:", error);
+      res.status(500).json({ error: "Failed to fetch medical facilities" });
+    }
+  });
+
+  // Get user's selected medical facilities
+  app.get("/api/medical-facilities/user-selections", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      if (!email) {
+        return res.status(400).json({ error: "Email required" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const facilities = await getUserMedicalFacilities(userId);
+      res.json({ facilities });
+    } catch (error) {
+      console.error("Error fetching user medical facilities:", error);
+      res.status(500).json({ error: "Failed to fetch user medical facilities" });
+    }
+  });
+
+  // Add medical facility to user's selections
+  app.post("/api/medical-facilities/user-selections", async (req, res) => {
+    try {
+      const email = (req.body.email as string) || (req.headers['x-user-email'] as string);
+      const { facilityId, isPrimary } = req.body;
+
+      if (!email || !facilityId) {
+        return res.status(400).json({ error: "Email and facilityId required" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await addUserMedicalFacility(userId, facilityId, isPrimary || false);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error adding user medical facility:", error);
+      res.status(500).json({ error: "Failed to add user medical facility" });
+    }
+  });
+
+  // Remove medical facility from user's selections
+  app.delete("/api/medical-facilities/user-selections/:facilityId", async (req, res) => {
+    try {
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const { facilityId } = req.params;
+
+      if (!email || !facilityId) {
+        return res.status(400).json({ error: "Email and facilityId required" });
+      }
+
+      const userId = await getUserIdFromEmail(email);
+      if (!userId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await removeUserMedicalFacility(userId, facilityId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing user medical facility:", error);
+      res.status(500).json({ error: "Failed to remove user medical facility" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
