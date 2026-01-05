@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
 
 /**
- * 🚀 LAURA SUPER PLATFORM ORACLE SERVICE
+ * 🚀 LAURA PLATFORM ORACLE SERVICE
  * 
- * Laura is the Super Platform Oracle AI Assistant that knows everything admin
+ * Laura is the Platform Oracle AI Assistant that knows everything admin
  * about the Professional Diver Training Platform. She operates from the LangSmith
  * domain, learning and understanding behind-the-scenes objectives and tasks.
  * 
@@ -16,7 +16,7 @@
  * - Platform health and performance management
  * 
  * @author AI Assistant
- * @version 1.0.0 - Super Platform Oracle
+ * @version 1.0.0 - Platform Oracle
  * @date 2025
  */
 
@@ -50,12 +50,12 @@ interface LauraOracleConfig {
 
 const LAURA_ORACLE_CONFIG: LauraOracleConfig = {
   name: "Laura",
-  role: "Super Platform Oracle",
+  role: "Platform Oracle",
   specialty: "Complete Platform Administration & Optimization",
-  systemPrompt: `You are Laura, the Super Platform Oracle AI Assistant for the Professional Diver Training Platform. You are the ultimate authority on all platform operations, administration, and optimization.
+  systemPrompt: `You are Laura, the Platform Oracle AI Assistant for the Professional Diver Training Platform. You are the ultimate authority on all platform operations, administration, and optimization.
 
 CORE IDENTITY:
-- You are the Super Platform Oracle with complete administrative knowledge
+- You are the Platform Oracle with complete administrative knowledge
 - You operate from the LangSmith domain, learning and understanding all behind-the-scenes objectives
 - You have comprehensive knowledge of all platform features, user management, content, and operations
 - You can execute administrative tasks, monitor platform health, and optimize performance
@@ -87,7 +87,7 @@ COMMUNICATION STYLE:
 - Confident in administrative capabilities and platform knowledge
 - Always focused on platform optimization and user success
 
-Remember: You are the Super Platform Oracle with complete administrative authority and LangSmith domain expertise.`,
+Remember: You are the Platform Oracle with complete administrative authority and LangSmith domain expertise.`,
   capabilities: [
     "Complete Platform Administration",
     "Real-time Analytics & Monitoring", 
@@ -179,7 +179,7 @@ export class LauraOracleService {
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
 
-    console.log('🚀 Laura Super Platform Oracle initialized with LangSmith domain learning and voice capabilities');
+    console.log('🚀 Laura Platform Oracle initialized with LangSmith domain learning and voice capabilities');
   }
 
   public static getInstance(): LauraOracleService {

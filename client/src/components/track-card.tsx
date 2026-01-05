@@ -22,18 +22,18 @@ export default function TrackCard({ track, progress, isLocked }: TrackCardProps)
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow" data-testid={`card-track-${track.id}`}>
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="text-xl font-semibold text-slate-900 mb-2" data-testid={`text-track-title-${track.id}`}>
+      <div className="p-4 sm:p-6">
+        <div className="flex items-start justify-between mb-4 gap-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg sm:text-xl font-semibold text-slate-900 mb-2" data-testid={`text-track-title-${track.id}`}>
               {track.title}
             </h3>
             <p className="text-slate-600 text-sm mb-4" data-testid={`text-track-summary-${track.id}`}>
               {track.summary}
             </p>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+          <div className="flex items-center flex-shrink-0">
+            <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${
               isLocked 
                 ? "bg-gray-100 text-gray-700" 
                 : "bg-ocean-100 text-ocean-700"
@@ -46,8 +46,8 @@ export default function TrackCard({ track, progress, isLocked }: TrackCardProps)
         {progress && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-600">Progress</span>
-              <span className="text-sm font-medium text-slate-900" data-testid={`text-progress-${track.id}`}>
+              <span className="text-xs sm:text-sm text-slate-600">Progress</span>
+              <span className="text-xs sm:text-sm font-medium text-slate-900" data-testid={`text-progress-${track.id}`}>
                 {progress.completed}/{progress.total} lessons
               </span>
             </div>
@@ -60,8 +60,8 @@ export default function TrackCard({ track, progress, isLocked }: TrackCardProps)
           </div>
         )}
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4 text-sm text-slate-500">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+          <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-500">
             <span className="flex items-center">
               <BookOpen className="w-4 h-4 mr-1" />
               {progress?.total || 0} lessons
@@ -75,15 +75,15 @@ export default function TrackCard({ track, progress, isLocked }: TrackCardProps)
             <Button 
               variant="outline" 
               disabled
-              className="text-slate-400 cursor-not-allowed text-sm"
+              className="text-slate-400 cursor-not-allowed text-sm w-full sm:w-auto"
               data-testid={`button-locked-${track.id}`}
             >
               Complete Prerequisites
             </Button>
           ) : (
-            <Link href={`/tracks/${track.slug}`}>
+            <Link href={`/tracks/${track.slug}`} className="w-full sm:w-auto">
               <Button 
-                className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium text-sm"
+                className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium text-sm w-full sm:w-auto"
                 data-testid={`button-continue-${track.id}`}
               >
                 Continue

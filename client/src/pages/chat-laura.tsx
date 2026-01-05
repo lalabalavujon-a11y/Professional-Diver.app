@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import RoleBasedNavigation from "@/components/role-based-navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -378,35 +379,10 @@ export default function ChatLaura() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-slate-50">
-      {/* Header */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <img 
-                src={diverWellLogo} 
-                alt="Professional Diver - Diver Well Training" 
-                className="w-10 h-10 rounded-lg"
-              />
-              <div>
-                <div className="text-lg font-bold text-slate-900">Professional Diver</div>
-                <div className="text-xs text-slate-500">Laura - Super Platform Oracle</div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard">
-                <Button variant="outline" className="flex items-center space-x-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Back to Dashboard</span>
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <RoleBasedNavigation />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Laura Oracle Info Sidebar */}
           <div className="lg:col-span-1">
@@ -417,7 +393,7 @@ export default function ChatLaura() {
                 </div>
                 <CardTitle className="text-xl">Laura</CardTitle>
                 <Badge variant="secondary" className="bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700">
-                  Super Platform Oracle
+                  Platform Oracle
                 </Badge>
               </CardHeader>
               <CardContent>
@@ -970,5 +946,6 @@ export default function ChatLaura() {
         </div>
       </main>
     </div>
+    </>
   );
 }

@@ -17,9 +17,10 @@ export default function TrackDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
+      <>
         <RoleBasedNavigation />
-        <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+          <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
             <div className="h-10 bg-gray-200 rounded w-3/4 mb-2"></div>
@@ -31,28 +32,31 @@ export default function TrackDetail() {
             </div>
           </div>
         </main>
-      </div>
+        </div>
+      </>
     );
   }
 
   if (!track) {
     return (
-      <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
+      <>
         <RoleBasedNavigation />
-        <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+          <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <p className="text-slate-500" data-testid="text-track-not-found">Track not found</p>
           </div>
         </main>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
+    <>
       <RoleBasedNavigation />
-      
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <Link href="/tracks">
             <Button variant="ghost" className="mb-4" data-testid="button-back">
@@ -81,11 +85,7 @@ export default function TrackDetail() {
                 <li key={lesson.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                        index === 0 
-                          ? "bg-primary-500 text-white" 
-                          : "bg-gray-100 text-gray-600"
-                      }`}>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-primary-500 text-white">
                         {lesson.order || index + 1}
                       </div>
                       <div>
@@ -93,31 +93,20 @@ export default function TrackDetail() {
                           {lesson.title}
                         </h3>
                         <p className="text-sm text-slate-500">
-                          {index === 0 ? "Current lesson" : "Locked"}
+                          Available
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      {index === 0 ? (
-                        <Link href={`/lessons/${lesson.id}`}>
-                          <Button 
-                            size="sm"
-                            className="bg-primary-500 hover:bg-primary-600 text-white"
-                            data-testid={`button-start-lesson-${lesson.id}`}
-                          >
-                            Start Lesson
-                          </Button>
-                        </Link>
-                      ) : (
+                      <Link href={`/lessons/${lesson.id}`}>
                         <Button 
-                          size="sm" 
-                          variant="outline" 
-                          disabled
-                          data-testid={`button-locked-lesson-${lesson.id}`}
+                          size="sm"
+                          className="bg-primary-500 hover:bg-primary-600 text-white"
+                          data-testid={`button-start-lesson-${lesson.id}`}
                         >
-                          Locked
+                          Start Lesson
                         </Button>
-                      )}
+                      </Link>
                     </div>
                   </div>
                 </li>
@@ -133,5 +122,6 @@ export default function TrackDetail() {
         )}
       </main>
     </div>
+    </>
   );
 }

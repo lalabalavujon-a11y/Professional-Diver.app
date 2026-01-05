@@ -156,6 +156,148 @@ export const clients = sqliteTable("clients", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
+export const widgetLocations = sqliteTable("widget_locations", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  locationName: text("location_name"), // Optional label for the location
+  isCurrentLocation: integer("is_current_location", { mode: "boolean" }).default(false).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const navigationWaypoints = sqliteTable("navigation_waypoints", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  description: text("description"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const navigationRoutes = sqliteTable("navigation_routes", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  waypointIds: text("waypoint_ids").notNull(), // JSON string of waypoint IDs in order
+  description: text("description"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+// Medical Facilities Tables
+export const medicalFacilities = sqliteTable("medical_facilities", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  name: text("name").notNull(),
+  type: text("type", { enum: ["A_E", "CRITICAL_CARE", "DIVING_DOCTOR", "HYPERBARIC"] }).notNull(),
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  address: text("address"),
+  city: text("city"),
+  country: text("country").notNull(),
+  region: text("region"),
+  phone: text("phone"),
+  emergencyPhone: text("emergency_phone"),
+  email: text("email"),
+  website: text("website"),
+  specialties: text("specialties").default("[]"), // JSON string array of specialty strings
+  services: text("services").default("[]"), // JSON string array of service strings
+  isAvailable24h: integer("is_available_24h", { mode: "boolean" }).default(false).notNull(),
+  notes: text("notes"),
+  isVerified: integer("is_verified", { mode: "boolean" }).default(false).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const userMedicalFacilitySelections = sqliteTable("user_medical_facility_selections", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  facilityId: text("facility_id").notNull().references(() => medicalFacilities.id, { onDelete: "cascade" }),
+  isPrimary: integer("is_primary", { mode: "boolean" }).default(false).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+// Equipment Maintenance Tables
+export const equipmentTypes = sqliteTable("equipment_types", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  name: text("name").notNull(),
+  description: text("description"),
+  defaultMaintenanceInterval: text("default_maintenance_interval"), // JSON string
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const equipmentItems = sqliteTable("equipment_items", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  equipmentTypeId: text("equipment_type_id").notNull().references(() => equipmentTypes.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  serialNumber: text("serial_number"),
+  manufacturer: text("manufacturer"),
+  model: text("model"),
+  purchaseDate: integer("purchase_date", { mode: "timestamp" }),
+  status: text("status", { enum: ["OPERATIONAL", "MAINTENANCE", "RETIRED", "RESERVED", "DECOMMISSIONED"] }).default("OPERATIONAL").notNull(),
+  location: text("location"),
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const maintenanceSchedules = sqliteTable("maintenance_schedules", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  equipmentTypeId: text("equipment_type_id").notNull().references(() => equipmentTypes.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  intervalType: text("interval_type", { enum: ["DAILY", "WEEKLY", "MONTHLY", "YEARLY", "HOURS", "CUSTOM"] }).notNull(),
+  intervalValue: integer("interval_value"), // e.g., 6 for "every 6 months", 500 for "every 500 hours"
+  checklist: text("checklist"), // JSON string of checklist items
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const maintenanceTasks = sqliteTable("maintenance_tasks", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  equipmentItemId: text("equipment_item_id").notNull().references(() => equipmentItems.id, { onDelete: "cascade" }),
+  maintenanceScheduleId: text("maintenance_schedule_id").notNull().references(() => maintenanceSchedules.id, { onDelete: "cascade" }),
+  scheduledDate: integer("scheduled_date", { mode: "timestamp" }).notNull(),
+  completedDate: integer("completed_date", { mode: "timestamp" }),
+  status: text("status", { enum: ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "OVERDUE", "CANCELLED"] }).default("SCHEDULED").notNull(),
+  assignedTo: text("assigned_to").references(() => users.id),
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const maintenanceLogs = sqliteTable("maintenance_logs", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  maintenanceTaskId: text("maintenance_task_id").references(() => maintenanceTasks.id, { onDelete: "set null" }),
+  equipmentItemId: text("equipment_item_id").notNull().references(() => equipmentItems.id, { onDelete: "cascade" }),
+  performedBy: text("performed_by").notNull().references(() => users.id),
+  performedDate: integer("performed_date", { mode: "timestamp" }).notNull(),
+  checklistResults: text("checklist_results"), // JSON string
+  notes: text("notes"),
+  partsReplaced: text("parts_replaced"), // JSON string
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const equipmentUseLogs = sqliteTable("equipment_use_logs", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  equipmentItemId: text("equipment_item_id").notNull().references(() => equipmentItems.id, { onDelete: "cascade" }),
+  useType: text("use_type", { enum: ["BEFORE_USE", "AFTER_USE"] }).notNull(),
+  logDate: integer("log_date", { mode: "timestamp" }).notNull(),
+  performedBy: text("performed_by").notNull().references(() => users.id),
+  condition: text("condition", { enum: ["EXCELLENT", "GOOD", "FAIR", "POOR"] }).notNull(),
+  defects: text("defects"), // JSON string
+  notes: text("notes"),
+  hoursUsed: real("hours_used"),
+  location: text("location"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   accounts: many(accounts),
@@ -164,6 +306,13 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   userProgress: many(userProgress),
   quizAttempts: many(quizAttempts),
   learningPaths: many(learningPaths),
+  widgetLocations: many(widgetLocations),
+  navigationWaypoints: many(navigationWaypoints),
+  navigationRoutes: many(navigationRoutes),
+  medicalFacilitySelections: many(userMedicalFacilitySelections),
+  assignedMaintenanceTasks: many(maintenanceTasks),
+  performedMaintenanceLogs: many(maintenanceLogs),
+  equipmentUseLogs: many(equipmentUseLogs),
 }));
 
 export const tracksRelations = relations(tracks, ({ one, many }) => ({
@@ -228,7 +377,109 @@ export const learningPathsRelations = relations(learningPaths, ({ one }) => ({
   }),
 }));
 
+export const widgetLocationsRelations = relations(widgetLocations, ({ one }) => ({
+  user: one(users, {
+    fields: [widgetLocations.userId],
+    references: [users.id],
+  }),
+}));
+
+export const navigationWaypointsRelations = relations(navigationWaypoints, ({ one }) => ({
+  user: one(users, {
+    fields: [navigationWaypoints.userId],
+    references: [users.id],
+  }),
+}));
+
+export const navigationRoutesRelations = relations(navigationRoutes, ({ one }) => ({
+  user: one(users, {
+    fields: [navigationRoutes.userId],
+    references: [users.id],
+  }),
+}));
+
+export const medicalFacilitiesRelations = relations(medicalFacilities, ({ many }) => ({
+  userSelections: many(userMedicalFacilitySelections),
+}));
+
+export const userMedicalFacilitySelectionsRelations = relations(userMedicalFacilitySelections, ({ one }) => ({
+  user: one(users, {
+    fields: [userMedicalFacilitySelections.userId],
+    references: [users.id],
+  }),
+  facility: one(medicalFacilities, {
+    fields: [userMedicalFacilitySelections.facilityId],
+    references: [medicalFacilities.id],
+  }),
+}));
+
 export const clientsRelations = relations(clients, ({}) => ({}));
+
+// Equipment Relations
+export const equipmentTypesRelations = relations(equipmentTypes, ({ many }) => ({
+  equipmentItems: many(equipmentItems),
+  maintenanceSchedules: many(maintenanceSchedules),
+}));
+
+export const equipmentItemsRelations = relations(equipmentItems, ({ one, many }) => ({
+  equipmentType: one(equipmentTypes, {
+    fields: [equipmentItems.equipmentTypeId],
+    references: [equipmentTypes.id],
+  }),
+  maintenanceTasks: many(maintenanceTasks),
+  maintenanceLogs: many(maintenanceLogs),
+  useLogs: many(equipmentUseLogs),
+}));
+
+export const maintenanceSchedulesRelations = relations(maintenanceSchedules, ({ one, many }) => ({
+  equipmentType: one(equipmentTypes, {
+    fields: [maintenanceSchedules.equipmentTypeId],
+    references: [equipmentTypes.id],
+  }),
+  maintenanceTasks: many(maintenanceTasks),
+}));
+
+export const maintenanceTasksRelations = relations(maintenanceTasks, ({ one, many }) => ({
+  equipmentItem: one(equipmentItems, {
+    fields: [maintenanceTasks.equipmentItemId],
+    references: [equipmentItems.id],
+  }),
+  maintenanceSchedule: one(maintenanceSchedules, {
+    fields: [maintenanceTasks.maintenanceScheduleId],
+    references: [maintenanceSchedules.id],
+  }),
+  assignedUser: one(users, {
+    fields: [maintenanceTasks.assignedTo],
+    references: [users.id],
+  }),
+  maintenanceLogs: many(maintenanceLogs),
+}));
+
+export const maintenanceLogsRelations = relations(maintenanceLogs, ({ one }) => ({
+  equipmentItem: one(equipmentItems, {
+    fields: [maintenanceLogs.equipmentItemId],
+    references: [equipmentItems.id],
+  }),
+  maintenanceTask: one(maintenanceTasks, {
+    fields: [maintenanceLogs.maintenanceTaskId],
+    references: [maintenanceTasks.id],
+  }),
+  performedByUser: one(users, {
+    fields: [maintenanceLogs.performedBy],
+    references: [users.id],
+  }),
+}));
+
+export const equipmentUseLogsRelations = relations(equipmentUseLogs, ({ one }) => ({
+  equipmentItem: one(equipmentItems, {
+    fields: [equipmentUseLogs.equipmentItemId],
+    references: [equipmentItems.id],
+  }),
+  performedByUser: one(users, {
+    fields: [equipmentUseLogs.performedBy],
+    references: [users.id],
+  }),
+}));
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -266,6 +517,72 @@ export const insertAttemptSchema = createInsertSchema(quizAttempts).omit({
   completedAt: true,
 });
 
+export const insertWidgetLocationSchema = createInsertSchema(widgetLocations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNavigationWaypointSchema = createInsertSchema(navigationWaypoints).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNavigationRouteSchema = createInsertSchema(navigationRoutes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMedicalFacilitySchema = createInsertSchema(medicalFacilities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserMedicalFacilitySelectionSchema = createInsertSchema(userMedicalFacilitySelections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEquipmentTypeSchema = createInsertSchema(equipmentTypes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEquipmentItemSchema = createInsertSchema(equipmentItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMaintenanceScheduleSchema = createInsertSchema(maintenanceSchedules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMaintenanceTaskSchema = createInsertSchema(maintenanceTasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMaintenanceLogSchema = createInsertSchema(maintenanceLogs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEquipmentUseLogSchema = createInsertSchema(equipmentUseLogs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -285,3 +602,25 @@ export type Client = typeof clients.$inferSelect;
 export type AITutor = typeof aiTutors.$inferSelect;
 export type UserProgress = typeof userProgress.$inferSelect;
 export type LearningPath = typeof learningPaths.$inferSelect;
+export type WidgetLocation = typeof widgetLocations.$inferSelect;
+export type InsertWidgetLocation = z.infer<typeof insertWidgetLocationSchema>;
+export type NavigationWaypoint = typeof navigationWaypoints.$inferSelect;
+export type InsertNavigationWaypoint = z.infer<typeof insertNavigationWaypointSchema>;
+export type NavigationRoute = typeof navigationRoutes.$inferSelect;
+export type InsertNavigationRoute = z.infer<typeof insertNavigationRouteSchema>;
+export type MedicalFacility = typeof medicalFacilities.$inferSelect;
+export type InsertMedicalFacility = z.infer<typeof insertMedicalFacilitySchema>;
+export type UserMedicalFacilitySelection = typeof userMedicalFacilitySelections.$inferSelect;
+export type InsertUserMedicalFacilitySelection = z.infer<typeof insertUserMedicalFacilitySelectionSchema>;
+export type EquipmentType = typeof equipmentTypes.$inferSelect;
+export type InsertEquipmentType = z.infer<typeof insertEquipmentTypeSchema>;
+export type EquipmentItem = typeof equipmentItems.$inferSelect;
+export type InsertEquipmentItem = z.infer<typeof insertEquipmentItemSchema>;
+export type MaintenanceSchedule = typeof maintenanceSchedules.$inferSelect;
+export type InsertMaintenanceSchedule = z.infer<typeof insertMaintenanceScheduleSchema>;
+export type MaintenanceTask = typeof maintenanceTasks.$inferSelect;
+export type InsertMaintenanceTask = z.infer<typeof insertMaintenanceTaskSchema>;
+export type MaintenanceLog = typeof maintenanceLogs.$inferSelect;
+export type InsertMaintenanceLog = z.infer<typeof insertMaintenanceLogSchema>;
+export type EquipmentUseLog = typeof equipmentUseLogs.$inferSelect;
+export type InsertEquipmentUseLog = z.infer<typeof insertEquipmentUseLogSchema>;

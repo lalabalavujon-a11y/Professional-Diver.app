@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, ArrowLeft, Volume2, VolumeX, Pause, Mic, MicOff, Waves } from "lucide-react";
 import { Link } from "wouter";
-import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
+import RoleBasedNavigation from "@/components/role-based-navigation";
 
 interface Message {
   id: string;
@@ -19,7 +19,7 @@ export default function ChatDiverWell() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hello! I'm Diver Well, your Commercial Diving AI Consultant. I'm here to help you with dive planning, safety protocols, operational procedures, and all aspects of commercial diving operations. I can assist with risk assessment, equipment recommendations, emergency procedures, and industry best practices. How can I help you with your diving operations today?",
+      text: "Hello! I'm Diver Well, your AI Diving Consultant, How can I help you today?",
       sender: 'diverwell',
       timestamp: new Date()
     }
@@ -229,35 +229,10 @@ export default function ChatDiverWell() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50">
-      {/* Header */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <img 
-                src={diverWellLogo} 
-                alt="Professional Diver - Diver Well Training" 
-                className="w-10 h-10 rounded-lg"
-              />
-              <div>
-                <div className="text-lg font-bold text-slate-900">Professional Diver</div>
-                <div className="text-xs text-slate-500">Diver Well - Commercial Diving AI Consultant</div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard">
-                <Button variant="outline" className="flex items-center space-x-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Back to Dashboard</span>
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <RoleBasedNavigation />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Diver Well Info Sidebar */}
           <div className="lg:col-span-1">
@@ -301,12 +276,6 @@ export default function ChatDiverWell() {
                         <span>Voice Communication (Alloy)</span>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 rounded-lg">
-                    <p className="text-xs text-blue-800">
-                      🌊 <strong>Consultant Tip:</strong> I'm your expert commercial diving operations consultant powered by LangChain! Ask me about dive planning, safety protocols, operational procedures, equipment selection, or any commercial diving questions. I can speak my responses too!
-                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -451,8 +420,9 @@ export default function ChatDiverWell() {
             </Card>
           </div>
         </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }
 
