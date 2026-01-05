@@ -10,10 +10,10 @@ import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 const PORT_OF_SOUTHAMPTON = {
-  latitude: 50.9097,
-  longitude: -1.4044,
-  locationName: 'Port of Southampton',
-  isCurrentLocation: false,
+  latitude: 50.863714,
+  longitude: -1.425028,
+  locationName: 'Port of Southampton (Current Location)',
+  isCurrentLocation: true,
 };
 
 async function setDefaultLocation() {

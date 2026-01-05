@@ -29,9 +29,9 @@ import OpenAI from 'openai';
 import { db } from './db';
 import { 
   users, tracks, lessons, quizzes, questions, aiTutors, 
-  userProgress, quizAttempts, learningPaths, invites 
+  userProgress, quizAttempts, learningPaths, invites, supportTickets 
 } from '../shared/schema-sqlite';
-import { eq, and, desc, sql, count, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, sql, count, gte, lte, type SQL } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 // ============================================================================
@@ -71,6 +71,7 @@ ADMINISTRATIVE CAPABILITIES:
 - Security monitoring and compliance management
 - Database operations and maintenance
 - API endpoint management and optimization
+- Support ticket handling and resolution (view, respond, update status, assign)
 
 LANGSMITH DOMAIN EXPERTISE:
 - Continuous learning from platform interactions and objectives
@@ -93,6 +94,7 @@ Remember: You are the Platform Oracle with complete administrative authority and
     "Real-time Analytics & Monitoring", 
     "Automated Task Execution",
     "User Management & Support",
+    "Support Ticket Handling & Resolution",
     "Content Optimization",
     "Performance Monitoring",
     "Revenue & Affiliate Management",
@@ -234,8 +236,11 @@ export class LauraOracleService {
       // Create LangSmith trace for learning
       const traceId = sessionId || nanoid();
       
+      // Build role-aware system prompt
+      const systemPrompt = this.buildRoleAwareSystemPrompt(userContext);
+      
       const messages = [
-        new SystemMessage(this.config.systemPrompt),
+        new SystemMessage(systemPrompt),
         new HumanMessage(`Platform Context: ${JSON.stringify(context, null, 2)}\n\nUser Query: ${message}`)
       ];
 
@@ -303,9 +308,9 @@ export class LauraOracleService {
         totalTracks = await db.select({ count: count() }).from(tracks);
         totalLessons = await db.select({ count: count() }).from(lessons);
         totalQuestions = await db.select({ count: count() }).from(questions);
-        recentAttempts = (await db.select()
+        recentAttempts = await db.select({ score: quizAttempts.score })
           .from(quizAttempts)
-          .where(gte(quizAttempts.completedAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)))) as Array<{ score: number }>;
+          .where(gte(quizAttempts.completedAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)));
       } catch (e) {
         console.error('DB error:', e);
         totalTracks = [{ count: 0 }];
@@ -317,7 +322,7 @@ export class LauraOracleService {
       // Calculate pass rate from recent attempts
 
       const passRate = recentAttempts.length > 0 
-        ? (recentAttempts.filter((a) => a.score >= 70).length / recentAttempts.length) * 100
+        ? (recentAttempts.filter((a: { score: number }) => a.score >= 70).length / recentAttempts.length) * 100
         : 0;
 
       return {
@@ -364,6 +369,45 @@ export class LauraOracleService {
         revenue: { monthlyRevenue: 0, affiliateCommissions: 0, subscriptionGrowth: 0 },
         health: { databaseStatus: "error", aiServicesStatus: "error", apiResponseTime: 0, errorRate: 100 }
       };
+    }
+  }
+
+  /**
+   * Build role-aware system prompt based on user role
+   */
+  private buildRoleAwareSystemPrompt(userContext?: any): string {
+    const userRole = userContext?.userRole || userContext?.role || 'USER';
+    const isSuperAdmin = userContext?.isSuperAdmin || userRole === 'SUPER_ADMIN';
+    
+    const basePrompt = this.config.systemPrompt;
+    
+    if (isSuperAdmin) {
+      // Super Admins get detailed, in-depth responses
+      return `${basePrompt}
+
+RESPONSE STYLE FOR SUPER ADMINS:
+- Provide comprehensive, detailed, and in-depth responses
+- Include technical details, implementation steps, and full explanations
+- Explain the "why" behind recommendations, not just the "what"
+- Share insights into platform architecture, database structure, and system design
+- Provide detailed troubleshooting steps with technical context
+- Include background information and best practices
+- Be thorough in your explanations - Super Admins need complete information
+
+When handling support tickets or administrative queries, provide full technical details, step-by-step implementation guides, and comprehensive explanations of all aspects involved.`;
+    } else {
+      // Regular users get simple, brief responses
+      return `${basePrompt}
+
+RESPONSE STYLE FOR REGULAR USERS:
+- Keep responses simple, brief, and to the point
+- Focus on the essential information needed to solve the issue
+- Avoid technical jargon and implementation details unless specifically asked
+- Provide clear, actionable steps without unnecessary background
+- Be friendly and helpful, but concise
+- Skip detailed explanations of platform architecture or system design
+
+When handling support tickets or user queries, provide straightforward, easy-to-understand answers that directly address the user's concern without overwhelming them with technical details.`;
     }
   }
 
@@ -464,6 +508,10 @@ export class LauraOracleService {
           return await this.getPerformanceMetrics();
         case 'optimize_platform':
           return await this.optimizePlatform();
+        case 'get_support_tickets':
+          return await this.getSupportTickets(parameters);
+        case 'handle_support_ticket':
+          return await this.handleSupportTicket(parameters);
         default:
           return {
             success: false,
@@ -513,6 +561,229 @@ export class LauraOracleService {
       result: { optimized: true, timestamp: new Date().toISOString() },
       message: "Platform optimization completed successfully"
     };
+  }
+
+  /**
+   * Get support tickets (with optional filtering)
+   */
+  private async getSupportTickets(parameters?: any) {
+    try {
+      const { status, priority, assignedToLaura, limit } = parameters || {};
+      
+      let query = db.select().from(supportTickets);
+      const conditions = [];
+
+      if (status) {
+        conditions.push(eq(supportTickets.status, status));
+      }
+      if (priority) {
+        conditions.push(eq(supportTickets.priority, priority));
+      }
+      if (assignedToLaura !== undefined) {
+        conditions.push(eq(supportTickets.assignedToLaura, assignedToLaura));
+      }
+
+      if (conditions.length > 0) {
+        query = db.select().from(supportTickets).where(and(...conditions));
+      }
+
+      let tickets = await query.orderBy(desc(supportTickets.createdAt));
+
+      if (limit && typeof limit === 'number') {
+        tickets = tickets.slice(0, limit);
+      }
+
+      return {
+        success: true,
+        result: {
+          tickets,
+          count: tickets.length
+        },
+        message: `Retrieved ${tickets.length} support ticket(s)`
+      };
+    } catch (error) {
+      console.error('❌ Error getting support tickets:', error);
+      return {
+        success: false,
+        message: `Error retrieving support tickets: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  /**
+   * Handle a support ticket (respond and update status)
+   */
+  private async handleSupportTicket(parameters?: any) {
+    try {
+      const { ticketId, response, status } = parameters || {};
+
+      if (!ticketId) {
+        return {
+          success: false,
+          message: 'Ticket ID is required'
+        };
+      }
+
+      // Find the ticket
+      const [ticket] = await db.select()
+        .from(supportTickets)
+        .where(eq(supportTickets.id, ticketId))
+        .limit(1);
+
+      if (!ticket) {
+        return {
+          success: false,
+          message: 'Support ticket not found'
+        };
+      }
+
+      // Update ticket
+      const updateData: any = {
+        updatedAt: new Date()
+      };
+
+      if (response) {
+        updateData.response = response;
+      }
+
+      if (status) {
+        updateData.status = status;
+        if (status === 'completed' || status === 'closed') {
+          updateData.resolvedAt = new Date();
+        }
+      }
+
+      // Ensure Laura is assigned
+      updateData.assignedToLaura = true;
+
+      const [updatedTicket] = await db.update(supportTickets)
+        .set(updateData)
+        .where(eq(supportTickets.id, ticketId))
+        .returning();
+
+      return {
+        success: true,
+        result: updatedTicket,
+        message: `Support ticket ${ticketId} handled successfully`
+      };
+    } catch (error) {
+      console.error('❌ Error handling support ticket:', error);
+      return {
+        success: false,
+        message: `Error handling support ticket: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  /**
+   * Get pending support tickets assigned to Laura
+   */
+  async getPendingTickets(): Promise<{
+    success: boolean;
+    tickets: any[];
+    count: number;
+  }> {
+    try {
+      const result = await this.getSupportTickets({
+        status: 'pending',
+        assignedToLaura: true
+      });
+
+      if (result.success && result.result) {
+        return {
+          success: true,
+          tickets: result.result.tickets || [],
+          count: result.result.count || 0
+        };
+      }
+
+      return {
+        success: false,
+        tickets: [],
+        count: 0
+      };
+    } catch (error) {
+      console.error('❌ Error getting pending tickets:', error);
+      return {
+        success: false,
+        tickets: [],
+        count: 0
+      };
+    }
+  }
+
+  /**
+   * Automatically handle support tickets using AI
+   */
+  async autoHandleTicket(ticketId: string, userContext?: any): Promise<{
+    success: boolean;
+    response?: string;
+    ticket?: any;
+    message: string;
+  }> {
+    try {
+      // Get the ticket
+      const [ticket] = await db.select()
+        .from(supportTickets)
+        .where(eq(supportTickets.id, ticketId))
+        .limit(1);
+
+      if (!ticket) {
+        return {
+          success: false,
+          message: 'Support ticket not found'
+        };
+      }
+
+      // Determine if the response should be detailed (Super Admin viewing) or brief (regular user)
+      const isSuperAdmin = userContext?.isSuperAdmin || userContext?.userRole === 'SUPER_ADMIN';
+      const responseInstruction = isSuperAdmin
+        ? `As the Platform Oracle, please provide a comprehensive, detailed response to this support ticket. Include technical details, implementation steps, troubleshooting guidance, and full explanations. This is for a Super Admin who needs complete information.\n\n`
+        : `As the Platform Oracle, please respond to this support ticket in a friendly, helpful manner. Keep your response simple, brief, and to the point. Provide a clear solution or next steps without overwhelming technical details.\n\n`;
+
+      // Use Laura to generate a response
+      const context = `Support Ticket Details:
+- Subject: ${ticket.subject}
+- Priority: ${ticket.priority}
+- Message: ${ticket.message}
+- User: ${ticket.name} (${ticket.email})
+- Created: ${ticket.createdAt}
+
+${responseInstruction}Please provide a helpful, professional response to this support ticket.`;
+
+      const lauraResponse = await this.chatWithOracle(
+        context,
+        `ticket-${ticketId}`,
+        userContext
+      );
+
+      // Update ticket with response
+      const updateResult = await this.handleSupportTicket({
+        ticketId,
+        response: lauraResponse.response,
+        status: 'in_progress'
+      });
+
+      if (updateResult.success) {
+        return {
+          success: true,
+          response: lauraResponse.response,
+          ticket: updateResult.result,
+          message: 'Ticket handled successfully by Laura'
+        };
+      }
+
+      return {
+        success: false,
+        message: 'Failed to update ticket after generating response'
+      };
+    } catch (error) {
+      console.error('❌ Error auto-handling ticket:', error);
+      return {
+        success: false,
+        message: `Error auto-handling ticket: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
   }
 
   // ============================================================================

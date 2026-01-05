@@ -188,7 +188,7 @@ export class TempDatabaseStorage {
   async getAllClients() {
     try {
       const result = await db.execute(`
-        SELECT id, name, email, subscription_type, status, subscription_date, monthly_revenue, notes, created_at, updated_at 
+        SELECT id, user_id, name, email, subscription_type, status, subscription_date, monthly_revenue, notes, partner_status, conversion_date, highlevel_contact_id, created_at, updated_at 
         FROM clients 
         ORDER BY created_at DESC
       `);
@@ -202,10 +202,21 @@ export class TempDatabaseStorage {
   async createClient(client: any) {
     try {
       const result = await db.execute(`
-        INSERT INTO clients (name, email, subscription_type, status, subscription_date, monthly_revenue, notes) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        INSERT INTO clients (name, email, subscription_type, status, subscription_date, monthly_revenue, notes, user_id, partner_status, highlevel_contact_id) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
         RETURNING *
-      `, [client.name, client.email, client.subscriptionType, client.status, client.subscriptionDate, client.monthlyRevenue, client.notes]);
+      `, [
+        client.name, 
+        client.email, 
+        client.subscriptionType || 'TRIAL', 
+        client.status || 'ACTIVE', 
+        client.subscriptionDate || new Date().toISOString(), 
+        client.monthlyRevenue || 0, 
+        client.notes || null,
+        client.userId || null,
+        client.partnerStatus || 'NONE',
+        client.highlevelContactId || null
+      ]);
       return result.rows[0];
     } catch (error) {
       console.error('Error creating client:', error);
@@ -217,10 +228,35 @@ export class TempDatabaseStorage {
     try {
       const result = await db.execute(`
         UPDATE clients 
-        SET name = $2, email = $3, subscription_type = $4, status = $5, subscription_date = $6, monthly_revenue = $7, notes = $8, updated_at = CURRENT_TIMESTAMP
+        SET 
+          name = COALESCE($2, name), 
+          email = COALESCE($3, email), 
+          subscription_type = COALESCE($4, subscription_type), 
+          status = COALESCE($5, status), 
+          subscription_date = COALESCE($6, subscription_date), 
+          monthly_revenue = COALESCE($7, monthly_revenue), 
+          notes = COALESCE($8, notes),
+          user_id = COALESCE($9, user_id),
+          partner_status = COALESCE($10, partner_status),
+          conversion_date = COALESCE($11, conversion_date),
+          highlevel_contact_id = COALESCE($12, highlevel_contact_id),
+          updated_at = CURRENT_TIMESTAMP
         WHERE id = $1 
         RETURNING *
-      `, [id, updates.name, updates.email, updates.subscriptionType, updates.status, updates.subscriptionDate, updates.monthlyRevenue, updates.notes]);
+      `, [
+        id, 
+        updates.name, 
+        updates.email, 
+        updates.subscriptionType, 
+        updates.status, 
+        updates.subscriptionDate, 
+        updates.monthlyRevenue, 
+        updates.notes,
+        updates.userId,
+        updates.partnerStatus,
+        updates.conversionDate,
+        updates.highlevelContactId
+      ]);
       return result.rows[0];
     } catch (error) {
       console.error('Error updating client:', error);

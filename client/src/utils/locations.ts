@@ -108,17 +108,31 @@ export async function getLocationDetails(value: string): Promise<{
     const portId = value.replace('port:', '');
     try {
       const response = await fetch(`/api/ports?id=${portId}`);
-      if (!response.ok) return null;
-      const port = await response.json();
-      if (Array.isArray(port) && port.length > 0) {
-        const p = port[0];
+      if (!response.ok) {
+        console.error('Port API error:', response.status, response.statusText);
+        return null;
+      }
+      const data = await response.json();
+      // Handle both array response and { ports: [...] } response
+      let port = null;
+      if (Array.isArray(data)) {
+        port = data[0];
+      } else if (data.ports && Array.isArray(data.ports) && data.ports.length > 0) {
+        port = data.ports[0];
+      } else if (data && typeof data === 'object' && data.latitude && data.longitude) {
+        // Single port object
+        port = data;
+      }
+      
+      if (port && port.latitude && port.longitude) {
         return {
-          timezone: p.timezone,
-          latitude: p.latitude,
-          longitude: p.longitude,
-          name: p.name,
+          timezone: port.timezone || 'UTC',
+          latitude: port.latitude,
+          longitude: port.longitude,
+          name: port.name || portId,
         };
       }
+      console.error('Port data invalid:', data);
       return null;
     } catch (error) {
       console.error('Error fetching port details:', error);

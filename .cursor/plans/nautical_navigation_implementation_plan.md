@@ -264,3 +264,4 @@ Or use in-memory storage similar to userProfileStore for MVP.
 - Can upgrade to Enhanced plan later for overlay support
 - All navigation calculations built in-house (no external API needed)
 
+

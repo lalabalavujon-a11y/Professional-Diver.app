@@ -294,3 +294,4 @@ export function getTimezoneCoordinates(timezone: string): { lat: number; lon: nu
   return coordMap[timezone] || null;
 }
 
+

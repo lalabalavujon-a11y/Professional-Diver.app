@@ -183,18 +183,16 @@ export default function RoleBasedNavigation() {
         }}
       >
         <SidebarHeader className="p-4">
-          <Link href="/" data-testid="link-home">
-            <a className="flex items-center space-x-3">
-              <img 
-                src={diverWellLogo} 
-                alt="Professional Diver - Diver Well Training" 
-                className="w-10 h-10 rounded-lg flex-shrink-0"
-              />
-              <div className="group-data-[collapsible=icon]:hidden">
-                <h1 className="text-lg font-bold text-sidebar-foreground">Professional Diver</h1>
-                <p className="text-xs text-sidebar-foreground/70">Diver Well Training</p>
-              </div>
-            </a>
+          <Link href="/" data-testid="link-home" className="flex items-center space-x-3">
+            <img 
+              src={diverWellLogo} 
+              alt="Professional Diver - Diver Well Training" 
+              className="w-10 h-10 rounded-lg flex-shrink-0"
+            />
+            <div className="group-data-[collapsible=icon]:hidden">
+              <h1 className="text-lg font-bold text-sidebar-foreground">Professional Diver</h1>
+              <p className="text-xs text-sidebar-foreground/70">Diver Well Training</p>
+            </div>
           </Link>
         </SidebarHeader>
 
@@ -220,11 +218,9 @@ export default function RoleBasedNavigation() {
                         const Icon = item.icon;
                         return (
                           <DropdownMenuItem key={item.href} asChild>
-                            <Link href={item.href} data-testid={`link-${item.href.replace('/', '')}`}>
-                              <a className="w-full flex items-center space-x-2">
-                                <Icon className="w-4 h-4" />
-                                <span>{item.label}</span>
-                              </a>
+                            <Link href={item.href} data-testid={`link-${item.href.replace('/', '')}`} className="w-full flex items-center space-x-2">
+                              <Icon className="w-4 h-4" />
+                              <span>{item.label}</span>
                             </Link>
                           </DropdownMenuItem>
                         );
@@ -252,11 +248,9 @@ export default function RoleBasedNavigation() {
                           const Icon = item.icon;
                           return (
                             <DropdownMenuItem key={item.href} asChild>
-                              <Link href={item.href} data-testid={`link-${item.href.replace('/', '')}`}>
-                                <a className="w-full flex items-center space-x-2">
-                                  <Icon className="w-4 h-4" />
-                                  <span>{item.label}</span>
-                                </a>
+                              <Link href={item.href} data-testid={`link-${item.href.replace('/', '')}`} className="w-full flex items-center space-x-2">
+                                <Icon className="w-4 h-4" />
+                                <span>{item.label}</span>
                               </Link>
                             </DropdownMenuItem>
                           );
@@ -313,27 +307,21 @@ export default function RoleBasedNavigation() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
                       <DropdownMenuItem asChild>
-                        <Link href="/chat/laura" data-testid="link-support-laura">
-                          <a className="w-full flex items-center space-x-2">
-                            <MessageSquare className="w-4 h-4" />
-                            <span>Chat with Laura</span>
-                          </a>
+                        <Link href="/chat/laura" data-testid="link-support-laura" className="w-full flex items-center space-x-2">
+                          <MessageSquare className="w-4 h-4" />
+                          <span>Chat with Laura</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/privacy" data-testid="link-privacy">
-                          <a className="w-full flex items-center space-x-2">
-                            <Shield className="w-4 h-4" />
-                            <span>Privacy Policy</span>
-                          </a>
+                        <Link href="/privacy" data-testid="link-privacy" className="w-full flex items-center space-x-2">
+                          <Shield className="w-4 h-4" />
+                          <span>Privacy Policy</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/terms" data-testid="link-terms">
-                          <a className="w-full flex items-center space-x-2">
-                            <FileText className="w-4 h-4" />
-                            <span>Terms of Service</span>
-                          </a>
+                        <Link href="/terms" data-testid="link-terms" className="w-full flex items-center space-x-2">
+                          <FileText className="w-4 h-4" />
+                          <span>Terms of Service</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
