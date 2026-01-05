@@ -96,10 +96,10 @@ export default function SrsReview() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-slate-900 font-sans">
+    <>
       <RoleBasedNavigation />
-
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Daily Review (SRS)</CardTitle>
@@ -230,6 +230,7 @@ export default function SrsReview() {
         )}
       </main>
     </div>
+    </>
   );
 }
 

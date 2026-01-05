@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { User, Settings, LogOut, Shield, Star, Award, Crown } from "lucide-react";
 import {
   DropdownMenu,
@@ -144,26 +145,29 @@ export default function UserProfileDropdown() {
         <DropdownMenuSeparator />
         
         <DropdownMenuGroup>
-          <DropdownMenuItem
-            onClick={() => window.location.href = '/profile-settings'}
-            data-testid="menu-profile"
-          >
-            <User className="mr-2 h-4 w-4" />
-            <span>Profile Settings</span>
+          <DropdownMenuItem asChild>
+            <Link href="/profile-settings" data-testid="menu-profile">
+              <a className="w-full flex items-center">
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile Settings</span>
+              </a>
+            </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => window.location.href = '/dashboard'}
-            data-testid="menu-dashboard"
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Dashboard</span>
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard" data-testid="menu-dashboard">
+              <a className="w-full flex items-center">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Dashboard</span>
+              </a>
+            </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => window.location.href = '/affiliate'}
-            data-testid="menu-affiliate"
-          >
-            <Star className="mr-2 h-4 w-4" />
-            <span>Affiliate Dashboard</span>
+          <DropdownMenuItem asChild>
+            <Link href="/affiliate" data-testid="menu-affiliate">
+              <a className="w-full flex items-center">
+                <Star className="mr-2 h-4 w-4" />
+                <span>Affiliate Dashboard</span>
+              </a>
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         

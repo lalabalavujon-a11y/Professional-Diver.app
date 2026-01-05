@@ -217,6 +217,12 @@ export class AffiliateService {
       .find(a => a.affiliateCode === code);
   }
 
+  // Get affiliate by userId
+  async getAffiliateByUserId(userId: string) {
+    return Array.from(this.affiliates.values())
+      .find(a => a.userId === userId);
+  }
+
   // Add predefined super admins and lifetime users
   async initializeSpecialUsers() {
     // Super Admins

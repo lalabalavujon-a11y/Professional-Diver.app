@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import UserStatusBadge from "@/components/user-status-badge";
+import WidgetBar from "@/components/widgets/widget-bar";
 import { CheckCircle, AlertTriangle, Flame } from "lucide-react";
 import { Link } from "wouter";
 
@@ -24,7 +25,7 @@ export default function Dashboard() {
   return (
     <>
       <RoleBasedNavigation />
-      <div className="min-h-screen bg-gray-50 text-slate-900 font-sans" data-sidebar-content="true">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* User Status Badge */}
         <div className="mb-6">
@@ -36,6 +37,9 @@ export default function Dashboard() {
             userName={currentUser?.name}
           />
         </div>
+
+        {/* Widget Bar */}
+        <WidgetBar />
 
         <section className="mb-12">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

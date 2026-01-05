@@ -34,9 +34,13 @@ export async function chatWithLauraOracle(req: Request, res: Response) {
 
   } catch (error) {
     console.error('❌ Error in chatWithLauraOracle:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('Full error:', errorMsg, errorStack);
     res.status(500).json({
       error: 'Failed to process Laura Oracle request',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: errorMsg,
+      details: process.env.NODE_ENV === 'development' ? errorStack : undefined
     });
   }
 }

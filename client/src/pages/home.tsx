@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <>
       <RoleBasedNavigation />
-      <div className="min-h-screen bg-gray-50 text-slate-900 font-sans" data-sidebar-content="true">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         <HeroSection />
         
@@ -64,8 +64,8 @@ export default function Home() {
                 <TrackCard 
                   key={track.id} 
                   track={track}
-                  progress={{ completed: index === 0 ? 3 : 0, total: index === 0 ? 5 : 7 }}
-                  isLocked={index > 0}
+                  progress={{ completed: 0, total: 0 }}
+                  isLocked={false}
                 />
               ))}
             </div>
@@ -97,5 +97,6 @@ export default function Home() {
         </div>
       </footer>
     </div>
+    </>
   );
 }

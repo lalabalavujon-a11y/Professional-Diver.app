@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, boolean, pgEnum, json } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean, pgEnum, json, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -215,6 +215,72 @@ export const learningPaths = pgTable("learning_paths", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const widgetLocations = pgTable("widget_locations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  locationName: text("location_name"), // Optional label for the location
+  isCurrentLocation: boolean("is_current_location").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const navigationWaypoints = pgTable("navigation_waypoints", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const navigationRoutes = pgTable("navigation_routes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  waypointIds: json("waypoint_ids").notNull(), // Array of waypoint IDs in order
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const medicalFacilityTypeEnum = pgEnum("medical_facility_type", ["A_E", "CRITICAL_CARE", "DIVING_DOCTOR", "HYPERBARIC"]);
+
+export const medicalFacilities = pgTable("medical_facilities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: medicalFacilityTypeEnum("type").notNull(),
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  address: text("address"),
+  city: text("city"),
+  country: text("country").notNull(),
+  region: text("region"),
+  phone: text("phone"),
+  emergencyPhone: text("emergency_phone"),
+  email: text("email"),
+  website: text("website"),
+  specialties: json("specialties").default([]), // Array of specialty strings
+  services: json("services").default([]), // Array of service strings (e.g., ["Hyperbaric Chamber", "24/7 Emergency"])
+  isAvailable24h: boolean("is_available_24h").default(false).notNull(),
+  notes: text("notes"),
+  isVerified: boolean("is_verified").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const userMedicalFacilitySelections = pgTable("user_medical_facility_selections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  facilityId: varchar("facility_id").notNull().references(() => medicalFacilities.id, { onDelete: "cascade" }),
+  isPrimary: boolean("is_primary").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
@@ -225,6 +291,10 @@ export const usersRelations = relations(users, ({ many }) => ({
   certificates: many(certificates),
   scenarioAttempts: many(scenarioAttempts),
   learningPaths: many(learningPaths),
+  widgetLocations: many(widgetLocations),
+  navigationWaypoints: many(navigationWaypoints),
+  navigationRoutes: many(navigationRoutes),
+  medicalFacilitySelections: many(userMedicalFacilitySelections),
 }));
 
 export const aiTutorsRelations = relations(aiTutors, ({ many }) => ({
@@ -346,6 +416,42 @@ export const learningPathsRelations = relations(learningPaths, ({ one }) => ({
   }),
 }));
 
+export const widgetLocationsRelations = relations(widgetLocations, ({ one }) => ({
+  user: one(users, {
+    fields: [widgetLocations.userId],
+    references: [users.id],
+  }),
+}));
+
+export const navigationWaypointsRelations = relations(navigationWaypoints, ({ one }) => ({
+  user: one(users, {
+    fields: [navigationWaypoints.userId],
+    references: [users.id],
+  }),
+}));
+
+export const navigationRoutesRelations = relations(navigationRoutes, ({ one }) => ({
+  user: one(users, {
+    fields: [navigationRoutes.userId],
+    references: [users.id],
+  }),
+}));
+
+export const medicalFacilitiesRelations = relations(medicalFacilities, ({ many }) => ({
+  userSelections: many(userMedicalFacilitySelections),
+}));
+
+export const userMedicalFacilitySelectionsRelations = relations(userMedicalFacilitySelections, ({ one }) => ({
+  user: one(users, {
+    fields: [userMedicalFacilitySelections.userId],
+    references: [users.id],
+  }),
+  facility: one(medicalFacilities, {
+    fields: [userMedicalFacilitySelections.facilityId],
+    references: [medicalFacilities.id],
+  }),
+}));
+
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -381,6 +487,36 @@ export const insertClientSchema = createInsertSchema(clients).omit({
 });
 
 export const insertLearningPathSchema = createInsertSchema(learningPaths).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWidgetLocationSchema = createInsertSchema(widgetLocations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNavigationWaypointSchema = createInsertSchema(navigationWaypoints).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNavigationRouteSchema = createInsertSchema(navigationRoutes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMedicalFacilitySchema = createInsertSchema(medicalFacilities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserMedicalFacilitySelectionSchema = createInsertSchema(userMedicalFacilitySelections).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -445,3 +581,13 @@ export type Client = typeof clients.$inferSelect;
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type LearningPath = typeof learningPaths.$inferSelect;
 export type InsertLearningPath = z.infer<typeof insertLearningPathSchema>;
+export type WidgetLocation = typeof widgetLocations.$inferSelect;
+export type InsertWidgetLocation = z.infer<typeof insertWidgetLocationSchema>;
+export type NavigationWaypoint = typeof navigationWaypoints.$inferSelect;
+export type InsertNavigationWaypoint = z.infer<typeof insertNavigationWaypointSchema>;
+export type NavigationRoute = typeof navigationRoutes.$inferSelect;
+export type InsertNavigationRoute = z.infer<typeof insertNavigationRouteSchema>;
+export type MedicalFacility = typeof medicalFacilities.$inferSelect;
+export type InsertMedicalFacility = z.infer<typeof insertMedicalFacilitySchema>;
+export type UserMedicalFacilitySelection = typeof userMedicalFacilitySelections.$inferSelect;
+export type InsertUserMedicalFacilitySelection = z.infer<typeof insertUserMedicalFacilitySelectionSchema>;

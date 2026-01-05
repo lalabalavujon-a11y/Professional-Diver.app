@@ -1,4 +1,7 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -519,7 +522,11 @@ export default function EnhancedLessonContent({ content, trackSlug, lessonTitle 
             </CardHeader>
             <CardContent>
               <div className="prose prose-slate max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: content.replace(/\n/g, '<br>') }} />
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                >
+                  {content || "No content available."}
+                </ReactMarkdown>
               </div>
             </CardContent>
           </Card>

@@ -95,7 +95,7 @@ export default function Analytics() {
     return (
       <>
         <RoleBasedNavigation />
-        <div className="min-h-screen bg-gray-50 text-slate-900 font-sans" data-sidebar-content="true">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
@@ -119,7 +119,7 @@ export default function Analytics() {
     return (
       <>
         <RoleBasedNavigation />
-        <div className="min-h-screen bg-gray-50 text-slate-900 font-sans" data-sidebar-content="true">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Alert className="border-red-200 bg-red-50">
             <AlertDescription className="text-red-800">
