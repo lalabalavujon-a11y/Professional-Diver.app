@@ -36,14 +36,16 @@ import {
   Waves,
   Moon,
   Calendar,
-  Ruler
+  Ruler,
+  Phone
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import UserStatusBadge from "@/components/user-status-badge";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import { z } from "zod";
 import { timezones } from "@/utils/timezones";
-import { fetchPorts, combineLocations, timezonesToLocations, type PortLocation } from "@/utils/locations";
+import { fetchPorts, combineLocations, timezonesToLocations, getLocationDetails, type PortLocation } from "@/utils/locations";
+import LocationSelector from "@/components/widgets/location-selector";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -166,6 +168,16 @@ export default function ProfileSettings() {
     } catch {}
     return false;
   });
+  const [enableWebCalling, setEnableWebCalling] = useState(() => {
+    try {
+      const stored = localStorage.getItem('userPreferences');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        return prefs.enableWebCalling || false;
+      }
+    } catch {}
+    return false;
+  });
   const [unitsPreference, setUnitsPreference] = useState<'imperial' | 'metric' | 'mixed'>(() => {
     try {
       const stored = localStorage.getItem('userPreferences');
@@ -187,10 +199,14 @@ export default function ProfileSettings() {
       enableTides,
       enableMoonPhase,
       enableOperationsCalendar,
+      enableWebCalling,
       unitsPreference,
     };
     localStorage.setItem('userPreferences', JSON.stringify(preferences));
-  }, [location, timezone, clockType, enableWeather, enableTides, enableMoonPhase, enableOperationsCalendar, unitsPreference]);
+    // Invalidate preferences query to trigger re-render in other components
+    queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/users/preferences'] });
+  }, [location, timezone, clockType, enableWeather, enableTides, enableMoonPhase, enableOperationsCalendar, enableWebCalling, unitsPreference, queryClient]);
 
   // Notify other components when units preference changes
   useEffect(() => {
@@ -858,58 +874,96 @@ export default function ProfileSettings() {
                       <h4 className="font-medium">Location</h4>
                       <p className="text-sm text-slate-500">Select a city or port for widgets sync</p>
                     </div>
-                    <Select value={location} onValueChange={setLocation}>
-                      <SelectTrigger className="w-80">
-                        <SelectValue placeholder="Select location..." />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[400px]">
-                        {/* Primary Ports Section */}
-                        {locations.filter(loc => loc.type === 'port-primary').length > 0 && (
-                          <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50">
-                              ⚓ Primary Ports
-                            </div>
-                            {locations
-                              .filter(loc => loc.type === 'port-primary')
-                              .map((loc) => (
-                                <SelectItem key={loc.value} value={loc.value}>
-                                  {loc.label}
-                                </SelectItem>
-                              ))}
-                          </>
-                        )}
-                        {/* Secondary Ports Section */}
-                        {locations.filter(loc => loc.type === 'port-secondary').length > 0 && (
-                          <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 mt-1">
-                              🚢 Secondary Ports
-                            </div>
-                            {locations
-                              .filter(loc => loc.type === 'port-secondary')
-                              .map((loc) => (
-                                <SelectItem key={loc.value} value={loc.value}>
-                                  {loc.label}
-                                </SelectItem>
-                              ))}
-                          </>
-                        )}
-                        {/* Cities Section */}
-                        {locations.filter(loc => loc.type === 'city').length > 0 && (
-                          <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 mt-1">
-                              🌍 Cities
-                            </div>
-                            {locations
-                              .filter(loc => loc.type === 'city')
-                              .map((loc) => (
-                                <SelectItem key={loc.value} value={loc.value}>
-                                  {loc.label}
-                                </SelectItem>
-                              ))}
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                      <Select 
+                        value={location} 
+                        onValueChange={async (value) => {
+                          setLocation(value);
+                          // Also save to backend API for widgets
+                          try {
+                            const locationDetails = await getLocationDetails(value);
+                            if (locationDetails) {
+                              const userEmail = localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com';
+                              await fetch('/api/widgets/location', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  email: userEmail,
+                                  latitude: locationDetails.latitude,
+                                  longitude: locationDetails.longitude,
+                                  locationName: locationDetails.name,
+                                  isCurrentLocation: false,
+                                }),
+                              });
+                              queryClient.invalidateQueries({ queryKey: ['/api/widgets/location', userEmail] });
+                            }
+                          } catch (error) {
+                            console.error('Error saving location to backend:', error);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-64">
+                          <SelectValue placeholder="Select location..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[400px]">
+                          {/* Primary Ports Section */}
+                          {locations.filter(loc => loc.type === 'port-primary').length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50">
+                                ⚓ Primary Ports
+                              </div>
+                              {locations
+                                .filter(loc => loc.type === 'port-primary')
+                                .map((loc) => (
+                                  <SelectItem key={loc.value} value={loc.value}>
+                                    {loc.label}
+                                  </SelectItem>
+                                ))}
+                            </>
+                          )}
+                          {/* Secondary Ports Section */}
+                          {locations.filter(loc => loc.type === 'port-secondary').length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 mt-1">
+                                🚢 Secondary Ports
+                              </div>
+                              {locations
+                                .filter(loc => loc.type === 'port-secondary')
+                                .map((loc) => (
+                                  <SelectItem key={loc.value} value={loc.value}>
+                                    {loc.label}
+                                  </SelectItem>
+                                ))}
+                            </>
+                          )}
+                          {/* Cities Section */}
+                          {locations.filter(loc => loc.type === 'city').length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 mt-1">
+                                🌍 Cities
+                              </div>
+                              {locations
+                                .filter(loc => loc.type === 'city')
+                                .map((loc) => (
+                                  <SelectItem key={loc.value} value={loc.value}>
+                                    {loc.label}
+                                  </SelectItem>
+                                ))}
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <LocationSelector 
+                        trigger={
+                          <Button variant="outline" size="sm">
+                            <Globe className="w-4 h-4 mr-2" />
+                            Configure
+                          </Button>
+                        }
+                      />
+                    </div>
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -999,6 +1053,17 @@ export default function ProfileSettings() {
                         </div>
                       </div>
                       <Switch checked={enableOperationsCalendar} onCheckedChange={setEnableOperationsCalendar} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Phone className="w-5 h-5 text-green-500" />
+                        <div>
+                          <h4 className="font-medium">Web Calling</h4>
+                          <p className="text-sm text-slate-500">Enable video and audio calling features</p>
+                        </div>
+                      </div>
+                      <Switch checked={enableWebCalling} onCheckedChange={setEnableWebCalling} />
                     </div>
                   </div>
                 </div>

@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, MapPin } from 'lucide-react';
+import { Settings, MapPin, Clock } from 'lucide-react';
 import LocationSelector from './location-selector';
 
 interface WidgetPreferences {
@@ -38,6 +39,7 @@ export default function WidgetSettings({ trigger, onSave }: WidgetSettingsProps)
   const [open, setOpen] = useState(false);
   const [preferences, setPreferences] = useState<WidgetPreferences>(defaultPreferences);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Load preferences from localStorage
   useQuery<WidgetPreferences>({
@@ -68,6 +70,9 @@ export default function WidgetSettings({ trigger, onSave }: WidgetSettingsProps)
   const handleSave = () => {
     try {
       localStorage.setItem('userPreferences', JSON.stringify(preferences));
+      // Invalidate preferences query to trigger re-render
+      queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/preferences'] });
       toast({
         title: "Settings saved",
         description: "Widget preferences have been saved successfully.",
@@ -78,9 +83,6 @@ export default function WidgetSettings({ trigger, onSave }: WidgetSettingsProps)
       }
       
       setOpen(false);
-      
-      // Refresh page to apply changes
-      window.location.reload();
     } catch (error) {
       toast({
         title: "Error",
@@ -149,14 +151,41 @@ export default function WidgetSettings({ trigger, onSave }: WidgetSettingsProps)
 
           <TabsContent value="widgets" className="space-y-4 mt-4">
             <div>
-              <h3 className="text-sm font-medium mb-4">Enable/Disable Widgets</h3>
+              <h3 className="text-sm font-medium mb-4">Widget Settings</h3>
               
               <div className="space-y-4">
+                {/* Clock Type Selector */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="clockType" className="text-sm font-medium flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Clock Type
+                    </Label>
+                    <p className="text-xs text-slate-500">
+                      Digital or analog display
+                    </p>
+                  </div>
+                  <Select 
+                    value={preferences.clockType} 
+                    onValueChange={(value: 'digital' | 'analog') => {
+                      setPreferences(prev => ({ ...prev, clockType: value }));
+                    }}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="digital">Digital</SelectItem>
+                      <SelectItem value="analog">Analog</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 {/* Clock is always enabled */}
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="space-y-0.5">
                     <Label htmlFor="clock" className="text-sm font-medium">
-                      Clock
+                      Clock Widget
                     </Label>
                     <p className="text-xs text-slate-500">
                       Always enabled
