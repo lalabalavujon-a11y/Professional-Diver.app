@@ -473,6 +473,7 @@ export default function NavigationWidget({ latitude, longitude }: NavigationWidg
                 Map view (enhance with Leaflet/OpenSeaMap)
               </div>
             </div>
+            </>
           </div>
         )}
 
