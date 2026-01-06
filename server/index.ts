@@ -3,6 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { aiTutorRouter } from "./ai-tutor";
 import healthRouter from "./health";
+import { initializeFeatureManagement } from "./feature-initialization";
 
 const app = express();
 app.use(express.json());
@@ -54,6 +55,14 @@ app.get('/', (_req, res) => res.type('text/plain').send('OK'));
 async function main() {
   console.log(`🔧 Using local SQLite database for development`);
   // await db.connect()   // if this throws, you'll see it
+  
+  // Initialize feature management system
+  try {
+    await initializeFeatureManagement();
+  } catch (error) {
+    console.error('Warning: Feature management initialization failed:', error);
+    // Continue startup even if feature init fails
+  }
   
   // Mount AI Tutor router
   app.use('/api/ai-tutor', aiTutorRouter);

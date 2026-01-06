@@ -24,6 +24,17 @@ export class LangChainConfig {
       console.log('🔍 LangSmith tracing enabled for professional diving training');
     }
 
+    // Validate OpenAI API key
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('⚠️ OPENAI_API_KEY not found - LangChain will not function properly');
+    } else {
+      const key = process.env.OPENAI_API_KEY;
+      const keyPreview = key.length > 11 
+        ? key.substring(0, 7) + '...' + key.substring(key.length - 4)
+        : key.substring(0, 3) + '...';
+      console.log(`✅ OpenAI API Key detected: ${keyPreview}`);
+    }
+
     // Initialize OpenAI models with brand-neutral configuration
     this.chatModel = new ChatOpenAI({
       modelName: process.env.AI_TUTOR_MODEL || 'gpt-4o',
@@ -38,6 +49,7 @@ export class LangChainConfig {
     });
 
     console.log('🤖 LangChain AI system initialized with brand-neutral configuration');
+    console.log(`✅ Platform connection: Langchain → OpenAI GPT (${process.env.AI_TUTOR_MODEL || 'gpt-4o'})`);
   }
 
   public static getInstance(): LangChainConfig {

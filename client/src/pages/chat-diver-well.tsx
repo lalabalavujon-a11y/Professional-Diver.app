@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, ArrowLeft, Volume2, VolumeX, Pause, Mic, MicOff, Waves } from "lucide-react";
+import { Send, ArrowLeft, Volume2, VolumeX, Pause, Mic, MicOff, Waves, ChevronDown, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import RoleBasedNavigation from "@/components/role-based-navigation";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Message {
   id: string;
@@ -30,6 +31,8 @@ export default function ChatDiverWell() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isExpertiseOpen, setIsExpertiseOpen] = useState(false);
+  const [isHoveringExpertise, setIsHoveringExpertise] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -248,35 +251,51 @@ export default function ChatDiverWell() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-sm text-slate-900 mb-2">Expertise Areas:</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <Waves className="w-3 h-3" />
-                        <span>Dive Planning & Risk Assessment</span>
+                  <Collapsible 
+                    open={isExpertiseOpen || isHoveringExpertise}
+                    onOpenChange={setIsExpertiseOpen}
+                    onMouseEnter={() => setIsHoveringExpertise(true)}
+                    onMouseLeave={() => setIsHoveringExpertise(false)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between cursor-pointer hover:bg-blue-50 rounded-md p-1 -m-1 transition-colors">
+                        <h4 className="font-semibold text-sm text-slate-900">Expertise Areas:</h4>
+                        {isExpertiseOpen || isHoveringExpertise ? (
+                          <ChevronDown className="w-4 h-4 text-slate-600" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-slate-600" />
+                        )}
                       </div>
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <Waves className="w-3 h-3" />
-                        <span>Safety Protocols & Procedures</span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center space-x-2 text-slate-600">
+                          <Waves className="w-3 h-3" />
+                          <span>Dive Planning & Risk Assessment</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-slate-600">
+                          <Waves className="w-3 h-3" />
+                          <span>Safety Protocols & Procedures</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-slate-600">
+                          <Waves className="w-3 h-3" />
+                          <span>Operational Guidance</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-slate-600">
+                          <Waves className="w-3 h-3" />
+                          <span>Equipment Recommendations</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-slate-600">
+                          <Waves className="w-3 h-3" />
+                          <span>Emergency Response Procedures</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-slate-600">
+                          <Volume2 className="w-3 h-3" />
+                          <span>Voice Communication (Alloy)</span>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <Waves className="w-3 h-3" />
-                        <span>Operational Guidance</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <Waves className="w-3 h-3" />
-                        <span>Equipment Recommendations</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <Waves className="w-3 h-3" />
-                        <span>Emergency Response Procedures</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-slate-600">
-                        <Volume2 className="w-3 h-3" />
-                        <span>Voice Communication (Alloy)</span>
-                      </div>
-                    </div>
-                  </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               </CardContent>
             </Card>

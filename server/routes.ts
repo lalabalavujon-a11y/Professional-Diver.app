@@ -8,6 +8,10 @@ import { crmService } from "./crm-service";
 import { crmAdapter } from "./crm-adapter";
 import { userLifecycleService } from "./user-lifecycle-service";
 import { partnerService } from "./partner-service";
+import { userManagement } from "./user-management";
+import * as featureService from "./feature-service";
+import { getAllFeatures, FEATURE_REGISTRY } from "./feature-registry";
+import { resolveUserPermissions } from "./feature-service";
 import { handleHighLevelContactWebhook, handleHighLevelTagWebhook } from "./highlevel-webhooks";
 import { registerImportRoutes } from "./routes/import-content";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -22,6 +26,7 @@ import { db } from "./db";
 import { registerSrsRoutes } from "./srs-routes";
 import { registerEquipmentRoutes } from "./routes/equipment-routes";
 import { registerOperationsCalendarRoutes } from "./routes/operations-calendar-routes";
+import { registerCallingRoutes } from "./routes/calling-routes";
 import { getWeatherData, timezoneToCoordinates as weatherTimezoneToCoordinates } from "./weather-service";
 import { getTideData, timezoneToCoordinates as tidesTimezoneToCoordinates, clearTidesCache } from "./tides-service";
 import { getPorts, getPortsNearLocation } from "./ports-service";
@@ -64,6 +69,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log("📅 About to register Operations Calendar routes...");
   registerOperationsCalendarRoutes(app);
   console.log("📅 Operations Calendar routes registration completed");
+
+  // Calling routes
+  registerCallingRoutes(app);
 
   // Object storage routes
   app.post("/api/objects/upload", async (req, res) => {
@@ -127,6 +135,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================================================
+  // AUTHENTICATION - SUPER ADMIN CREDENTIALS
+  // ============================================================================
+  // IMPORTANT: DO NOT CHANGE THESE CREDENTIALS - THEY ARE PERMANENT
+  // 
+  // Super Admin Account:
+  //   Email: lalabalavu.jon@gmail.com
+  //   Password: Admin123
+  //   Role: SUPER_ADMIN
+  //   Name: Jon Lalabalavu
+  //
+  // Secondary Super Admin Account:
+  //   Email: sephdee@hotmail.com
+  //   Password: Admin123
+  //   Role: SUPER_ADMIN
+  //   Name: Jon Lalabalavu
+  //
+  // These credentials are hardcoded and will NOT change with code updates.
+  // ============================================================================
+  
   // Enhanced authentication route for credentials
   app.post("/api/auth/credentials", async (req, res) => {
     try {
@@ -148,17 +176,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Check for admin users with their specific passwords
-      const adminCredentials: Record<string, string> = {
-        'lalabalavu.jon@gmail.com': 'admin123',
+      // SUPER ADMIN CREDENTIALS - DO NOT CHANGE
+      // Jon Lalabalavu - Super Admin
+      // Email: lalabalavu.jon@gmail.com
+      // Password: Admin123
+      // Role: SUPER_ADMIN
+      const superAdminCredentials: Record<string, string> = {
+        'lalabalavu.jon@gmail.com': 'Admin123',
+        'sephdee@hotmail.com': 'Admin123', // Secondary super admin account
       };
 
-      if (adminCredentials[email] && password === adminCredentials[email]) {
+      if (superAdminCredentials[email] && password === superAdminCredentials[email]) {
         res.json({ 
           success: true, 
           user: {
             id: email === 'sephdee@hotmail.com' ? 'super-admin-2' : 'super-admin-1',
-            name: 'Admin User',
+            name: email === 'lalabalavu.jon@gmail.com' ? 'Jon Lalabalavu' : 'Jon Lalabalavu',
             email: email,
             role: 'SUPER_ADMIN',
             subscriptionType: 'LIFETIME'
@@ -655,10 +688,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let userId: string;
       let userName: string;
       
-      // Admin account
+      // SUPER ADMIN ACCOUNT - DO NOT CHANGE
       if (email === 'lalabalavu.jon@gmail.com') {
-        userId = 'admin-1';
-        userName = 'Admin User';
+        userId = 'super-admin-1';
+        userName = 'Jon Lalabalavu';
+      } else if (email === 'sephdee@hotmail.com') {
+        userId = 'super-admin-2';
+        userName = 'Jon Lalabalavu';
       } else {
         // For other users, use email as userId (consistent with current user endpoint)
         userId = email;
@@ -1335,6 +1371,227 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================================================
+  // Feature Management API Endpoints
+  // ============================================================================
+  
+  // Get all available features (from registry)
+  app.get("/api/admin/features", async (req, res) => {
+    try {
+      const userEmail = req.query.email as string;
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      const features = getAllFeatures();
+      res.json({ features });
+    } catch (error) {
+      console.error("Features API error:", error);
+      res.status(500).json({ error: "Failed to fetch features" });
+    }
+  });
+
+  // Get role default permissions
+  app.get("/api/admin/role-defaults", async (req, res) => {
+    try {
+      const userEmail = req.query.email as string;
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      const role = req.query.role as string;
+      if (!role) {
+        return res.status(400).json({ error: "Role parameter is required" });
+      }
+
+      const defaults = await featureService.getRoleDefaults(role);
+      const allFeatures = getAllFeatures();
+      
+      // Build response with all features and their default state
+      const roleDefaults = allFeatures.map((feature) => {
+        const defaultPerm = defaults.find((d: any) => d.featureId === feature.id);
+        return {
+          featureId: feature.id,
+          enabled: defaultPerm?.enabled ?? false,
+        };
+      });
+
+      res.json({ role, defaults: roleDefaults });
+    } catch (error) {
+      console.error("Role defaults API error:", error);
+      res.status(500).json({ error: "Failed to fetch role defaults" });
+    }
+  });
+
+  // Update role default permissions
+  app.put("/api/admin/role-defaults", async (req, res) => {
+    try {
+      const userEmail = req.query.email as string;
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      const { role, defaults } = req.body;
+      if (!role || !Array.isArray(defaults)) {
+        return res.status(400).json({ error: "Invalid request data" });
+      }
+
+      // Update each feature default
+      for (const defaultPerm of defaults) {
+        await featureService.updateRoleDefault(
+          role,
+          defaultPerm.featureId,
+          defaultPerm.enabled
+        );
+      }
+
+      res.json({ success: true, role, defaults });
+    } catch (error) {
+      console.error("Role defaults update error:", error);
+      res.status(500).json({ error: "Failed to update role defaults" });
+    }
+  });
+
+  // Get user permissions - returns Partner Admins, Enterprise Users with merged permissions
+  // Only accessible to SUPER_ADMIN
+  app.get("/api/admin/user-permissions", async (req, res) => {
+    try {
+      // Check if user is SUPER_ADMIN
+      const userEmail = req.query.email as string;
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      // Get managed users (Partner Admins, Enterprise Users)
+      const allSpecialUsers = userManagement.getAllSpecialUsers();
+      const managedUsers = allSpecialUsers.filter((user: any) => 
+        user.role === "AFFILIATE" || 
+        user.role === "ENTERPRISE" || 
+        (user.role === "LIFETIME" && user.email !== 'lalabalavu.jon@gmail.com' && user.email !== 'sephdee@hotmail.com')
+      );
+
+      // Resolve permissions for each user
+      const usersWithPermissions = await Promise.all(
+        managedUsers.map(async (user: any) => {
+          // Get user ID - need to find actual user ID from database or use email
+          const userId = user.id || user.email;
+          const permissions = await featureService.resolveUserPermissions(userId, user.role);
+          
+          return {
+            id: userId,
+            name: user.name,
+            email: user.email,
+            role: user.role === "AFFILIATE" 
+              ? "Partner Admin" 
+              : user.role === "ENTERPRISE" 
+              ? "Enterprise User" 
+              : "Partner Admin",
+            permissions,
+          };
+        })
+      );
+
+      res.json({ users: usersWithPermissions });
+    } catch (error) {
+      console.error("User permissions API error:", error);
+      res.status(500).json({ error: "Failed to fetch user permissions" });
+    }
+  });
+
+  // Update individual user feature overrides
+  app.put("/api/admin/user-permissions/:userId", async (req, res) => {
+    try {
+      const userEmail = req.query.email as string;
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      const { userId } = req.params;
+      const { permissions } = req.body;
+
+      if (!permissions || typeof permissions !== "object") {
+        return res.status(400).json({ error: "Invalid permissions data" });
+      }
+
+      // Update each feature override
+      const allFeatures = getAllFeatures();
+      for (const feature of allFeatures) {
+        const enabled = permissions[feature.id];
+        if (enabled !== undefined) {
+          // If value matches role default, set to null (use default)
+          // Otherwise, set the override
+          const userData = userManagement.getAllSpecialUsers().find((u: any) => u.id === userId || u.email === userId);
+          if (userData) {
+            const roleDefaults = await featureService.getRoleDefaults(userData.role);
+            const defaultPerm = roleDefaults.find((d) => d.featureId === feature.id);
+            const defaultEnabled = defaultPerm?.enabled ?? false;
+            
+            if (enabled === defaultEnabled) {
+              // Reset to role default
+              await featureService.updateUserOverride(userId, feature.id, null);
+            } else {
+              // Set override
+              await featureService.updateUserOverride(userId, feature.id, enabled);
+            }
+          }
+        }
+      }
+
+      res.json({ success: true, userId });
+    } catch (error) {
+      console.error("User permissions update error:", error);
+      res.status(500).json({ error: "Failed to update user permissions" });
+    }
+  });
+
+  // Reset user to role defaults
+  app.post("/api/admin/user-permissions/:userId/reset", async (req, res) => {
+    try {
+      const userEmail = req.query.email as string;
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      const { userId } = req.params;
+      await featureService.resetUserToRoleDefaults(userId);
+
+      res.json({ success: true, userId });
+    } catch (error) {
+      console.error("Reset user permissions error:", error);
+      res.status(500).json({ error: "Failed to reset user permissions" });
+    }
+  });
+
   // Object storage routes
   app.post("/api/objects/upload", async (req, res) => {
     try {
@@ -1392,12 +1649,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store updated profile
       userProfileStore.set(userEmail, updatedProfile);
 
-      // Determine role and subscription type
-      const role = userEmail === 'lalabalavu.jon@gmail.com' ? 'ADMIN' : 'USER';
-      const subscriptionType = userEmail === 'lalabalavu.jon@gmail.com' ? 'LIFETIME' : 'TRIAL';
+      // Determine role and subscription type - SUPER ADMIN ACCOUNT (DO NOT CHANGE)
+      const role = (userEmail === 'lalabalavu.jon@gmail.com' || userEmail === 'sephdee@hotmail.com') ? 'SUPER_ADMIN' : 'USER';
+      const subscriptionType = (userEmail === 'lalabalavu.jon@gmail.com' || userEmail === 'sephdee@hotmail.com') ? 'LIFETIME' : 'TRIAL';
 
       const updatedUser = {
-        id: userEmail === 'lalabalavu.jon@gmail.com' ? 'admin-1' : 'user-1',
+        id: userEmail === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : userEmail === 'sephdee@hotmail.com' ? 'super-admin-2' : 'user-1',
         ...updatedProfile,
         role,
         subscriptionType,
@@ -1445,14 +1702,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store updated profile
       userProfileStore.set(userEmail, updatedProfile);
 
-      // Determine role and subscription type
-      const role = userEmail === 'lalabalavu.jon@gmail.com' ? 'ADMIN' : 'USER';
-      const subscriptionType = userEmail === 'lalabalavu.jon@gmail.com' ? 'LIFETIME' : 'TRIAL';
+      // Determine role and subscription type - SUPER ADMIN ACCOUNT (DO NOT CHANGE)
+      const role = (userEmail === 'lalabalavu.jon@gmail.com' || userEmail === 'sephdee@hotmail.com') ? 'SUPER_ADMIN' : 'USER';
+      const subscriptionType = (userEmail === 'lalabalavu.jon@gmail.com' || userEmail === 'sephdee@hotmail.com') ? 'LIFETIME' : 'TRIAL';
 
       const updatedUser = {
-        id: userEmail === 'lalabalavu.jon@gmail.com' ? 'admin-1' : 'user-1',
+        id: userEmail === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : userEmail === 'sephdee@hotmail.com' ? 'super-admin-2' : 'user-1',
         ...updatedProfile,
-        name: existingProfile.name || (userEmail === 'lalabalavu.jon@gmail.com' ? 'Admin User' : 'User'),
+        name: existingProfile.name || (userEmail === 'lalabalavu.jon@gmail.com' ? 'Jon Lalabalavu' : userEmail === 'sephdee@hotmail.com' ? 'Jon Lalabalavu' : 'User'),
         email: userEmail,
         role,
         subscriptionType,
@@ -1481,13 +1738,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Base user data
       let baseUser: any;
       
-      // Admin account
+      // SUPER ADMIN ACCOUNT - DO NOT CHANGE
+      // Jon Lalabalavu - lalabalavu.jon@gmail.com
       if (email === 'lalabalavu.jon@gmail.com') {
         baseUser = {
-          id: 'admin-1',
-          name: storedProfile.name || 'Admin User',
+          id: 'super-admin-1',
+          name: storedProfile.name || 'Jon Lalabalavu',
           email: 'lalabalavu.jon@gmail.com',
-          role: 'ADMIN',
+          role: 'SUPER_ADMIN', // Fixed: Changed from 'ADMIN' to 'SUPER_ADMIN'
+          subscriptionType: 'LIFETIME',
+          subscriptionDate: new Date('2024-01-01').toISOString(),
+          trialExpiresAt: null,
+          createdAt: storedProfile.createdAt || new Date('2024-01-01').toISOString(),
+        };
+      }
+      // Secondary Super Admin account
+      else if (email === 'sephdee@hotmail.com') {
+        baseUser = {
+          id: 'super-admin-2',
+          name: storedProfile.name || 'Jon Lalabalavu',
+          email: 'sephdee@hotmail.com',
+          role: 'SUPER_ADMIN',
           subscriptionType: 'LIFETIME',
           subscriptionDate: new Date('2024-01-01').toISOString(),
           trialExpiresAt: null,
@@ -1537,6 +1808,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching current user:", error);
       res.status(500).json({ error: "Failed to fetch current user" });
+    }
+  });
+
+  // Get user feature permissions
+  app.get("/api/users/current/permissions", async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      const previewRole = req.query.previewRole as string | undefined;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Get user from user management service
+      const user = userManagement.getSpecialUser(email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Use preview role if provided, otherwise use user's actual role
+      const roleToUse = previewRole || user.role;
+      const userId = user.id || email;
+
+      // Resolve permissions for the role
+      const permissions = await resolveUserPermissions(userId, roleToUse);
+
+      res.json(permissions);
+    } catch (error) {
+      console.error("Error fetching user permissions:", error);
+      res.status(500).json({ error: "Failed to fetch user permissions" });
     }
   });
 

@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Mail, Phone, MapPin, MessageSquare } from "lucide-react";
 import RoleBasedNavigation from "@/components/role-based-navigation";
+import CallingButton from "@/components/calling-button";
 
 const contactSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -116,6 +117,7 @@ export default function Contact() {
                       <p className="font-medium text-slate-900">Phone Support</p>
                       <p className="text-slate-700">+44 (0) 208 123 4567</p>
                       <p className="text-sm text-slate-500">Mon-Fri, 9AM-6PM GMT</p>
+                      <p className="text-xs text-slate-500 mt-1">For support, chat with Laura in the platform</p>
                     </div>
                   </div>
 
