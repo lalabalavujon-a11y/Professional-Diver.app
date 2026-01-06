@@ -86,7 +86,7 @@ export default function RoleBasedNavigation() {
   });
 
   // Get feature permissions
-  const { hasFeature, isPreviewMode, previewRole } = useFeaturePermissions();
+  const { hasFeature, isPreviewMode, previewRole, isLoading } = useFeaturePermissions();
 
   // Check for preview mode in URL
   const urlParams = new URLSearchParams(window.location.search);
