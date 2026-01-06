@@ -1,6 +1,6 @@
 import { Express } from "express";
 import { db } from "../db";
-import { 
+import {
   equipmentTypes,
   equipmentItems,
   maintenanceSchedules,
@@ -16,6 +16,10 @@ import {
 } from "@shared/schema-sqlite";
 import { eq, and, or, desc, asc, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
+
+type EquipmentItem = typeof equipmentItems.$inferSelect;
+type MaintenanceTask = typeof maintenanceTasks.$inferSelect;
+type EquipmentUseLog = typeof equipmentUseLogs.$inferSelect;
 
 export function registerEquipmentRoutes(app: Express): void {
   // Equipment Types Routes
@@ -71,8 +75,8 @@ export function registerEquipmentRoutes(app: Express): void {
           .orderBy(equipmentItems.name);
       }
 
-      if (status) {
-        const conditions = [eq(equipmentItems.status, status as string)];
+        if (status) {
+          const conditions = [eq(equipmentItems.status, status as EquipmentItem["status"])];
         if (typeId) {
           conditions.push(eq(equipmentItems.equipmentTypeId, typeId as string));
         }
@@ -87,9 +91,9 @@ export function registerEquipmentRoutes(app: Express): void {
       
       // Fetch equipment types for each item
       const itemsWithTypes = await Promise.all(
-        items.map(async (item) => {
-          const [type] = await db
-            .select()
+          items.map(async (item: EquipmentItem) => {
+            const [type] = await db
+              .select()
             .from(equipmentTypes)
             .where(eq(equipmentTypes.id, item.equipmentTypeId));
           return { ...item, equipmentType: type };
@@ -357,12 +361,12 @@ export function registerEquipmentRoutes(app: Express): void {
       const { status, itemId, upcoming } = req.query;
       let query = db.select().from(maintenanceTasks).orderBy(asc(maintenanceTasks.scheduledDate));
 
-      const conditions = [];
-      if (status) {
-        conditions.push(eq(maintenanceTasks.status, status as string));
-      }
-      if (itemId) {
-        conditions.push(eq(maintenanceTasks.equipmentItemId, itemId as string));
+        const conditions = [] as any[];
+        if (status) {
+          conditions.push(eq(maintenanceTasks.status, status as MaintenanceTask["status"]));
+        }
+        if (itemId) {
+          conditions.push(eq(maintenanceTasks.equipmentItemId, itemId as string));
       }
       if (upcoming === "true") {
         const today = new Date();
@@ -380,10 +384,10 @@ export function registerEquipmentRoutes(app: Express): void {
       const tasks = await query;
       
       // Fetch related equipment items
-      const tasksWithEquipment = await Promise.all(
-        tasks.map(async (task) => {
-          const [item] = await db
-            .select()
+        const tasksWithEquipment = await Promise.all(
+          tasks.map(async (task: MaintenanceTask) => {
+            const [item] = await db
+              .select()
             .from(equipmentItems)
             .where(eq(equipmentItems.id, task.equipmentItemId));
           return { ...task, equipmentItem: item };
@@ -488,13 +492,13 @@ export function registerEquipmentRoutes(app: Express): void {
       const { itemId, useType } = req.query;
       let query = db.select().from(equipmentUseLogs).orderBy(desc(equipmentUseLogs.logDate));
 
-      const conditions = [];
-      if (itemId) {
-        conditions.push(eq(equipmentUseLogs.equipmentItemId, itemId as string));
-      }
-      if (useType) {
-        conditions.push(eq(equipmentUseLogs.useType, useType as string));
-      }
+        const conditions = [] as any[];
+        if (itemId) {
+          conditions.push(eq(equipmentUseLogs.equipmentItemId, itemId as string));
+        }
+        if (useType) {
+          conditions.push(eq(equipmentUseLogs.useType, useType as EquipmentUseLog["useType"]));
+        }
 
       if (conditions.length > 0) {
         query = db
@@ -593,20 +597,20 @@ export function registerEquipmentRoutes(app: Express): void {
         .orderBy(asc(maintenanceTasks.scheduledDate));
 
       // Fetch equipment items for tasks
-      const tasksWithEquipment = await Promise.all(
-        [...tasks, ...overdueTasks].map(async (task) => {
-          const [item] = await db
-            .select()
-            .from(equipmentItems)
-            .where(eq(equipmentItems.id, task.equipmentItemId));
-          return { ...task, equipmentItem: item };
-        })
-      );
+        const tasksWithEquipment = await Promise.all(
+          [...tasks, ...overdueTasks].map(async (task: MaintenanceTask) => {
+            const [item] = await db
+              .select()
+              .from(equipmentItems)
+              .where(eq(equipmentItems.id, task.equipmentItemId));
+            return { ...task, equipmentItem: item };
+          })
+        );
 
-      res.json({
-        upcoming: tasksWithEquipment.filter((t) => tasks.some((task) => task.id === t.id)),
-        overdue: tasksWithEquipment.filter((t) => overdueTasks.some((task) => task.id === t.id)),
-      });
+        res.json({
+          upcoming: tasksWithEquipment.filter((t) => tasks.some((task: MaintenanceTask) => task.id === t.id)),
+          overdue: tasksWithEquipment.filter((t) => overdueTasks.some((task: MaintenanceTask) => task.id === t.id)),
+        });
     } catch (error) {
       console.error("Error fetching upcoming maintenance:", error);
       res.status(500).json({ error: "Failed to fetch upcoming maintenance" });

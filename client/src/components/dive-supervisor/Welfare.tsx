@@ -31,18 +31,18 @@ interface WelfareRecord {
   operationId: string;
   recordDate: string;
   accommodation: {
-    type?: string;
-    location?: string;
-    facilities?: string[];
-    notes?: string;
+    type: string;
+    location: string;
+    facilities: string[];
+    notes: string;
   };
   meals: {
-    breakfast?: string;
-    lunch?: string;
-    dinner?: string;
-    snacks?: string;
-    dietaryRequirements?: string[];
-    notes?: string;
+    breakfast: string;
+    lunch: string;
+    dinner: string;
+    snacks: string;
+    dietaryRequirements: string[];
+    notes: string;
   };
   restPeriods: Array<{
     crewMember: string;

@@ -15,7 +15,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { z } from "zod";
 // LangChain AI Tutor routes are now handled by ai-tutor.ts router
 import { insertLessonSchema, insertInviteSchema, insertAttemptSchema, insertWidgetLocationSchema, insertNavigationWaypointSchema, insertNavigationRouteSchema, insertWidgetPreferencesSchema, widgetLocations, navigationWaypoints, navigationRoutes, users, sessions, widgetPreferences, diveTeamMembers, diveOperations, diveOperationContacts, diveOperationPermits, diveTeamRosters, divePlans, dailyProjectReports, casEvacDrills, toolBoxTalks, diveOperationHazards, welfareRecords, shippingInfo, ramsDocuments } from "@shared/schema";
-import { insertLessonSchema as insertLessonSchemaSQLite, widgetLocations as widgetLocationsSQLite, navigationWaypoints as navigationWaypointsSQLite, navigationRoutes as navigationRoutesSQLite, users as usersSQLite, sessions as sessionsSQLite, widgetPreferences as widgetPreferencesSQLite, supportTickets, type InsertSupportTicket } from "@shared/schema-sqlite";
+import { insertLessonSchema as insertLessonSchemaSQLite, widgetLocations as widgetLocationsSQLite, navigationWaypoints as navigationWaypointsSQLite, navigationRoutes as navigationRoutesSQLite, users as usersSQLite, sessions as sessionsSQLite, widgetPreferences as widgetPreferencesSQLite, supportTickets, type InsertSupportTicket, type SupportTicket } from "@shared/schema-sqlite";
 import { eq, and, desc } from "drizzle-orm";
 import { randomBytes, createHash } from "crypto";
 import { db } from "./db";
@@ -413,12 +413,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use crypto.randomUUID() for ticket ID to avoid import side-effects, and ensure InsertSupportTicket type is correct.
       const ticketId = `PDT-${crypto.randomUUID()}`;
-      const ticketData: InsertSupportTicket = {
-        ticketId,
-        userId: userId || null,
-        email,
-        name,
-        subject,
+        const ticketData: InsertSupportTicket & { ticketId: string } = {
+          ticketId,
+          userId: userId || null,
+          email,
+          name,
+          subject,
         message,
         priority: priority as 'low' | 'medium' | 'high' | 'urgent',
         status: 'pending',
@@ -465,12 +465,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let query = db.select().from(supportTickets);
       const conditions = [];
 
-      if (status) {
-        conditions.push(eq(supportTickets.status, status as string));
-      }
-      if (priority) {
-        conditions.push(eq(supportTickets.priority, priority as string));
-      }
+        if (status) {
+          conditions.push(eq(supportTickets.status, status as SupportTicket["status"]));
+        }
+        if (priority) {
+          conditions.push(eq(supportTickets.priority, priority as SupportTicket["priority"]));
+        }
       if (assignedToLaura !== undefined) {
         conditions.push(eq(supportTickets.assignedToLaura, assignedToLaura === 'true'));
       }
@@ -566,20 +566,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const allTickets = await db.select().from(supportTickets);
       
-      const stats = {
-        total: allTickets.length,
-        pending: allTickets.filter(t => t.status === 'pending').length,
-        inProgress: allTickets.filter(t => t.status === 'in_progress').length,
-        completed: allTickets.filter(t => t.status === 'completed').length,
-        closed: allTickets.filter(t => t.status === 'closed').length,
-        assignedToLaura: allTickets.filter(t => t.assignedToLaura).length,
-        byPriority: {
-          low: allTickets.filter(t => t.priority === 'low').length,
-          medium: allTickets.filter(t => t.priority === 'medium').length,
-          high: allTickets.filter(t => t.priority === 'high').length,
-          urgent: allTickets.filter(t => t.priority === 'urgent').length,
-        }
-      };
+        const stats = {
+          total: allTickets.length,
+          pending: allTickets.filter((t: SupportTicket) => t.status === 'pending').length,
+          inProgress: allTickets.filter((t: SupportTicket) => t.status === 'in_progress').length,
+          completed: allTickets.filter((t: SupportTicket) => t.status === 'completed').length,
+          closed: allTickets.filter((t: SupportTicket) => t.status === 'closed').length,
+          assignedToLaura: allTickets.filter((t: SupportTicket) => t.assignedToLaura).length,
+          byPriority: {
+            low: allTickets.filter((t: SupportTicket) => t.priority === 'low').length,
+            medium: allTickets.filter((t: SupportTicket) => t.priority === 'medium').length,
+            high: allTickets.filter((t: SupportTicket) => t.priority === 'high').length,
+            urgent: allTickets.filter((t: SupportTicket) => t.priority === 'urgent').length,
+          }
+        };
 
       res.json({ 
         success: true, 
@@ -923,13 +923,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/lessons/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      // Validate with SQLite schema since tempStorage uses SQLite
-      const updateData = insertLessonSchemaSQLite.partial().parse(req.body);
-      // Use tempStorage to match the GET endpoint and work with current database
-      const lesson = await tempStorage.updateLesson(id, updateData);
+    app.patch("/api/lessons/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const sanitizedBody = { ...req.body };
+        if (sanitizedBody.estimatedMinutes === null) {
+          sanitizedBody.estimatedMinutes = undefined;
+        }
+        // Validate with SQLite schema since tempStorage uses SQLite
+        const updateData = insertLessonSchemaSQLite.partial().parse(sanitizedBody);
+        // Use tempStorage to match the GET endpoint and work with current database
+        const lesson = await tempStorage.updateLesson(id, updateData);
       if (!lesson) {
         return res.status(404).json({ error: "Lesson not found" });
       }

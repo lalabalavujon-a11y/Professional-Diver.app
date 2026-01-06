@@ -106,7 +106,7 @@ const portsDatabase: Port[] = [
  */
 export async function getPorts(filters?: {
   region?: string;
-  type?: 'Primary' | 'Secondary';
+  type?: 'Primary' | 'Secondary' | 'all';
   search?: string;
 }): Promise<Port[]> {
   // In production, this would query a database or external API

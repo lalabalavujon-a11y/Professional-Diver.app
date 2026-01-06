@@ -33,9 +33,9 @@ interface ShippingInfo {
   eta?: string;
   etd?: string;
   contact?: {
-    name?: string;
-    phone?: string;
-    email?: string;
+    name: string;
+    phone: string;
+    email: string;
   };
   notes?: string;
 }

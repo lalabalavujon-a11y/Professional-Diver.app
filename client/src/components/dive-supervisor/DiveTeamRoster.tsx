@@ -31,6 +31,7 @@ interface RosterAssignment {
   teamMemberId?: string;
   teamMemberName?: string;
   notes?: string;
+  createdAt?: string;
 }
 
 interface TeamMember {

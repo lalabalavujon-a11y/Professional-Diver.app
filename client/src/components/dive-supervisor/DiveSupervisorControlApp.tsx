@@ -10,7 +10,7 @@
  * - Operational Contacts (Clients, VTS, Harbour Master, Permits, etc.)
  */
 
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -49,8 +49,18 @@ import EquipmentHusbandry from "./EquipmentHusbandry";
 import RAMS from "./RAMS";
 import Whiteboard from "./Whiteboard";
 
+interface SupervisorContainer {
+  id: string;
+  title: string;
+  description: string;
+  icon: ComponentType<{ className?: string }>;
+  color: string;
+  bgColor: string;
+  component: ComponentType<any>;
+}
+
 // Container configuration with descriptions
-const supervisorContainers = [
+const supervisorContainers: SupervisorContainer[] = [
   {
     id: "team",
     title: "Dive Team",
