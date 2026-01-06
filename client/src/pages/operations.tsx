@@ -298,23 +298,23 @@ function SortableItem({ app, hasOperationsAccess, onAppClick }: SortableItemProp
             </div>
           </div>
         )}
-        <div className="space-y-3">
-          <div>
-            <h4 className="text-sm font-semibold text-slate-900 mb-2">Key Features:</h4>
-            <ul className="text-xs text-slate-600 space-y-1">
-              {app.features.slice(0, 4).map((feature, index) => (
-                <li key={index} className="flex items-center space-x-2">
-                  <CheckCircle className="w-3 h-3 text-green-500" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-              {app.features.length > 4 && (
-                <li className="text-xs text-slate-400">
-                  +{app.features.length - 4} more features
-                </li>
-              )}
-            </ul>
-          </div>
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-sm font-semibold text-slate-900 mb-2">Key Features:</h4>
+              <ul className="text-xs text-slate-600 space-y-1">
+                {app.features.slice(0, 4).map((feature, index) => (
+                  <li key={index} className="flex items-center space-x-2">
+                    <CheckCircle className="w-3 h-3 text-green-500" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+                {app.features.length > 4 && (
+                  <li className="text-xs text-slate-400">
+                    +{app.features.length - 4} more features
+                  </li>
+                )}
+              </ul>
+            </div>
           <Button
             className="w-full"
             onClick={(e) => {
@@ -333,7 +333,7 @@ function SortableItem({ app, hasOperationsAccess, onAppClick }: SortableItemProp
           onClick={(e) => e.stopPropagation()}
         >
           <GripVertical className="w-5 h-5 text-gray-400" />
-        </div>
+          </div>
       </CollapsibleContainer>
     </div>
   );
@@ -348,15 +348,31 @@ export default function Operations() {
   const appContentRef = useRef<HTMLDivElement>(null);
   const scrollableContainerRef = useRef<HTMLElement>(null);
 
-  // Handle URL parameters for direct navigation
+  // Handle URL parameters for direct navigation - use window.location to get full URL including search params
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const appParam = params.get('app');
-    if (appParam) {
-      setSelectedApp(appParam);
-    } else {
-      setSelectedApp(null);
-    }
+    const checkUrlParams = () => {
+      const params = new URLSearchParams(window.location.search);
+      const appParam = params.get('app');
+      if (appParam) {
+        setSelectedApp(appParam);
+      } else {
+        setSelectedApp(null);
+      }
+    };
+    
+    // Check immediately
+    checkUrlParams();
+    
+    // Listen to popstate for browser back/forward
+    window.addEventListener('popstate', checkUrlParams);
+    
+    // Poll for URL changes (since wouter might not trigger on query param changes)
+    const interval = setInterval(checkUrlParams, 100);
+    
+    return () => {
+      window.removeEventListener('popstate', checkUrlParams);
+      clearInterval(interval);
+    };
   }, [location]);
 
   // Get current user to check subscription status
