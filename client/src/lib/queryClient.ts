@@ -7,12 +7,28 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Get API base URL from environment or use relative path
+const getApiBaseUrl = (): string => {
+  // In production, use environment variable or default to relative path
+  // For Cloudflare Pages, we might need to proxy through Cloudflare Workers
+  // or use the Railway backend URL directly
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // In development, Vite proxy handles this
+  // In production, this will be relative and should work if proxied
+  return '';
+};
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const baseUrl = getApiBaseUrl();
+  const fullUrl = baseUrl + url;
+  
+  const res = await fetch(fullUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
