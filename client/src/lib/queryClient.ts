@@ -13,7 +13,12 @@ const getApiBaseUrl = (): string => {
   // For Cloudflare Pages, we might need to proxy through Cloudflare Workers
   // or use the Railway backend URL directly
   if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+    let apiUrl = import.meta.env.VITE_API_URL;
+    // Ensure the URL has a protocol
+    if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
+      apiUrl = `https://${apiUrl}`;
+    }
+    return apiUrl;
   }
   // In development, Vite proxy handles this
   // In production, this will be relative and should work if proxied
