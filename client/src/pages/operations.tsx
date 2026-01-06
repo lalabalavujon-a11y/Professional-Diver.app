@@ -349,6 +349,7 @@ export default function Operations() {
   const scrollableContainerRef = useRef<HTMLElement>(null);
 
   // Handle URL parameters for direct navigation
+  // Use both location and a check on window.location.search since wouter's location doesn't include query params
   useEffect(() => {
     const checkUrlParams = () => {
       const params = new URLSearchParams(window.location.search);
@@ -356,33 +357,32 @@ export default function Operations() {
       setSelectedApp(appParam || null);
     };
     
-    // Check immediately and whenever location changes
+    // Check immediately
     checkUrlParams();
     
     // Listen to popstate for browser back/forward
-    const handlePopState = () => checkUrlParams();
-    window.addEventListener('popstate', handlePopState);
-    
-    // Also check when wouter location changes (may not include query params, but helps)
-    // Use a small delay to ensure URL is updated
-    const timeoutId = setTimeout(checkUrlParams, 50);
+    window.addEventListener('popstate', checkUrlParams);
     
     return () => {
-      window.removeEventListener('popstate', handlePopState);
-      clearTimeout(timeoutId);
+      window.removeEventListener('popstate', checkUrlParams);
     };
   }, [location]);
   
-  // Also listen for hashchange (for compatibility)
+  // Also check URL params whenever the component might update
+  // This handles the case where wouter navigates but location object doesn't change
   useEffect(() => {
-    const handleHashChange = () => {
+    // Use a small interval to check for URL changes (wouter doesn't always trigger on query param changes)
+    const interval = setInterval(() => {
       const params = new URLSearchParams(window.location.search);
       const appParam = params.get('app');
-      setSelectedApp(appParam || null);
-    };
+      setSelectedApp(prev => {
+        const newApp = appParam || null;
+        // Only update if changed to avoid unnecessary re-renders
+        return prev !== newApp ? newApp : prev;
+      });
+    }, 200);
     
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    return () => clearInterval(interval);
   }, []);
 
   // Get current user to check subscription status
