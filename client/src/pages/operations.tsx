@@ -354,6 +354,8 @@ export default function Operations() {
     const appParam = params.get('app');
     if (appParam) {
       setSelectedApp(appParam);
+    } else {
+      setSelectedApp(null);
     }
   }, [location]);
 
