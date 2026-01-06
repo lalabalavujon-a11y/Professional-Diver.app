@@ -1055,15 +1055,81 @@ export default function ProfileSettings() {
                       <Switch checked={enableOperationsCalendar} onCheckedChange={setEnableOperationsCalendar} />
                     </div>
                     
-                    <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Phone className="w-5 h-5 text-green-500" />
-                        <div>
-                          <h4 className="font-medium">Web Calling</h4>
-                          <p className="text-sm text-slate-500">Enable video and audio calling features</p>
+                    <div className="p-4 border border-slate-200 rounded-lg space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Phone className="w-5 h-5 text-green-500" />
+                          <div>
+                            <h4 className="font-medium">Web & Audio Calling</h4>
+                            <p className="text-sm text-slate-500">Enable video and audio calling features</p>
+                          </div>
                         </div>
+                        <Switch checked={enableWebCalling} onCheckedChange={setEnableWebCalling} />
                       </div>
-                      <Switch checked={enableWebCalling} onCheckedChange={setEnableWebCalling} />
+                      
+                      {enableWebCalling && (
+                        <div className="pt-4 border-t space-y-4">
+                          <div>
+                            <Label className="text-sm font-medium mb-2 block">Default Calling Provider</Label>
+                            <Select defaultValue="google-meet">
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="google-meet">Google Meet</SelectItem>
+                                <SelectItem value="zoom">Zoom</SelectItem>
+                                <SelectItem value="facetime">FaceTime</SelectItem>
+                                <SelectItem value="phone">Phone (Twilio)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="calling-phone" className="text-sm font-medium mb-2 block">
+                              Phone Number (for phone calls)
+                            </Label>
+                            <Input
+                              id="calling-phone"
+                              type="tel"
+                              placeholder="+1 (555) 123-4567"
+                              className="w-full"
+                            />
+                            <p className="text-xs text-slate-500 mt-1">
+                              Your phone number for receiving calls via Twilio
+                            </p>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Enabled Providers</Label>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="provider-google-meet" className="text-sm font-normal">
+                                  Google Meet
+                                </Label>
+                                <Switch id="provider-google-meet" defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="provider-zoom" className="text-sm font-normal">
+                                  Zoom
+                                </Label>
+                                <Switch id="provider-zoom" defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="provider-facetime" className="text-sm font-normal">
+                                  FaceTime
+                                </Label>
+                                <Switch id="provider-facetime" defaultChecked />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="provider-phone" className="text-sm font-normal">
+                                  Phone Calls (Twilio)
+                                </Label>
+                                <Switch id="provider-phone" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

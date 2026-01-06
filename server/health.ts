@@ -28,7 +28,9 @@ router.get("/", async (req, res) => {
       db: "unknown",
       ai: "unknown", 
       api: "express-running",
-      langchain: "unknown"
+      langchain: "unknown",
+      laura: "unknown",
+      diverWell: "unknown"
     }
   };
 
@@ -78,6 +80,34 @@ router.get("/", async (req, res) => {
     }
   } catch (error) {
     health.services.langchain = `pipeline-error: ${error instanceof Error ? error.message : 'unknown'}`;
+  }
+
+  // Test Laura (Platform) connection
+  try {
+    if (process.env.OPENAI_API_KEY) {
+      const { LauraOracleService } = await import('./laura-oracle-service');
+      const laura = LauraOracleService.getInstance();
+      const testResult = await laura.chatWithOracle("Test connection", "health-check");
+      health.services.laura = testResult.response ? "connected-and-working" : "connected-but-no-response";
+    } else {
+      health.services.laura = "no-api-key";
+    }
+  } catch (error) {
+    health.services.laura = `error: ${error instanceof Error ? error.message : 'unknown'}`;
+  }
+
+  // Test Diver Well (External GPT) connection
+  try {
+    if (process.env.OPENAI_API_KEY) {
+      const DiverWellService = (await import('./diver-well-service')).default;
+      const diverWell = DiverWellService.getInstance();
+      const testResult = await diverWell.chatWithConsultant("Test connection", "health-check");
+      health.services.diverWell = testResult.response ? "connected-and-working" : "connected-but-no-response";
+    } else {
+      health.services.diverWell = "no-api-key";
+    }
+  } catch (error) {
+    health.services.diverWell = `error: ${error instanceof Error ? error.message : 'unknown'}`;
   }
 
   // Determine overall status

@@ -3,7 +3,7 @@ import { pgTable, text, varchar, integer, timestamp, boolean, pgEnum, json, real
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const roleEnum = pgEnum("role", ["USER", "ADMIN", "SUPER_ADMIN", "LIFETIME", "AFFILIATE"]);
+export const roleEnum = pgEnum("role", ["USER", "ADMIN", "SUPER_ADMIN", "LIFETIME", "AFFILIATE", "ENTERPRISE"]);
 export const questionTypeEnum = pgEnum("question_type", ["MULTIPLE_CHOICE", "TRUE_FALSE", "SHORT_ANSWER"]);
 export const examTypeEnum = pgEnum("exam_type", ["QUIZ", "EXAM", "PRACTICE"]);
 export const certificationStatusEnum = pgEnum("certification_status", ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "EXPIRED"]);
@@ -489,6 +489,58 @@ export const ramsDocuments = pgTable("rams_documents", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Feature Management Tables
+export const featureDefinitions = pgTable("feature_definitions", {
+  id: varchar("id").primaryKey(), // e.g., "operations_center"
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull(), // Operations, Admin, Content, Integrations, etc.
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const roleFeatureDefaults = pgTable("role_feature_defaults", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  role: roleEnum("role").notNull(),
+  featureId: varchar("feature_id").notNull().references(() => featureDefinitions.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const userFeatureOverrides = pgTable("user_feature_overrides", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  featureId: varchar("feature_id").notNull().references(() => featureDefinitions.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled"), // null = use role default, true/false = override
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const featureDefinitionsRelations = relations(featureDefinitions, ({ many }) => ({
+  roleDefaults: many(roleFeatureDefaults),
+  userOverrides: many(userFeatureOverrides),
+}));
+
+export const roleFeatureDefaultsRelations = relations(roleFeatureDefaults, ({ one }) => ({
+  feature: one(featureDefinitions, {
+    fields: [roleFeatureDefaults.featureId],
+    references: [featureDefinitions.id],
+  }),
+}));
+
+export const userFeatureOverridesRelations = relations(userFeatureOverrides, ({ one }) => ({
+  user: one(users, {
+    fields: [userFeatureOverrides.userId],
+    references: [users.id],
+  }),
+  feature: one(featureDefinitions, {
+    fields: [userFeatureOverrides.featureId],
+    references: [featureDefinitions.id],
+  }),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   accounts: many(accounts),
@@ -507,6 +559,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   diveTeamMembers: many(diveTeamMembers),
   diveOperations: many(diveOperations),
   dailyProjectReports: many(dailyProjectReports),
+  featureOverrides: many(userFeatureOverrides),
 }));
 
 export const aiTutorsRelations = relations(aiTutors, ({ many }) => ({
@@ -984,6 +1037,23 @@ export const insertInviteSchema = createInsertSchema(invites).omit({
   usedAt: true,
 });
 
+export const insertFeatureDefinitionSchema = createInsertSchema(featureDefinitions).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRoleFeatureDefaultSchema = createInsertSchema(roleFeatureDefaults).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserFeatureOverrideSchema = createInsertSchema(userFeatureOverrides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -1054,3 +1124,9 @@ export type ShippingInfo = typeof shippingInfo.$inferSelect;
 export type InsertShippingInfo = z.infer<typeof insertShippingInfoSchema>;
 export type RamsDocument = typeof ramsDocuments.$inferSelect;
 export type InsertRamsDocument = z.infer<typeof insertRamsDocumentSchema>;
+export type FeatureDefinition = typeof featureDefinitions.$inferSelect;
+export type InsertFeatureDefinition = z.infer<typeof insertFeatureDefinitionSchema>;
+export type RoleFeatureDefault = typeof roleFeatureDefaults.$inferSelect;
+export type InsertRoleFeatureDefault = z.infer<typeof insertRoleFeatureDefaultSchema>;
+export type UserFeatureOverride = typeof userFeatureOverrides.$inferSelect;
+export type InsertUserFeatureOverride = z.infer<typeof insertUserFeatureOverrideSchema>;

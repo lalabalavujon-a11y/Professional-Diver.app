@@ -1,14 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, Upload, FileText, Copy } from "lucide-react";
+import { Download, Upload, FileText, Copy, AlertTriangle } from "lucide-react";
 import EnhancedMarkdownEditor from "@/components/enhanced-markdown-editor";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import RoleBasedNavigation from "@/components/role-based-navigation";
+import { useFeaturePermissions } from "@/hooks/use-feature-permissions";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function MarkdownEditor() {
+  const [, setLocation] = useLocation();
+  const { hasFeature, isLoading } = useFeaturePermissions();
+
+  // Check permission on mount
+  useEffect(() => {
+    if (!isLoading && !hasFeature("content_editor")) {
+      setLocation("/admin");
+    }
+  }, [hasFeature, isLoading, setLocation]);
+
+  // Show loading or access denied
+  if (isLoading) {
+    return (
+      <>
+        <RoleBasedNavigation />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-slate-600">Loading...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!hasFeature("content_editor")) {
+    return (
+      <>
+        <RoleBasedNavigation />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50 flex items-center justify-center">
+          <Alert className="max-w-md border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-sm text-red-800">
+              Access Denied: You do not have permission to access the Content Editor.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </>
+    );
+  }
   const [content, setContent] = useState(`# Welcome to the Enhanced Markdown Editor
 
 This is a powerful markdown editor with live preview, syntax highlighting, and advanced features.

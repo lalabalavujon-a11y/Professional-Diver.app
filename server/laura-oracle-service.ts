@@ -168,6 +168,17 @@ export class LauraOracleService {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
+    // Validate OpenAI API key
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('⚠️ OPENAI_API_KEY not found - Laura will not function properly');
+    } else {
+      const key = process.env.OPENAI_API_KEY;
+      const keyPreview = key.length > 11 
+        ? key.substring(0, 7) + '...' + key.substring(key.length - 4)
+        : key.substring(0, 3) + '...';
+      console.log(`✅ OpenAI API Key detected for Laura: ${keyPreview}`);
+    }
+
     // Initialize AI models
     this.chatModel = new ChatOpenAI({
       modelName: 'gpt-4o',
@@ -182,6 +193,31 @@ export class LauraOracleService {
     });
 
     console.log('🚀 Laura Platform Oracle initialized with LangSmith domain learning and voice capabilities');
+    console.log('✅ Platform connection: Laura → Langchain → OpenAI GPT');
+    
+    // Test connection on initialization if API key is available
+    if (process.env.OPENAI_API_KEY) {
+      this.testConnection().catch(err => {
+        console.warn('⚠️ Laura connection test failed on initialization:', err instanceof Error ? err.message : 'unknown error');
+      });
+    }
+  }
+
+  /**
+   * Test that Laura can actually use the OpenAI API key
+   */
+  private async testConnection(): Promise<void> {
+    try {
+      const testResult = await this.chatModel.invoke([
+        new (await import('@langchain/core/messages')).HumanMessage("Say 'OK' if you can hear me.")
+      ]);
+      if (testResult.content) {
+        console.log('✅ Laura OpenAI API connection verified - service is USING your API key');
+      }
+    } catch (error) {
+      console.error('❌ Laura OpenAI API connection test failed:', error instanceof Error ? error.message : 'unknown error');
+      throw error;
+    }
   }
 
   public static getInstance(): LauraOracleService {

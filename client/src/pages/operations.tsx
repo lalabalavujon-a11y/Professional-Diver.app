@@ -4,6 +4,9 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader, PageSection, StatCard } from "@/components/ui/page-header";
+import { LoadingSpinner } from "@/components/ui/loading-states";
+import { EmptyState } from "@/components/ui/empty-states";
 import { CollapsibleContainer } from "@/components/ui/collapsible-container";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -387,17 +390,31 @@ export default function Operations() {
   
   // Also check on any click event (for immediate response)
   useEffect(() => {
+    let clickTimeout: NodeJS.Timeout | null = null;
+    
     const handleClick = () => {
+      // Clear any pending timeout before setting a new one
+      if (clickTimeout) {
+        clearTimeout(clickTimeout);
+      }
+      
       // Small delay to allow URL to update
-      setTimeout(() => {
+      clickTimeout = setTimeout(() => {
         const params = new URLSearchParams(window.location.search);
         const appParam = params.get('app');
         setSelectedApp(appParam || null);
+        clickTimeout = null;
       }, 10);
     };
     
     window.addEventListener('click', handleClick);
-    return () => window.removeEventListener('click', handleClick);
+    return () => {
+      window.removeEventListener('click', handleClick);
+      // Clear any pending timeout when cleaning up
+      if (clickTimeout) {
+        clearTimeout(clickTimeout);
+      }
+    };
   }, []);
 
   // Get current user to check subscription status
@@ -504,7 +521,7 @@ export default function Operations() {
   useEffect(() => {
     if (selectedApp && appContentRef.current && scrollableContainerRef.current) {
       // Small delay to ensure the content is rendered
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         const container = scrollableContainerRef.current;
         const target = appContentRef.current;
         if (container && target) {
@@ -519,6 +536,9 @@ export default function Operations() {
           });
         }
       }, 150);
+      
+      // Cleanup function to clear timeout if component unmounts or selectedApp changes
+      return () => clearTimeout(timer);
     }
   }, [selectedApp]);
 
@@ -548,59 +568,47 @@ export default function Operations() {
   return (
     <>
       <RoleBasedNavigation />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+      <div className="min-h-screen bg-background" data-sidebar-content="true">
         <div className="flex h-[calc(100vh-5rem)] mt-20 overflow-hidden">
           {/* Main Content Area */}
           <ResizablePanelGroup direction="horizontal" className="w-full h-full">
             <ResizablePanel defaultSize={75} minSize={50} className="overflow-auto">
-              <main ref={scrollableContainerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-2">Operations Center</h1>
-              <p className="text-lg text-slate-600">
-                Professional operational management applications for diving professionals
-              </p>
-            </div>
-            {hasOperationsAccess && (
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
+              <main ref={scrollableContainerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 h-full overflow-auto" id="main-content" role="main" aria-label="Operations Center">
+        <PageHeader
+          title="Operations Center"
+          description="Professional operational management applications for diving professionals"
+          icon={Wrench}
+          actions={
+            hasOperationsAccess && (
+              <Badge variant="secondary" className="bg-success-100 text-success-800">
                 <CheckCircle className="w-4 h-4 mr-1" />
                 Operations Access Enabled
               </Badge>
-            )}
-          </div>
-        </div>
+            )
+          }
+        />
 
         {/* Main Content Area - Shows selected app or Calendar */}
         {selectedApp === "calendar" ? (
-          <div ref={appContentRef} className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-slate-900">Operations Calendar</h2>
-            </div>
+          <PageSection title="Operations Calendar">
             <OperationsCalendarWidget timezone={preferences?.timezone || 'UTC'} />
-          </div>
+          </PageSection>
         ) : selectedApp ? (
-          <div ref={appContentRef} className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-slate-900">
-                {operationalApps.find(app => app.id === selectedApp)?.title || selectedApp}
-              </h2>
+          <PageSection
+            title={operationalApps.find(app => app.id === selectedApp)?.title || selectedApp}
+            className="space-y-6"
+          >
+            <div ref={appContentRef}>
+              {renderAppContent(selectedApp)}
             </div>
-            {renderAppContent(selectedApp)}
-          </div>
+          </PageSection>
         ) : (
-          <div className="text-center py-12">
-            <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-slate-700 mb-2">Welcome to Operations Center</h3>
-            <p className="text-slate-600 mb-6">
-              Select an operation from the sidebar to get started
-            </p>
-            {preferences?.enableOperationsCalendar && (
-              <div className="max-w-2xl mx-auto">
-                <OperationsCalendarWidget timezone={preferences.timezone || 'UTC'} />
-              </div>
-            )}
-          </div>
+          <EmptyState
+            icon={Wrench}
+            title="Welcome to Operations Center"
+            description="Select an operation from the sidebar to get started with dive operations management, equipment tracking, and specialized operational tools."
+            className="py-12"
+          />
         )}
 
         {/* Subscription Modal */}

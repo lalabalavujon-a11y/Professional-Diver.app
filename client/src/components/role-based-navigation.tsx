@@ -20,7 +20,9 @@ import {
   Search,
   Package,
   HeartPulse,
-  Calendar
+  Calendar,
+  AlertTriangle,
+  Keyboard
 } from "lucide-react";
 import { operationalApps } from "@/pages/operations";
 import { supervisorContainers } from "@/components/dive-supervisor/DiveSupervisorControlApp";
@@ -28,10 +30,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { CommandMenu, useCommandMenu } from "@/components/ui/command-menu";
 import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
 import UserProfileDropdown from "@/components/user-profile-dropdown";
 import LauraAssistant from "@/components/laura-assistant";
 import HeaderWidgetBar from "@/components/widgets/header-widget-bar";
+import { useFeaturePermissions } from "@/hooks/use-feature-permissions";
+import RolePreviewDropdown from "@/components/role-preview-dropdown";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   SidebarProvider,
   Sidebar,
@@ -55,7 +62,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'SUPER_ADMIN' | 'USER' | 'LIFETIME';
+  role: 'ADMIN' | 'SUPER_ADMIN' | 'USER' | 'LIFETIME' | 'AFFILIATE' | 'ENTERPRISE';
   subscriptionType: 'TRIAL' | 'MONTHLY' | 'ANNUAL' | 'LIFETIME';
 }
 
@@ -65,6 +72,7 @@ export default function RoleBasedNavigation() {
   const [location] = useLocation();
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('expanded');
   const [isHovering, setIsHovering] = useState(false);
+  const { open: commandMenuOpen, setOpen: setCommandMenuOpen } = useCommandMenu();
 
   // Get current user data
   const { data: currentUser } = useQuery<User>({
@@ -76,6 +84,14 @@ export default function RoleBasedNavigation() {
       return response.json();
     }
   });
+
+  // Get feature permissions
+  const { hasFeature, isPreviewMode, previewRole } = useFeaturePermissions();
+
+  // Check for preview mode in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const previewRoleFromUrl = urlParams.get("previewRole");
+  const isInPreviewMode = !!previewRoleFromUrl;
 
   // Load sidebar mode from localStorage
   useEffect(() => {
@@ -91,7 +107,10 @@ export default function RoleBasedNavigation() {
   }, [sidebarMode]);
 
   // Determine user role and permissions
-  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+  // In preview mode, use the preview role instead of actual role
+  const effectiveRole = isInPreviewMode && previewRoleFromUrl ? previewRoleFromUrl : currentUser?.role;
+  const isAdmin = effectiveRole === 'ADMIN' || effectiveRole === 'SUPER_ADMIN';
+  const isSuperAdmin = effectiveRole === 'SUPER_ADMIN';
   const isPaidUser = currentUser?.subscriptionType !== 'TRIAL' && currentUser?.subscriptionType !== undefined;
 
   // Check if current location is in admin section
@@ -115,15 +134,47 @@ export default function RoleBasedNavigation() {
     location === path || location.startsWith(path)
   );
 
-  // Admin Navigation Items
-  const adminNavItems = [
-    { href: "/admin", label: "Admin Dashboard", icon: Shield },
-    { href: "/crm", label: "CRM", icon: Users },
-    { href: "/analytics", label: "Analytics", icon: TrendingUp },
-    { href: "/operations", label: "Operations", icon: Wrench },
-    { href: "/markdown-editor", label: "Content Editor", icon: FileText },
-    { href: "/admin/srs", label: "SRS Admin", icon: Repeat },
+  // Admin Navigation Items with feature mapping
+  const allAdminNavItems = [
+    { href: "/admin", label: "Admin Dashboard", icon: Shield, featureId: "admin_dashboard" },
+    { href: "/crm", label: "CRM", icon: Users, featureId: "crm" },
+    { href: "/analytics", label: "Analytics", icon: TrendingUp, featureId: "analytics" },
+    { href: "/operations", label: "Operations", icon: Wrench, featureId: "operations_center" },
+    { href: "/markdown-editor", label: "Content Editor", icon: FileText, featureId: "content_editor" },
+    { href: "/admin/srs", label: "SRS Admin", icon: Repeat, featureId: "srs_admin" },
   ];
+
+  // Filter admin nav items based on feature permissions
+  const adminNavItems = allAdminNavItems.filter((item) => {
+    // SUPER_ADMIN always sees all admin features (unless in preview mode)
+    if (isSuperAdmin && !isInPreviewMode) {
+      return true;
+    }
+    
+    // In preview mode, check permissions for the preview role
+    if (isInPreviewMode) {
+      return hasFeature(item.featureId);
+    }
+    
+    // For other roles, check permissions
+    // If permissions are still loading, show based on role
+    // Admin/SUPER_ADMIN get all features while loading
+    if (isLoading) {
+      return isAdmin || isSuperAdmin;
+    }
+    
+    // Normal mode - check user's actual permissions
+    // If permission check fails or returns false, fall back to role check for admins
+    const hasPermission = hasFeature(item.featureId);
+    if (!hasPermission && (isAdmin || isSuperAdmin)) {
+      // For admins, if permission system isn't working, show all features
+      return true;
+    }
+    return hasPermission;
+  });
+
+  // Check if user has any admin features (to show Admin section)
+  const hasAdminFeatures = adminNavItems.length > 0;
 
   // Training Navigation Items (for all users)
   const trainingNavItems = [
@@ -212,6 +263,65 @@ export default function RoleBasedNavigation() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
+                {/* Admin Section - Visible to all users, filtered by permissions */}
+                <SidebarMenuItem>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuButton 
+                        isActive={isAdminSection}
+                        tooltip="Admin"
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span>
+                          Admin
+                          {effectiveRole && (
+                            <span className="ml-2 text-xs text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">
+                              ({effectiveRole === 'SUPER_ADMIN' ? 'Super Admin' : 
+                                effectiveRole === 'ADMIN' ? 'Admin' : 
+                                effectiveRole === 'AFFILIATE' ? 'Partner Admin' : 
+                                effectiveRole === 'ENTERPRISE' ? 'Enterprise' : 
+                                'User'})
+                            </span>
+                          )}
+                        </span>
+                        <ChevronDown className="ml-auto w-4 h-4" />
+                      </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      {adminNavItems.length > 0 ? (
+                        adminNavItems.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <DropdownMenuItem 
+                              key={item.href} 
+                              asChild
+                              disabled={isInPreviewMode}
+                            >
+                              <Link 
+                                href={item.href} 
+                                data-testid={`link-${item.href.replace('/', '')}`} 
+                                className="w-full flex items-center space-x-2"
+                                onClick={(e) => {
+                                  if (isInPreviewMode) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                              >
+                                <Icon className="w-4 h-4" />
+                                <span>{item.label}</span>
+                              </Link>
+                            </DropdownMenuItem>
+                          );
+                        })
+                      ) : (
+                        <DropdownMenuItem disabled className="text-slate-500">
+                          No admin features available
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </SidebarMenuItem>
+
                 {/* Training Section - Visible to all users */}
                 <SidebarMenuItem>
                   <DropdownMenu>
@@ -241,37 +351,6 @@ export default function RoleBasedNavigation() {
                   </DropdownMenu>
                 </SidebarMenuItem>
 
-                {/* Admin Section - Only visible to admins */}
-                {isAdmin && (
-                  <SidebarMenuItem>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <SidebarMenuButton 
-                          isActive={isAdminSection}
-                          tooltip="Admin"
-                        >
-                          <Shield className="w-4 h-4" />
-                          <span>Admin</span>
-                          <ChevronDown className="ml-auto w-4 h-4" />
-                        </SidebarMenuButton>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-56">
-                        {adminNavItems.map((item) => {
-                          const Icon = item.icon;
-                          return (
-                            <DropdownMenuItem key={item.href} asChild>
-                              <Link href={item.href} data-testid={`link-${item.href.replace('/', '')}`} className="w-full flex items-center space-x-2">
-                                <Icon className="w-4 h-4" />
-                                <span>{item.label}</span>
-                              </Link>
-                            </DropdownMenuItem>
-                          );
-                        })}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </SidebarMenuItem>
-                )}
-
                 {/* Become a Partner Section - Visible to paid users */}
                 {isPaidUser && (
                   <SidebarMenuItem>
@@ -288,9 +367,8 @@ export default function RoleBasedNavigation() {
                   </SidebarMenuItem>
                 )}
 
-                {/* Operations Section - Only visible to admins */}
-                {isAdmin && (
-                  <SidebarMenuItem>
+                {/* Operations Section - Visible to all users with all features */}
+                <SidebarMenuItem>
                     <Collapsible className="group/collapsible">
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton 
@@ -400,7 +478,6 @@ export default function RoleBasedNavigation() {
                       </CollapsibleContent>
                     </Collapsible>
                   </SidebarMenuItem>
-                )}
 
                 {/* Support Section - Available to all users */}
                 <SidebarMenuItem>
@@ -458,6 +535,12 @@ export default function RoleBasedNavigation() {
 
         <SidebarFooter className="p-4 border-t">
           <div className="space-y-2">
+            {/* Role Preview Dropdown - Only for SUPER_ADMIN */}
+            {isSuperAdmin && !isInPreviewMode && (
+              <div className="mb-3">
+                <RolePreviewDropdown currentRole={effectiveRole || ""} />
+              </div>
+            )}
             <SidebarGroupLabel className="text-xs font-medium text-sidebar-foreground/70 mb-2 group-data-[collapsible=icon]:hidden">
               Sidebar control
             </SidebarGroupLabel>
@@ -490,6 +573,15 @@ export default function RoleBasedNavigation() {
       </Sidebar>
 
       <SidebarInset className="flex flex-col">
+        {/* Preview Mode Banner */}
+        {isInPreviewMode && previewRoleFromUrl && (
+          <Alert className="m-4 mb-0 border-yellow-200 bg-yellow-50">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-sm text-yellow-800">
+              Preview Mode: Viewing as <strong>{previewRoleFromUrl === "AFFILIATE" ? "Partner Admin" : previewRoleFromUrl === "ENTERPRISE" ? "Enterprise User" : "User"}</strong>. Navigation is read-only.
+            </AlertDescription>
+          </Alert>
+        )}
         {/* Header - Fixed position to stay at top, CSS handles positioning */}
         <header 
           className="fixed top-0 right-0 z-50 flex min-h-20 shrink-0 items-center gap-3 md:gap-4 border-b bg-background/95 backdrop-blur-sm px-3 sm:px-4 py-2" 
@@ -498,10 +590,25 @@ export default function RoleBasedNavigation() {
           <SidebarTrigger className="-ml-1 h-9 w-9 md:h-10 md:w-10 flex-shrink-0" />
           <HeaderWidgetBar />
           <div className="flex items-center justify-end gap-2 md:gap-4 flex-shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:flex items-center gap-2 text-muted-foreground"
+              onClick={() => setCommandMenuOpen(true)}
+              aria-label="Open command menu"
+            >
+              <Search className="h-4 w-4" />
+              <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </Button>
             <UserProfileDropdown />
           </div>
         </header>
       </SidebarInset>
+
+      {/* Command Menu */}
+      <CommandMenu open={commandMenuOpen} onOpenChange={setCommandMenuOpen} />
 
       {/* Fixed position Laura Assistant */}
       <LauraAssistant />
