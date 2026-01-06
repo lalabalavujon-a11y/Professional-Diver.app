@@ -368,7 +368,7 @@ export default function Operations() {
     };
   }, [location]);
   
-  // Also check URL params whenever the component might update
+  // Check URL params more frequently to catch navigation changes
   // This handles the case where wouter navigates but location object doesn't change
   useEffect(() => {
     // Use a small interval to check for URL changes (wouter doesn't always trigger on query param changes)
@@ -380,9 +380,24 @@ export default function Operations() {
         // Only update if changed to avoid unnecessary re-renders
         return prev !== newApp ? newApp : prev;
       });
-    }, 200);
+    }, 50); // Check more frequently for better responsiveness
     
     return () => clearInterval(interval);
+  }, []);
+  
+  // Also check on any click event (for immediate response)
+  useEffect(() => {
+    const handleClick = () => {
+      // Small delay to allow URL to update
+      setTimeout(() => {
+        const params = new URLSearchParams(window.location.search);
+        const appParam = params.get('app');
+        setSelectedApp(appParam || null);
+      }, 10);
+    };
+    
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
   }, []);
 
   // Get current user to check subscription status
