@@ -35,8 +35,23 @@ export default function SignIn() {
 
   const credentialsSignInMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string; rememberMe: boolean }) => {
-      const response = await apiRequest("POST", "/api/auth/credentials", credentials);
-      return response.json();
+      try {
+        const response = await apiRequest("POST", "/api/auth/credentials", credentials);
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || "Invalid credentials");
+        }
+        return data;
+      } catch (error: any) {
+        // Try to parse error message from response
+        if (error.message && error.message.includes('401')) {
+          throw new Error("Invalid email or password. Please try again.");
+        }
+        if (error.message && error.message.includes('500')) {
+          throw new Error("Server error. Please try again later.");
+        }
+        throw error;
+      }
     },
     onSuccess: (data) => {
       // Handle remember me functionality
@@ -58,6 +73,7 @@ export default function SignIn() {
       window.location.href = '/dashboard';
     },
     onError: (error: any) => {
+      console.error("Sign in error:", error);
       toast({
         title: "Sign In Failed",
         description: error.message || "Invalid email or password. Please try again.",
