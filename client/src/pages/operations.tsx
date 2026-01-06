@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CollapsibleContainer } from "@/components/ui/collapsible-container";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -129,7 +131,7 @@ const operationalData = {
 };
 
 // Operational apps configuration - defined before component to avoid hoisting issues
-const operationalApps = [
+export const operationalApps = [
   {
     id: "diver-well",
     title: "Diver Well AI Consultant",
@@ -269,80 +271,91 @@ function SortableItem({ app, hasOperationsAccess, onAppClick }: SortableItemProp
 
   return (
     <div ref={setNodeRef} style={style}>
-      <Card 
-        className={`relative cursor-pointer transition-all hover:shadow-lg ${
+      <CollapsibleContainer
+        title={app.title}
+        description={app.description}
+        icon={
+          <div className="flex items-center space-x-2">
+            {app.icon}
+            <Badge variant="outline" className="text-xs">
+              {app.userRole}
+            </Badge>
+          </div>
+        }
+        className={`relative ${isDragging ? 'shadow-lg ring-2 ring-blue-500' : ''} ${
           hasOperationsAccess 
             ? `border-${app.color}-200 hover:border-${app.color}-300` 
             : 'border-gray-200 hover:border-gray-300'
-        } ${isDragging ? 'shadow-lg ring-2 ring-blue-500' : ''}`}
-        onClick={() => onAppClick(app.id)}
+        }`}
+        headerClassName={!hasOperationsAccess ? 'opacity-60' : ''}
+        defaultCollapsed={true}
       >
         {!hasOperationsAccess && (
-          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center z-10 pointer-events-none">
             <div className="text-center">
               <Lock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
               <p className="text-sm font-medium text-gray-600">Subscription Required</p>
             </div>
           </div>
         )}
-        
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-2">
-                {app.icon}
-                <Badge variant="outline" className="text-xs">
-                  {app.userRole}
-                </Badge>
-              </div>
-              <CardTitle className="text-lg">{app.title}</CardTitle>
-              <CardDescription className="text-sm">
-                {app.description}
-              </CardDescription>
-            </div>
-            <div
-              {...attributes}
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing p-2 hover:bg-gray-100 rounded transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <GripVertical className="w-5 h-5 text-gray-400" />
-            </div>
+        <div className="space-y-3">
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900 mb-2">Key Features:</h4>
+            <ul className="text-xs text-slate-600 space-y-1">
+              {app.features.slice(0, 4).map((feature, index) => (
+                <li key={index} className="flex items-center space-x-2">
+                  <CheckCircle className="w-3 h-3 text-green-500" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+              {app.features.length > 4 && (
+                <li className="text-xs text-slate-400">
+                  +{app.features.length - 4} more features
+                </li>
+              )}
+            </ul>
           </div>
-        </CardHeader>
-        
-        <CardContent>
-          <div className="space-y-3">
-            <div>
-              <h4 className="text-sm font-semibold text-slate-900 mb-2">Key Features:</h4>
-              <ul className="text-xs text-slate-600 space-y-1">
-                {app.features.slice(0, 4).map((feature, index) => (
-                  <li key={index} className="flex items-center space-x-2">
-                    <CheckCircle className="w-3 h-3 text-green-500" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-                {app.features.length > 4 && (
-                  <li className="text-xs text-slate-400">
-                    +{app.features.length - 4} more features
-                  </li>
-                )}
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          <Button
+            className="w-full"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAppClick(app.id);
+            }}
+            disabled={!hasOperationsAccess}
+          >
+            Open {app.title}
+          </Button>
+        </div>
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute top-2 right-2 cursor-grab active:cursor-grabbing p-2 hover:bg-gray-100 rounded transition-colors z-20"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="w-5 h-5 text-gray-400" />
+        </div>
+      </CollapsibleContainer>
     </div>
   );
 }
 
 export default function Operations() {
   const { toast } = useToast();
+  const [location, setLocation] = useLocation();
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
   const [appsOrder, setAppsOrder] = useState<string[]>([]);
   const appContentRef = useRef<HTMLDivElement>(null);
   const scrollableContainerRef = useRef<HTMLElement>(null);
+
+  // Handle URL parameters for direct navigation
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const appParam = params.get('app');
+    if (appParam) {
+      setSelectedApp(appParam);
+    }
+  }, [location]);
 
   // Get current user to check subscription status
   const { data: currentUser } = useQuery({
