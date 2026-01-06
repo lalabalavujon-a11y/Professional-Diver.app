@@ -19,11 +19,12 @@ import {
   Waves,
   Search,
   Package,
-  HeartPulse
+  HeartPulse,
+  Calendar
 } from "lucide-react";
 import { operationalApps } from "@/pages/operations";
 import { supervisorContainers } from "@/components/dive-supervisor/DiveSupervisorControlApp";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
@@ -44,6 +45,9 @@ import {
   SidebarGroupContent,
   SidebarInset,
   SidebarTrigger,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 
 interface User {
@@ -286,81 +290,110 @@ export default function RoleBasedNavigation() {
                 {/* Operations Section - Only visible to admins */}
                 {isAdmin && (
                   <SidebarMenuItem>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                    <Collapsible className="group/collapsible">
+                      <CollapsibleTrigger asChild>
                         <SidebarMenuButton 
                           isActive={isOperations}
                           tooltip="Operations"
                         >
                           <Wrench className="w-4 h-4" />
                           <span>Operations</span>
-                          <ChevronDown className="ml-auto w-4 h-4" />
+                          <ChevronDown className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                         </SidebarMenuButton>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-64">
-                        <DropdownMenuItem asChild>
-                          <Link href="/operations" data-testid="link-operations">
-                            <Wrench className="w-4 h-4 mr-2" />
-                            <span>Operations Center</span>
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {operationalApps.map((app) => {
-                          // Get icon component based on app id
-                          const getIcon = () => {
-                            switch (app.id) {
-                              case "diver-well":
-                                return <Waves className="w-4 h-4 mr-2" />;
-                              case "dive-supervisor":
-                                return <Shield className="w-4 h-4 mr-2" />;
-                              case "ndt-inspector":
-                                return <Search className="w-4 h-4 mr-2" />;
-                              case "equipment-manager":
-                                return <Package className="w-4 h-4 mr-2" />;
-                              case "med-ops":
-                              case "dmt-med-ops":
-                                return <HeartPulse className="w-4 h-4 mr-2" />;
-                              default:
-                                return <Wrench className="w-4 h-4 mr-2" />;
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={location === "/operations"}>
+                              <Link href="/operations" data-testid="link-operations-center">
+                                <Wrench className="w-4 h-4" />
+                                <span>Operations Center</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={location.includes("/operations") && new URLSearchParams(window.location.search).get("app") === "calendar"}>
+                              <Link href="/operations?app=calendar">
+                                <Calendar className="w-4 h-4" />
+                                <span>Calendar</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          {operationalApps.map((app) => {
+                            // Get icon component based on app id
+                            const getIcon = () => {
+                              switch (app.id) {
+                                case "diver-well":
+                                  return <Waves className="w-4 h-4" />;
+                                case "dive-supervisor":
+                                  return <Shield className="w-4 h-4" />;
+                                case "ndt-inspector":
+                                  return <Search className="w-4 h-4" />;
+                                case "equipment-manager":
+                                  return <Package className="w-4 h-4" />;
+                                case "med-ops":
+                                case "dmt-med-ops":
+                                  return <HeartPulse className="w-4 h-4" />;
+                                default:
+                                  return <Wrench className="w-4 h-4" />;
+                              }
+                            };
+                            
+                            if (app.id === "dive-supervisor") {
+                              return (
+                                <SidebarMenuSubItem key={app.id}>
+                                  <Collapsible className="group/nested-collapsible">
+                                    <CollapsibleTrigger asChild>
+                                      <SidebarMenuSubButton asChild>
+                                        <Link href={`/operations?app=${app.id}`}>
+                                          {getIcon()}
+                                          <span>{app.title}</span>
+                                          <ChevronRight className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/nested-collapsible:rotate-90" />
+                                        </Link>
+                                      </SidebarMenuSubButton>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                      <SidebarMenuSub>
+                                        {supervisorContainers.map((container) => {
+                                          const ContainerIcon = container.icon;
+                                          const isContainerActive = location.includes("/operations") && 
+                                            new URLSearchParams(window.location.search).get("app") === "dive-supervisor" &&
+                                            new URLSearchParams(window.location.search).get("container") === container.id;
+                                          return (
+                                            <SidebarMenuSubItem key={container.id}>
+                                              <SidebarMenuSubButton asChild isActive={isContainerActive} size="sm">
+                                                <Link href={`/operations?app=dive-supervisor&container=${container.id}`}>
+                                                  <ContainerIcon className="w-4 h-4" />
+                                                  <span>{container.title}</span>
+                                                </Link>
+                                              </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                          );
+                                        })}
+                                      </SidebarMenuSub>
+                                    </CollapsibleContent>
+                                  </Collapsible>
+                                </SidebarMenuSubItem>
+                              );
                             }
-                          };
-                          
-                          if (app.id === "dive-supervisor") {
+                            
+                            const isAppActive = location.includes("/operations") && 
+                              new URLSearchParams(window.location.search).get("app") === app.id;
+                            
                             return (
-                              <div key={app.id}>
-                                <DropdownMenuItem asChild>
+                              <SidebarMenuSubItem key={app.id}>
+                                <SidebarMenuSubButton asChild isActive={isAppActive}>
                                   <Link href={`/operations?app=${app.id}`}>
                                     {getIcon()}
                                     <span>{app.title}</span>
                                   </Link>
-                                </DropdownMenuItem>
-                                {supervisorContainers.map((container) => {
-                                  const ContainerIcon = container.icon;
-                                  return (
-                                    <DropdownMenuItem key={container.id} asChild className="pl-8">
-                                      <Link href={`/operations?app=dive-supervisor&container=${container.id}`}>
-                                        <ContainerIcon className="w-4 h-4 mr-2" />
-                                        <span>{container.title}</span>
-                                      </Link>
-                                    </DropdownMenuItem>
-                                  );
-                                })}
-                                <DropdownMenuSeparator />
-                              </div>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
                             );
-                          }
-                          
-                          return (
-                            <DropdownMenuItem key={app.id} asChild>
-                              <Link href={`/operations?app=${app.id}`}>
-                                {getIcon()}
-                                <span>{app.title}</span>
-                              </Link>
-                            </DropdownMenuItem>
-                          );
-                        })}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          })}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </SidebarMenuItem>
                 )}
 
