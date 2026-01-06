@@ -342,6 +342,7 @@ export default function Operations() {
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
   const [appsOrder, setAppsOrder] = useState<string[]>([]);
   const appContentRef = useRef<HTMLDivElement>(null);
+  const scrollableContainerRef = useRef<HTMLElement>(null);
 
   // Get current user to check subscription status
   const { data: currentUser } = useQuery({
@@ -445,14 +446,23 @@ export default function Operations() {
 
   // Scroll to app content when an app is selected
   useEffect(() => {
-    if (selectedApp && appContentRef.current) {
+    if (selectedApp && appContentRef.current && scrollableContainerRef.current) {
       // Small delay to ensure the content is rendered
       setTimeout(() => {
-        appContentRef.current?.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'start' 
-        });
-      }, 100);
+        const container = scrollableContainerRef.current;
+        const target = appContentRef.current;
+        if (container && target) {
+          const containerRect = container.getBoundingClientRect();
+          const targetRect = target.getBoundingClientRect();
+          const scrollTop = container.scrollTop;
+          const targetTop = targetRect.top - containerRect.top + scrollTop;
+          
+          container.scrollTo({
+            top: targetTop - 20, // 20px offset from top
+            behavior: 'smooth'
+          });
+        }
+      }, 150);
     }
   }, [selectedApp]);
 
@@ -485,7 +495,7 @@ export default function Operations() {
           {/* Main Content Area */}
           <ResizablePanelGroup direction="horizontal" className="w-full h-full">
             <ResizablePanel defaultSize={75} minSize={50} className="overflow-auto">
-              <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-auto">
+              <main ref={scrollableContainerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full overflow-auto">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
