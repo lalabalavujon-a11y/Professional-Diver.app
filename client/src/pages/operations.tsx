@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -341,6 +341,7 @@ export default function Operations() {
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
   const [appsOrder, setAppsOrder] = useState<string[]>([]);
+  const appContentRef = useRef<HTMLDivElement>(null);
 
   // Get current user to check subscription status
   const { data: currentUser } = useQuery({
@@ -442,6 +443,19 @@ export default function Operations() {
     setSelectedApp(appId);
   };
 
+  // Scroll to app content when an app is selected
+  useEffect(() => {
+    if (selectedApp && appContentRef.current) {
+      // Small delay to ensure the content is rendered
+      setTimeout(() => {
+        appContentRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 100);
+    }
+  }, [selectedApp]);
+
   const renderAppContent = (appId: string) => {
     switch (appId) {
       case "diver-well":
@@ -497,7 +511,7 @@ export default function Operations() {
         )}
 
         {selectedApp ? (
-          <div className="space-y-6">
+          <div ref={appContentRef} className="space-y-6">
             <div className="flex items-center justify-between">
               <Button
                 variant="outline"
