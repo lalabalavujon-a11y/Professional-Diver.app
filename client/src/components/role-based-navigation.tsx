@@ -343,15 +343,19 @@ export default function RoleBasedNavigation() {
                               return (
                                 <SidebarMenuSubItem key={app.id}>
                                   <Collapsible className="group/nested-collapsible">
-                                    <CollapsibleTrigger asChild>
-                                      <SidebarMenuSubButton asChild>
+                                    <div className="flex items-center">
+                                      <SidebarMenuSubButton asChild className="flex-1">
                                         <Link href={`/operations?app=${app.id}`}>
                                           {getIcon()}
                                           <span>{app.title}</span>
-                                          <ChevronRight className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/nested-collapsible:rotate-90" />
                                         </Link>
                                       </SidebarMenuSubButton>
-                                    </CollapsibleTrigger>
+                                      <CollapsibleTrigger asChild>
+                                        <SidebarMenuSubButton className="w-8 p-0">
+                                          <ChevronRight className="w-4 h-4 transition-transform duration-200 group-data-[state=open]/nested-collapsible:rotate-90" />
+                                        </SidebarMenuSubButton>
+                                      </CollapsibleTrigger>
+                                    </div>
                                     <CollapsibleContent>
                                       <SidebarMenuSub>
                                         {supervisorContainers.map((container) => {
