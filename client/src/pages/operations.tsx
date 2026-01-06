@@ -348,32 +348,42 @@ export default function Operations() {
   const appContentRef = useRef<HTMLDivElement>(null);
   const scrollableContainerRef = useRef<HTMLElement>(null);
 
-  // Handle URL parameters for direct navigation - use window.location to get full URL including search params
+  // Handle URL parameters for direct navigation
   useEffect(() => {
     const checkUrlParams = () => {
       const params = new URLSearchParams(window.location.search);
       const appParam = params.get('app');
-      if (appParam) {
-        setSelectedApp(appParam);
-      } else {
-        setSelectedApp(null);
-      }
+      setSelectedApp(appParam || null);
     };
     
-    // Check immediately
+    // Check immediately and whenever location changes
     checkUrlParams();
     
     // Listen to popstate for browser back/forward
-    window.addEventListener('popstate', checkUrlParams);
+    const handlePopState = () => checkUrlParams();
+    window.addEventListener('popstate', handlePopState);
     
-    // Poll for URL changes (since wouter might not trigger on query param changes)
-    const interval = setInterval(checkUrlParams, 100);
+    // Also check when wouter location changes (may not include query params, but helps)
+    // Use a small delay to ensure URL is updated
+    const timeoutId = setTimeout(checkUrlParams, 50);
     
     return () => {
-      window.removeEventListener('popstate', checkUrlParams);
-      clearInterval(interval);
+      window.removeEventListener('popstate', handlePopState);
+      clearTimeout(timeoutId);
     };
   }, [location]);
+  
+  // Also listen for hashchange (for compatibility)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const appParam = params.get('app');
+      setSelectedApp(appParam || null);
+    };
+    
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Get current user to check subscription status
   const { data: currentUser } = useQuery({
