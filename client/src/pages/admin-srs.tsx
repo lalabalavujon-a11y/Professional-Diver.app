@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useFeaturePermissions } from "@/hooks/use-feature-permissions";
 
 type Deck = {
   id: string;
@@ -31,6 +35,45 @@ type CardRow = {
 
 export default function AdminSrs() {
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const { hasFeature, isLoading } = useFeaturePermissions();
+
+  // Check permission on mount
+  useEffect(() => {
+    if (!isLoading && !hasFeature("srs_admin")) {
+      setLocation("/admin");
+    }
+  }, [hasFeature, isLoading, setLocation]);
+
+  // Show loading or access denied
+  if (isLoading) {
+    return (
+      <>
+        <RoleBasedNavigation />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-slate-600">Loading...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!hasFeature("srs_admin")) {
+    return (
+      <>
+        <RoleBasedNavigation />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50 flex items-center justify-center">
+          <Alert className="max-w-md border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-sm text-red-800">
+              Access Denied: You do not have permission to access SRS Admin.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </>
+    );
+  }
 
   const [deckTitle, setDeckTitle] = useState("");
   const [deckDescription, setDeckDescription] = useState("");

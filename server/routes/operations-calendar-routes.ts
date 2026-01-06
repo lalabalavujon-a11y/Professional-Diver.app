@@ -10,6 +10,9 @@ import {
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { z } from "zod";
 import { nanoid } from "nanoid";
+import { generateICalFromOperations } from "../lib/ical-generator";
+import { parseICalFile } from "../lib/ical-parser";
+import multer from "multer";
 
 /**
  * Ensure operations calendar tables exist
@@ -65,6 +68,47 @@ async function ensureOperationsCalendarTables(): Promise<void> {
     
     await db.execute(`
       CREATE INDEX IF NOT EXISTS idx_calendar_share_links_share_token ON calendar_share_links(share_token)
+    `);
+    
+    // Calendar Sync Credentials Table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS calendar_sync_credentials (
+        id text PRIMARY KEY NOT NULL,
+        user_id text NOT NULL,
+        provider text NOT NULL,
+        refresh_token text NOT NULL,
+        sync_enabled integer NOT NULL DEFAULT 1,
+        last_sync_at integer,
+        sync_direction text NOT NULL DEFAULT 'bidirectional',
+        created_at integer NOT NULL,
+        updated_at integer NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    
+    // External Calendar Event Mapping Table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS external_calendar_events (
+        id text PRIMARY KEY NOT NULL,
+        operation_id text,
+        external_event_id text NOT NULL,
+        provider text NOT NULL,
+        synced_at integer NOT NULL,
+        FOREIGN KEY (operation_id) REFERENCES operations_calendar(id) ON DELETE CASCADE
+      )
+    `);
+    
+    // Create indexes for sync tables
+    await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_calendar_sync_credentials_user_id ON calendar_sync_credentials(user_id)
+    `);
+    
+    await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_external_calendar_events_operation_id ON external_calendar_events(operation_id)
+    `);
+    
+    await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_external_calendar_events_external_id ON external_calendar_events(external_event_id)
     `);
     
     console.log("✅ Operations calendar tables ensured");
@@ -567,6 +611,190 @@ export function registerOperationsCalendarRoutes(app: Express): void {
     } catch (error) {
       console.error("Error generating embed code:", error);
       res.status(500).json({ error: "Failed to generate embed code" });
+    }
+  });
+
+  // iCal Export endpoint
+  app.get("/api/operations-calendar/export/ical", async (req, res) => {
+    try {
+      const userId = await getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const { startDate, endDate } = req.query;
+      
+      let query = db.select().from(operationsCalendar).where(eq(operationsCalendar.userId, userId));
+      
+      // Filter by date range if provided
+      if (startDate && endDate) {
+        const start = new Date(startDate as string);
+        const end = new Date(endDate as string);
+        query = query.where(
+          and(
+            gte(operationsCalendar.operationDate, start),
+            lte(operationsCalendar.operationDate, end)
+          )
+        );
+      }
+      
+      const operations = await query.orderBy(desc(operationsCalendar.operationDate));
+      
+      // Generate iCal content
+      const email = req.headers['x-user-email'] || req.query.email || '';
+      const calendarName = `Operations Calendar${email ? ` - ${email}` : ''}`;
+      const icalContent = generateICalFromOperations(operations as any[], calendarName, 'UTC');
+      
+      // Set response headers for file download
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="operations-calendar.ics"`);
+      res.send(icalContent);
+    } catch (error) {
+      console.error("Error exporting iCal:", error);
+      res.status(500).json({ error: "Failed to export calendar" });
+    }
+  });
+
+  // iCal Import endpoint
+  const upload = multer({ storage: multer.memoryStorage() });
+  
+  app.post("/api/operations-calendar/import/ical", upload.single('file'), async (req, res) => {
+    try {
+      const userId = await getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Parse the iCal file
+      const icalContent = req.file.buffer.toString('utf-8');
+      const parsedEvents = parseICalFile(icalContent);
+
+      // Convert parsed events to operations and insert them
+      const insertedOperations = [];
+      for (const event of parsedEvents) {
+        // Format date for database
+        const operationDate = event.startDate;
+        
+        // Extract time if not all-day
+        let startTime: string | null = null;
+        let endTime: string | null = null;
+        if (!event.allDay) {
+          startTime = `${event.startDate.getHours().toString().padStart(2, '0')}:${event.startDate.getMinutes().toString().padStart(2, '0')}`;
+          endTime = `${event.endDate.getHours().toString().padStart(2, '0')}:${event.endDate.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        try {
+          const [operation] = await db
+            .insert(operationsCalendar)
+            .values({
+              userId,
+              title: event.title,
+              description: event.description || null,
+              operationDate,
+              startTime,
+              endTime,
+              location: event.location || null,
+              type: event.type,
+              status: 'SCHEDULED',
+              color: '#8b5cf6',
+            })
+            .returning();
+          
+          insertedOperations.push(operation);
+        } catch (insertError) {
+          console.error(`Error inserting operation ${event.title}:`, insertError);
+          // Continue with other operations even if one fails
+        }
+      }
+
+      res.json({
+        success: true,
+        imported: insertedOperations.length,
+        total: parsedEvents.length,
+        operations: insertedOperations,
+      });
+    } catch (error) {
+      console.error("Error importing iCal:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ 
+        error: "Failed to import calendar",
+        message: errorMessage
+      });
+    }
+  });
+
+  // Calendar Sync Routes
+  
+  // Get sync status
+  app.get("/api/operations-calendar/sync/status", async (req, res) => {
+    try {
+      const userId = await getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      // TODO: Fetch sync credentials from database
+      // For now, return empty status
+      res.json({
+        google: { connected: false },
+        outlook: { connected: false },
+        apple: { connected: false },
+      });
+    } catch (error) {
+      console.error("Error fetching sync status:", error);
+      res.status(500).json({ error: "Failed to fetch sync status" });
+    }
+  });
+
+  // Google Calendar OAuth initiation
+  app.get("/api/operations-calendar/google/auth", async (req, res) => {
+    try {
+      const userId = await getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      // TODO: Implement Google OAuth flow
+      res.status(501).json({ error: "Google Calendar sync not yet implemented. Please use iCal export/import." });
+    } catch (error) {
+      console.error("Error initiating Google auth:", error);
+      res.status(500).json({ error: "Failed to initiate Google authentication" });
+    }
+  });
+
+  // Outlook Calendar OAuth initiation
+  app.get("/api/operations-calendar/outlook/auth", async (req, res) => {
+    try {
+      const userId = await getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      // TODO: Implement Outlook OAuth flow
+      res.status(501).json({ error: "Outlook Calendar sync not yet implemented. Please use iCal export/import." });
+    } catch (error) {
+      console.error("Error initiating Outlook auth:", error);
+      res.status(500).json({ error: "Failed to initiate Outlook authentication" });
+    }
+  });
+
+  // Apple Calendar connection
+  app.post("/api/operations-calendar/apple/connect", async (req, res) => {
+    try {
+      const userId = await getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      // TODO: Implement Apple CalDAV connection
+      res.status(501).json({ error: "Apple Calendar sync not yet implemented. Please use iCal export/import." });
+    } catch (error) {
+      console.error("Error connecting Apple calendar:", error);
+      res.status(500).json({ error: "Failed to connect Apple calendar" });
     }
   });
 }

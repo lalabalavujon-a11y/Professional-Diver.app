@@ -11,7 +11,7 @@ export const users = sqliteTable("users", {
   id: text("id").primaryKey().$defaultFn(generateId),
   email: text("email").notNull().unique(),
   name: text("name"),
-  role: text("role", { enum: ["USER", "ADMIN", "SUPER_ADMIN", "LIFETIME", "AFFILIATE"] }).default("USER").notNull(),
+  role: text("role", { enum: ["USER", "ADMIN", "SUPER_ADMIN", "LIFETIME", "AFFILIATE", "ENTERPRISE"] }).default("USER").notNull(),
   subscriptionType: text("subscription_type", { enum: ["TRIAL", "MONTHLY", "ANNUAL", "LIFETIME"] }).default("TRIAL").notNull(),
   trialExpiresAt: integer("trial_expires_at", { mode: "timestamp" }),
   subscriptionStatus: text("subscription_status", { enum: ["ACTIVE", "PAUSED", "CANCELLED"] }).default("ACTIVE").notNull(),
@@ -364,6 +364,57 @@ export const calendarShareLinks = sqliteTable("calendar_share_links", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
+// Calendar Sync Credentials Table
+export const calendarSyncCredentials = sqliteTable("calendar_sync_credentials", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider", { enum: ["google", "outlook", "apple"] }).notNull(),
+  refreshToken: text("refresh_token").notNull(), // Encrypted
+  syncEnabled: integer("sync_enabled", { mode: "boolean" }).default(true).notNull(),
+  lastSyncAt: integer("last_sync_at", { mode: "timestamp" }),
+  syncDirection: text("sync_direction", { enum: ["bidirectional", "pull", "push"] }).default("bidirectional").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+// External Calendar Event Mapping Table
+export const externalCalendarEvents = sqliteTable("external_calendar_events", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  operationId: text("operation_id").references(() => operationsCalendar.id, { onDelete: "cascade" }),
+  externalEventId: text("external_event_id").notNull(), // ID from Google/Outlook/Apple
+  provider: text("provider", { enum: ["google", "outlook", "apple"] }).notNull(),
+  syncedAt: integer("synced_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+// Feature Management Tables
+export const featureDefinitions = sqliteTable("feature_definitions", {
+  id: text("id").primaryKey(), // e.g., "operations_center"
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull(), // Operations, Admin, Content, Integrations, etc.
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const roleFeatureDefaults = sqliteTable("role_feature_defaults", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  role: text("role", { enum: ["USER", "ADMIN", "SUPER_ADMIN", "LIFETIME", "AFFILIATE", "ENTERPRISE"] }).notNull(),
+  featureId: text("feature_id").notNull().references(() => featureDefinitions.id, { onDelete: "cascade" }),
+  enabled: integer("enabled", { mode: "boolean" }).default(false).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const userFeatureOverrides = sqliteTable("user_feature_overrides", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  featureId: text("feature_id").notNull().references(() => featureDefinitions.id, { onDelete: "cascade" }),
+  enabled: integer("enabled", { mode: "boolean" }), // null = use role default, true/false = override
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   accounts: many(accounts),
@@ -384,6 +435,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   assignedSupportTickets: many(supportTickets),
   operationsCalendar: many(operationsCalendar),
   calendarShareLinks: many(calendarShareLinks),
+  calendarSyncCredentials: many(calendarSyncCredentials),
+  featureOverrides: many(userFeatureOverrides),
 }));
 
 export const tracksRelations = relations(tracks, ({ one, many }) => ({
@@ -584,6 +637,20 @@ export const calendarShareLinksRelations = relations(calendarShareLinks, ({ one 
   }),
 }));
 
+export const calendarSyncCredentialsRelations = relations(calendarSyncCredentials, ({ one }) => ({
+  user: one(users, {
+    fields: [calendarSyncCredentials.userId],
+    references: [users.id],
+  }),
+}));
+
+export const externalCalendarEventsRelations = relations(externalCalendarEvents, ({ one }) => ({
+  operation: one(operationsCalendar, {
+    fields: [externalCalendarEvents.operationId],
+    references: [operationsCalendar.id],
+  }),
+}));
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -712,6 +779,17 @@ export const insertCalendarShareLinkSchema = createInsertSchema(calendarShareLin
   updatedAt: true,
 });
 
+export const insertCalendarSyncCredentialsSchema = createInsertSchema(calendarSyncCredentials).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertExternalCalendarEventSchema = createInsertSchema(externalCalendarEvents).omit({
+  id: true,
+  syncedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -761,3 +839,10 @@ export type OperationsCalendar = typeof operationsCalendar.$inferSelect;
 export type InsertOperationsCalendar = z.infer<typeof insertOperationsCalendarSchema>;
 export type CalendarShareLink = typeof calendarShareLinks.$inferSelect;
 export type InsertCalendarShareLink = z.infer<typeof insertCalendarShareLinkSchema>;
+export type CalendarSyncCredentials = typeof calendarSyncCredentials.$inferSelect;
+export type InsertCalendarSyncCredentials = z.infer<typeof insertCalendarSyncCredentialsSchema>;
+export type ExternalCalendarEvent = typeof externalCalendarEvents.$inferSelect;
+export type InsertExternalCalendarEvent = z.infer<typeof insertExternalCalendarEventSchema>;
+export type FeatureDefinition = typeof featureDefinitions.$inferSelect;
+export type RoleFeatureDefault = typeof roleFeatureDefaults.$inferSelect;
+export type UserFeatureOverride = typeof userFeatureOverrides.$inferSelect;

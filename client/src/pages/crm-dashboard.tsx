@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ColumnDef } from "@tanstack/react-table";
 import RoleBasedNavigation from "@/components/role-based-navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader, StatCard, PageSection } from "@/components/ui/page-header";
+import { DataTable } from "@/components/ui/data-table";
+import { LoadingSpinner, SkeletonTable } from "@/components/ui/loading-states";
+import { EmptyState, ErrorState } from "@/components/ui/empty-states";
+import { SearchBar, AdvancedFilters, ActiveFilters, type FilterConfig } from "@/components/ui/filters";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -18,12 +23,10 @@ import {
   RefreshCw,
   Plus,
   Edit2,
-  Download,
-  Upload,
   Trash2,
-  Filter,
-  Search
+  Phone,
 } from "lucide-react";
+import CallingButton from "@/components/calling-button";
 
 interface Client {
   id: string;
@@ -50,6 +53,7 @@ export default function CRMDashboard() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState<Record<string, any>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -112,12 +116,31 @@ export default function CRMDashboard() {
   });
 
   // Filter and search clients
-  const filteredClients = clients?.filter(client => {
-    const matchesStatus = filterStatus === "ALL" || client.status === filterStatus;
-    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.email.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
-  }) || [];
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    return clients.filter(client => {
+      const matchesStatus = filterStatus === "ALL" || client.status === filterStatus;
+      const matchesSearch = !searchTerm || 
+        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.email.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesStatus && matchesSearch;
+    });
+  }, [clients, filterStatus, searchTerm]);
+
+  // Define filter configuration
+  const filterConfig: FilterConfig[] = [
+    {
+      key: "status",
+      label: "Status",
+      type: "select",
+      options: [
+        { label: "All Statuses", value: "ALL" },
+        { label: "Active", value: "ACTIVE" },
+        { label: "Paused", value: "PAUSED" },
+        { label: "Cancelled", value: "CANCELLED" },
+      ],
+    },
+  ];
 
   // Utility functions
   const getSubscriptionPrice = (type: string) => {
@@ -142,27 +165,40 @@ export default function CRMDashboard() {
     return `$${(mrr / 100).toFixed(2)}`;
   };
 
-  const exportClientsCSV = () => {
-    const csvContent = [
-      ['Name', 'Email', 'Subscription Type', 'Status', 'Subscription Date', 'Monthly Revenue', 'Notes'],
-      ...filteredClients.map(client => [
-        client.name,
-        client.email,
-        client.subscription_type,
-        client.status,
-        new Date(client.subscription_date).toLocaleDateString(),
-        getSubscriptionPrice(client.subscription_type),
-        client.notes || ''
-      ])
-    ].map(row => row.join(',')).join('\n');
+  const handleExport = (format: "csv" | "excel" | "pdf") => {
+    if (format === "csv") {
+      const csvContent = [
+        ['Name', 'Email', 'Subscription Type', 'Status', 'Subscription Date', 'Monthly Revenue', 'Notes'],
+        ...filteredClients.map(client => [
+          client.name,
+          client.email,
+          client.subscription_type,
+          client.status,
+          new Date(client.subscription_date).toLocaleDateString(),
+          getSubscriptionPrice(client.subscription_type),
+          client.notes || ''
+        ])
+      ].map(row => row.join(',')).join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `clients-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clients-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast({ title: "Export Complete", description: "Clients exported as CSV" });
+    }
+  };
+
+  const handleBulkAction = (selectedRows: Client[], action: string) => {
+    if (action === "delete") {
+      if (window.confirm(`Are you sure you want to delete ${selectedRows.length} client(s)?`)) {
+        selectedRows.forEach(client => {
+          deleteClientMutation.mutate(client.id);
+        });
+      }
+    }
   };
 
   const handleRefresh = () => {
@@ -171,127 +207,211 @@ export default function CRMDashboard() {
     toast({ title: "Refreshed", description: "Data has been updated" });
   };
 
+  // Define table columns
+  const columns: ColumnDef<Client>[] = useMemo(() => [
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.name}</div>
+      ),
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => <div className="text-muted-foreground">{row.original.email}</div>,
+    },
+    {
+      accessorKey: "subscription_type",
+      header: "Subscription",
+      cell: ({ row }) => (
+        <Badge variant="secondary">
+          {row.original.subscription_type} - {getSubscriptionPrice(row.original.subscription_type)}
+          {row.original.subscription_type === "ANNUAL" && "/Year"}
+          {row.original.subscription_type === "MONTHLY" && "/Month"}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge className={getStatusColor(row.original.status)}>
+          {row.original.status}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "revenue",
+      header: "Revenue",
+      cell: ({ row }) => (
+        <div className="text-muted-foreground">
+          {getSubscriptionPrice(row.original.subscription_type)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "subscription_date",
+      header: "Date",
+      cell: ({ row }) => (
+        <div className="text-muted-foreground">
+          {new Date(row.original.subscription_date).toLocaleDateString()}
+        </div>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <CallingButton
+            email={row.original.email}
+            name={row.original.name}
+            size="sm"
+            variant="outline"
+            showLabel={false}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setEditingClient(row.original)}
+            aria-label={`Edit ${row.original.name}`}
+          >
+            <Edit2 className="w-3 h-3" />
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => {
+              if (window.confirm(`Are you sure you want to delete ${row.original.name}?`)) {
+                deleteClientMutation.mutate(row.original.id);
+              }
+            }}
+            aria-label={`Delete ${row.original.name}`}
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </div>
+      ),
+    },
+  ], []);
+
+  const activeFiltersList = useMemo(() => {
+    const list: Array<{ key: string; label: string; value: string }> = [];
+    if (filterStatus !== "ALL") {
+      list.push({ key: "status", label: "Status", value: filterStatus });
+    }
+    return list;
+  }, [filterStatus]);
+
+  if (clientsLoading || statsLoading) {
+    return (
+      <>
+        <RoleBasedNavigation />
+        <div className="min-h-screen bg-background" data-sidebar-content="true">
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <LoadingSpinner size="lg" text="Loading CRM dashboard..." />
+          </main>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <RoleBasedNavigation />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900" data-testid="text-crm-title">
-              Client Management (CRM)
-            </h1>
-            <p className="text-slate-600 mt-2">
-              Manage your clients, subscriptions, and revenue
-            </p>
-          </div>
-          <div className="flex space-x-3">
-            <Button onClick={handleRefresh} variant="outline" data-testid="button-refresh-crm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
-            <Button onClick={exportClientsCSV} variant="outline" data-testid="button-export-clients">
-              <Download className="w-4 h-4 mr-2" />
-              Export CSV
-            </Button>
-            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary-500 hover:bg-primary-600 text-white" data-testid="button-add-client">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Client
+      <div className="min-h-screen bg-background" data-sidebar-content="true">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+          <PageHeader
+            title="Client Management (CRM)"
+            description="Manage your clients, subscriptions, and revenue"
+            icon={Users}
+            actions={
+              <>
+                <Button 
+                  onClick={handleRefresh} 
+                  variant="outline" 
+                  data-testid="button-refresh-crm"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Client</DialogTitle>
-                </DialogHeader>
-                <ClientForm 
-                  onSubmit={(data) => {
-                    const subscriptionRevenue = data.subscription_type === "MONTHLY" ? 2500 : 
-                                              data.subscription_type === "ANNUAL" ? 25000 : 0;
-                    createClientMutation.mutate({
-                      ...data,
-                      monthly_revenue: subscriptionRevenue,
-                      subscription_date: new Date().toISOString()
-                    });
-                  }}
-                  loading={createClientMutation.isPending}
-                />
-              </DialogContent>
-            </Dialog>
+                <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                  <DialogTrigger asChild>
+                    <Button data-testid="button-add-client">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Client
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Client</DialogTitle>
+                    </DialogHeader>
+                    <ClientForm 
+                      onSubmit={(data) => {
+                        const subscriptionRevenue = data.subscription_type === "MONTHLY" ? 2500 : 
+                                                  data.subscription_type === "ANNUAL" ? 25000 : 0;
+                        createClientMutation.mutate({
+                          ...data,
+                          monthly_revenue: subscriptionRevenue,
+                          subscription_date: new Date().toISOString()
+                        });
+                      }}
+                      loading={createClientMutation.isPending}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </>
+            }
+          />
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <StatCard
+              title="Total Clients"
+              value={stats?.totalClients || 0}
+              icon={Users}
+              variant="info"
+              data-testid="stat-total-clients"
+            />
+            <StatCard
+              title="Active Clients"
+              value={stats?.activeClients || 0}
+              icon={Users}
+              variant="success"
+              data-testid="stat-active-clients"
+            />
+            <StatCard
+              title="Monthly Recurring Revenue"
+              value={formatMRR(stats?.monthlyRecurringRevenue || 0)}
+              icon={DollarSign}
+              variant="primary"
+              data-testid="stat-mrr"
+            />
+            <StatCard
+              title="Last Updated"
+              value={stats?.lastUpdated ? new Date(stats.lastUpdated).toLocaleTimeString() : "Never"}
+              icon={Calendar}
+              variant="warning"
+              data-testid="stat-last-updated"
+            />
           </div>
-        </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-blue-800">Total Clients</CardTitle>
-              <Users className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-900" data-testid="text-total-clients">
-                {statsLoading ? "..." : stats?.totalClients || 0}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-green-800">Active Clients</CardTitle>
-              <Users className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-900" data-testid="text-active-clients">
-                {statsLoading ? "..." : stats?.activeClients || 0}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-purple-800">Monthly Recurring Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-900" data-testid="text-mrr">
-                {statsLoading ? "..." : formatMRR(stats?.monthlyRecurringRevenue || 0)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-amber-800">Last Updated</CardTitle>
-              <Calendar className="h-4 w-4 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm font-bold text-amber-900" data-testid="text-last-updated">
-                {statsLoading ? "..." : stats?.lastUpdated ? new Date(stats.lastUpdated).toLocaleTimeString() : "Never"}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters and Search */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search clients by name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                    data-testid="input-search-clients"
-                  />
-                </div>
+          {/* Filters and Search */}
+          <PageSection card={false} className="mb-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="flex-1 max-w-sm">
+                <SearchBar
+                  placeholder="Search clients by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onClear={() => setSearchTerm("")}
+                  data-testid="input-search-clients"
+                />
               </div>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-full sm:w-48" data-testid="select-filter-status">
-                  <SelectValue />
+                  <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Statuses</SelectItem>
@@ -301,102 +421,71 @@ export default function CRMDashboard() {
                 </SelectContent>
               </Select>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Clients Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Clients ({filteredClients.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {clientsLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-              </div>
-            ) : filteredClients.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">
-                {clients?.length === 0 ? "No clients found. Add your first client!" : "No clients match your search."}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Name</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Email</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Subscription</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Revenue</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Date</th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredClients.map((client) => (
-                      <tr key={client.id} className="border-b hover:bg-gray-50" data-testid={`client-row-${client.id}`}>
-                        <td className="py-3 px-4">
-                          <div className="font-medium text-slate-900">{client.name}</div>
-                        </td>
-                        <td className="py-3 px-4 text-slate-600">{client.email}</td>
-                        <td className="py-3 px-4">
-                          <Badge variant="secondary">
-                            {client.subscription_type} - {getSubscriptionPrice(client.subscription_type)}
-                            {client.subscription_type === "ANNUAL" && "/Year"}
-                            {client.subscription_type === "MONTHLY" && "/Month"}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge className={getStatusColor(client.status)}>
-                            {client.status}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-slate-600">
-                          {getSubscriptionPrice(client.subscription_type)}
-                        </td>
-                        <td className="py-3 px-4 text-slate-600">
-                          {new Date(client.subscription_date).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setEditingClient(client)}
-                              data-testid={`button-edit-client-${client.id}`}
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 hover:text-red-700"
-                              onClick={() => {
-                                if (window.confirm('Are you sure you want to delete this client?')) {
-                                  deleteClientMutation.mutate(client.id);
-                                }
-                              }}
-                              data-testid={`button-delete-client-${client.id}`}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            {activeFiltersList.length > 0 && (
+              <ActiveFilters
+                filters={activeFiltersList}
+                onRemove={(key) => {
+                  if (key === "status") setFilterStatus("ALL");
+                }}
+                onClearAll={() => setFilterStatus("ALL")}
+              />
             )}
-          </CardContent>
-        </Card>
+          </PageSection>
+
+          {/* Clients Table */}
+          <PageSection>
+            {!clients || clients.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No clients found"
+                description="Get started by adding your first client"
+                action={{
+                  label: "Add Client",
+                  onClick: () => setShowAddDialog(true),
+                }}
+              />
+            ) : (
+              <DataTable
+                columns={columns}
+                data={filteredClients}
+                isLoading={clientsLoading}
+                searchKey="name"
+                searchPlaceholder="Search clients..."
+                enableRowSelection
+                enableColumnVisibility
+                enableSorting
+                enablePagination
+                pageSize={10}
+                onExport={handleExport}
+                onBulkAction={handleBulkAction}
+                bulkActions={[
+                  { label: "Delete Selected", value: "delete", variant: "destructive" },
+                ]}
+                emptyState={
+                  <EmptyState
+                    icon={Users}
+                    title="No matching clients"
+                    description="Try adjusting your search or filters"
+                  />
+                }
+              />
+            )}
+          </PageSection>
 
         {/* Edit Client Dialog */}
         {editingClient && (
           <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Edit Client</DialogTitle>
+                <DialogTitle className="flex items-center justify-between">
+                  <span>Edit Client</span>
+                  <CallingButton
+                    email={editingClient.email}
+                    name={editingClient.name}
+                    size="sm"
+                    variant="outline"
+                  />
+                </DialogTitle>
               </DialogHeader>
               <ClientForm 
                 client={editingClient}
@@ -416,6 +505,38 @@ export default function CRMDashboard() {
         )}
         </main>
       </div>
+
+      {/* Edit Client Dialog */}
+      {editingClient && (
+        <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>Edit Client</span>
+                <CallingButton
+                  email={editingClient.email}
+                  name={editingClient.name}
+                  size="sm"
+                  variant="outline"
+                />
+              </DialogTitle>
+            </DialogHeader>
+            <ClientForm 
+              client={editingClient}
+              onSubmit={(data) => {
+                const subscriptionRevenue = data.subscription_type === "MONTHLY" ? 2500 : 
+                                          data.subscription_type === "ANNUAL" ? 25000 : 0;
+                updateClientMutation.mutate({
+                  id: editingClient.id,
+                  ...data,
+                  monthly_revenue: subscriptionRevenue
+                });
+              }}
+              loading={updateClientMutation.isPending}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

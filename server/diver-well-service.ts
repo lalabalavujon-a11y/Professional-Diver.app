@@ -110,11 +110,48 @@ export class DiverWellService {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
+    // Validate OpenAI API key
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('⚠️ OPENAI_API_KEY not found - Diver Well will not function properly');
+    } else {
+      const key = process.env.OPENAI_API_KEY;
+      const keyPreview = key.length > 11 
+        ? key.substring(0, 7) + '...' + key.substring(key.length - 4)
+        : key.substring(0, 3) + '...';
+      console.log(`✅ OpenAI API Key detected for Diver Well: ${keyPreview}`);
+    }
+
     // Initialize AI models using LangChain config
     const langchainConfig = LangChainConfig.getInstance();
     this.chatModel = langchainConfig.getChatModel();
 
     console.log('🌊 Diver Well Commercial Diving AI Consultant initialized with LangChain and voice capabilities');
+    console.log('✅ External GPT connection: Diver Well → Langchain → OpenAI GPT DIVER WELL');
+    
+    // Test connection on initialization if API key is available
+    if (process.env.OPENAI_API_KEY) {
+      this.testConnection().catch(err => {
+        console.warn('⚠️ Diver Well connection test failed on initialization:', err instanceof Error ? err.message : 'unknown error');
+      });
+    }
+  }
+
+  /**
+   * Test that Diver Well can actually use the OpenAI API key
+   */
+  private async testConnection(): Promise<void> {
+    try {
+      const { HumanMessage } = await import('@langchain/core/messages');
+      const testResult = await this.chatModel.invoke([
+        new HumanMessage("Say 'OK' if you can hear me.")
+      ]);
+      if (testResult.content) {
+        console.log('✅ Diver Well OpenAI API connection verified - service is USING your API key');
+      }
+    } catch (error) {
+      console.error('❌ Diver Well OpenAI API connection test failed:', error instanceof Error ? error.message : 'unknown error');
+      throw error;
+    }
   }
 
   public static getInstance(): DiverWellService {

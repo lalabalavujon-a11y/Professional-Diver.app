@@ -19,3 +19,5 @@ if (CRM_MODE === 'highlevel' || CRM_MODE === 'dual') {
 console.log('🔧 Environment configuration loaded from .env and .env.local');
 console.log(`📊 CRM Mode: ${CRM_MODE}${GHL_API_KEY ? ' (HighLevel configured)' : ' (HighLevel not configured)'}`);
 console.log(`🌊 Stormglass API: ${process.env.STORMGLASS_API_KEY ? '✅ Configured' : '❌ Not configured'}`);
+console.log(`🤖 OpenAI API Key: ${process.env.OPENAI_API_KEY ? '✅ Available' : '❌ Not found'}`);
+console.log(`🔍 LangSmith API Key: ${process.env.LANGSMITH_API_KEY ? '✅ Available' : '❌ Not found'}`);

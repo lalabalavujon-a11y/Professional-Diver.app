@@ -1,11 +1,20 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import RoleBasedNavigation from "@/components/role-based-navigation";
+import { PageHeader, StatCard, PageSection } from "@/components/ui/page-header";
+import { LoadingSpinner, SkeletonCard } from "@/components/ui/loading-states";
+import { ErrorState } from "@/components/ui/empty-states";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Users, BookOpen, Award, Clock, Target, Download, Activity } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
+import { TrendingUp, Users, BookOpen, Award, Clock, Target, Download, Activity, RefreshCw, CalendarIcon, Filter } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface QuizAnalytics {
   quizStats: Array<{
@@ -75,10 +84,21 @@ interface SrsAnalytics {
   }>;
 }
 
+type DateRange = {
+  from: Date;
+  to: Date;
+}
+
 export default function Analytics() {
-  const { data: analytics, isLoading } = useQuery<QuizAnalytics>({
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
+  const [comparisonPeriod, setComparisonPeriod] = useState<"none" | "previous" | "year">("none");
+  const [selectedMetric, setSelectedMetric] = useState<"attempts" | "scores">("attempts");
+  
+  const { data: analytics, isLoading, refetch, isRefetching } = useQuery<QuizAnalytics>({
     queryKey: ["/api/analytics/quiz"],
-    // Override global defaults so analytics can update while open.
     staleTime: 0,
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
@@ -91,24 +111,47 @@ export default function Analytics() {
     refetchOnWindowFocus: true,
   });
 
+  const handleExport = (format: "csv" | "excel" | "pdf") => {
+    // Export analytics data
+    if (format === "csv" && analytics) {
+      const csvContent = [
+        ['Track', 'Total Attempts', 'Average Score', 'Total Quizzes'],
+        ...analytics.trackStats.map(track => [
+          track.title,
+          track.total_attempts,
+          track.avg_score.toFixed(2),
+          track.total_quizzes,
+        ])
+      ].map(row => row.join(',')).join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analytics-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    }
+  };
+
   if (isLoading) {
     return (
       <>
         <RoleBasedNavigation />
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <div className="min-h-screen bg-background" data-sidebar-content="true">
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
-              ))}
+            <div className="space-y-6">
+              <SkeletonCard lines={2} />
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <SkeletonCard key={i} lines={2} />
+                ))}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <SkeletonCard lines={5} />
+                <SkeletonCard lines={5} />
+              </div>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="h-64 bg-gray-200 rounded-lg"></div>
-              <div className="h-64 bg-gray-200 rounded-lg"></div>
-            </div>
-          </div>
           </main>
         </div>
       </>
@@ -119,13 +162,13 @@ export default function Analytics() {
     return (
       <>
         <RoleBasedNavigation />
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
+        <div className="min-h-screen bg-background" data-sidebar-content="true">
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Alert className="border-red-200 bg-red-50">
-            <AlertDescription className="text-red-800">
-              Unable to load analytics data. Please try again later.
-            </AlertDescription>
-          </Alert>
+            <ErrorState
+              title="Unable to load analytics"
+              description="Failed to load analytics data. Please try again."
+              onRetry={() => refetch()}
+            />
           </main>
         </div>
       </>
@@ -163,157 +206,139 @@ export default function Analytics() {
 
   const getScoreColor = (score: number, total: number) => {
     const percentage = (score / total) * 100;
-    if (percentage >= 80) return 'text-green-600';
-    if (percentage >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const exportData = () => {
-    const csvContent = [
-      ['Track', 'Total Lessons', 'Total Quizzes', 'Total Attempts', 'Average Score'],
-      ...analytics.trackStats.map(track => [
-        track.title,
-        track.total_lessons,
-        track.total_quizzes,
-        track.total_attempts,
-        track.avg_score?.toFixed(2) || '0'
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'quiz-analytics.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
+    if (percentage >= 80) return 'text-success-600';
+    if (percentage >= 60) return 'text-warning-600';
+    return 'text-error-600';
   };
 
   return (
     <>
       <RoleBasedNavigation />
-      <div className="min-h-screen bg-gray-50 text-slate-900 font-sans" data-sidebar-content="true">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900" data-testid="text-analytics-title">
-              Quiz Analytics Dashboard
-            </h1>
-            <p className="text-slate-600 mt-2">
-              Comprehensive insights into quiz performance and learning outcomes
-            </p>
+      <div className="min-h-screen bg-background" data-sidebar-content="true">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+          <PageHeader
+            title="Analytics Dashboard"
+            description="Track your learning progress and performance metrics"
+            icon={TrendingUp}
+            actions={
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => refetch()}
+                  disabled={isRefetching}
+                >
+                  <RefreshCw className={cn("w-4 h-4 mr-2", isRefetching && "animate-spin")} />
+                  {isRefetching ? "Refreshing..." : "Refresh"}
+                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline">
+                      <CalendarIcon className="w-4 h-4 mr-2" />
+                      {format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange.from}
+                      selected={{ from: dateRange.from, to: dateRange.to }}
+                      onSelect={(range) => {
+                        if (range?.from && range?.to) {
+                          setDateRange({ from: range.from, to: range.to });
+                        }
+                      }}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Select value={comparisonPeriod} onValueChange={(value: any) => setComparisonPeriod(value)}>
+                  <SelectTrigger className="w-full sm:w-40">
+                    <SelectValue placeholder="Compare" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Comparison</SelectItem>
+                    <SelectItem value="previous">Previous Period</SelectItem>
+                    <SelectItem value="year">Year Over Year</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" onClick={() => handleExport("csv")}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+              </>
+            }
+          />
+
+          {/* Overview Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <StatCard
+              title="Total Attempts"
+              value={totalAttempts}
+              icon={Activity}
+              variant="primary"
+            />
+            <StatCard
+              title="Average Score"
+              value={`${Math.round(overallAvgScore * 10) / 10}%`}
+              icon={Target}
+              variant="success"
+            />
+            <StatCard
+              title="Total Quizzes"
+              value={totalQuizzes}
+              icon={BookOpen}
+              variant="info"
+            />
+            <StatCard
+              title="Learning Tracks"
+              value={totalTracks}
+              icon={Award}
+              variant="warning"
+            />
           </div>
-          <Button onClick={exportData} className="flex items-center gap-2" data-testid="button-export-analytics">
-            <Download className="w-4 h-4" />
-            Export Data
-          </Button>
-        </div>
 
-        {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-blue-800">Total Attempts</CardTitle>
-              <Users className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-900" data-testid="text-total-attempts">
-                {totalAttempts.toLocaleString()}
-              </div>
-              <p className="text-xs text-blue-700 mt-1">Across all quizzes</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-green-800">Active Quizzes</CardTitle>
-              <BookOpen className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-900" data-testid="text-total-quizzes">
-                {totalQuizzes}
-              </div>
-              <p className="text-xs text-green-700 mt-1">Available assessments</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-purple-800">Training Tracks</CardTitle>
-              <Target className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-900" data-testid="text-total-tracks">
-                {totalTracks}
-              </div>
-              <p className="text-xs text-purple-700 mt-1">Professional programs</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-amber-800">Average Score</CardTitle>
-              <Award className="h-4 w-4 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-900" data-testid="text-avg-score">
-                {overallAvgScore.toFixed(1)}%
-              </div>
-              <p className="text-xs text-amber-700 mt-1">Platform average</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Quiz Attempts by Track
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 sm:mb-8">
+            <PageSection title="Quiz Attempts by Track" icon={TrendingUp}>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={trackChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="attempts" fill="#3b82f6" />
+                  <Bar dataKey="attempts" fill="var(--primary)" />
                 </BarChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
+            </PageSection>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                Average Scores by Track
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={trackChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="avgScore" stroke="#10b981" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+            <PageSection title="Average Scores by Track" icon={Activity}>
+              <div className="space-y-4">
+                <Select value={selectedMetric} onValueChange={(value: any) => setSelectedMetric(value)}>
+                  <SelectTrigger className="w-full max-w-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="attempts">Show Attempts</SelectItem>
+                    <SelectItem value="scores">Show Scores</SelectItem>
+                  </SelectContent>
+                </Select>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={trackChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="avgScore" stroke="var(--success-600)" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </PageSection>
+          </div>
 
-        {/* Distribution and Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Attempt Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
+          {/* Distribution and Recent Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 sm:mb-8">
+            <PageSection title="Attempt Distribution">
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
@@ -331,33 +356,25 @@ export default function Analytics() {
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
+            </PageSection>
 
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                Recent Quiz Attempts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+            <PageSection title="Recent Quiz Attempts" icon={Clock} className="lg:col-span-2">
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {analytics.recentAttempts.length > 0 ? (
                   analytics.recentAttempts.map((attempt) => (
                     <div
                       key={attempt.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                       data-testid={`recent-attempt-${attempt.id}`}
                     >
                       <div className="flex-1">
-                        <div className="font-medium text-slate-900">
+                        <div className="font-medium text-foreground">
                           {attempt.quiz_title || 'Unknown Quiz'}
                         </div>
-                        <div className="text-sm text-slate-600">
+                        <div className="text-sm text-muted-foreground">
                           {attempt.track_title} • {attempt.lesson_title}
                         </div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-muted-foreground">
                           {formatTime(attempt.created_at)}
                         </div>
                       </div>
@@ -365,44 +382,34 @@ export default function Analytics() {
                         <div className={`font-semibold ${getScoreColor(attempt.score, attempt.total_questions)}`}>
                           {attempt.score}/{attempt.total_questions}
                         </div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-muted-foreground">
                           {Math.round((attempt.score / attempt.total_questions) * 100)}%
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-slate-500">
+                  <div className="text-center py-8 text-muted-foreground">
                     No recent quiz attempts found
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </PageSection>
+          </div>
 
-        {/* Recent Exam Attempts (Full Exam Mode) */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Recent Full Exam Attempts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {analytics.recentExamAttempts && analytics.recentExamAttempts.length > 0 ? (
-                analytics.recentExamAttempts.map((attempt) => (
+          {/* Recent Exam Attempts */}
+          {analytics.recentExamAttempts && analytics.recentExamAttempts.length > 0 && (
+            <PageSection title="Recent Full Exam Attempts" icon={Award} className="mb-6 sm:mb-8">
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {analytics.recentExamAttempts.map((attempt) => (
                   <div
                     key={attempt.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                     data-testid={`recent-exam-attempt-${attempt.id}`}
                   >
                     <div className="flex-1">
-                      <div className="font-medium text-slate-900">
-                        {attempt.slug}
-                      </div>
-                      <div className="text-xs text-slate-500">
+                      <div className="font-medium text-foreground">{attempt.slug}</div>
+                      <div className="text-xs text-muted-foreground">
                         {formatTime(attempt.created_at)}
                       </div>
                     </div>
@@ -410,57 +417,48 @@ export default function Analytics() {
                       <div className={`font-semibold ${getScoreColor(attempt.score, attempt.total_questions)}`}>
                         {attempt.score}/{attempt.total_questions}
                       </div>
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-muted-foreground">
                         {attempt.total_questions > 0 ? Math.round((attempt.score / attempt.total_questions) * 100) : 0}%
                       </div>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-slate-500">
-                  No recent full exam attempts found
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </PageSection>
+          )}
 
-        {/* Detailed Track Statistics */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Track Performance Details</CardTitle>
-          </CardHeader>
-          <CardContent>
+          {/* Detailed Track Statistics */}
+          <PageSection title="Track Performance Details">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-slate-700">Track</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-700">Lessons</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-700">Quizzes</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-700">Attempts</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-700">Avg Score</th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-700">Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-foreground">Track</th>
+                    <th className="text-left py-3 px-4 font-medium text-foreground">Lessons</th>
+                    <th className="text-left py-3 px-4 font-medium text-foreground">Quizzes</th>
+                    <th className="text-left py-3 px-4 font-medium text-foreground">Attempts</th>
+                    <th className="text-left py-3 px-4 font-medium text-foreground">Avg Score</th>
+                    <th className="text-left py-3 px-4 font-medium text-foreground">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {analytics.trackStats.map((track) => (
-                    <tr key={track.id} className="border-b hover:bg-gray-50" data-testid={`track-row-${track.id}`}>
+                    <tr key={track.id} className="border-b hover:bg-muted/50" data-testid={`track-row-${track.id}`}>
                       <td className="py-3 px-4">
-                        <div className="font-medium text-slate-900">{track.title}</div>
+                        <div className="font-medium text-foreground">{track.title}</div>
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{track.total_lessons || 0}</td>
-                      <td className="py-3 px-4 text-slate-600">{track.total_quizzes || 0}</td>
-                      <td className="py-3 px-4 text-slate-600">{track.total_attempts || 0}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{track.total_lessons || 0}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{track.total_quizzes || 0}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{track.total_attempts || 0}</td>
                       <td className="py-3 px-4">
-                        <span className={track.avg_score >= 80 ? 'text-green-600' : track.avg_score >= 60 ? 'text-yellow-600' : 'text-red-600'}>
+                        <span className={track.avg_score >= 80 ? 'text-success-600' : track.avg_score >= 60 ? 'text-warning-600' : 'text-error-600'}>
                           {track.avg_score ? track.avg_score.toFixed(1) : '0.0'}%
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <Badge
                           variant={track.total_attempts > 0 ? "default" : "secondary"}
-                          className={track.total_attempts > 0 ? "bg-green-100 text-green-800" : ""}
+                          className={track.total_attempts > 0 ? "bg-success-100 text-success-800" : ""}
                         >
                           {track.total_attempts > 0 ? "Active" : "No Attempts"}
                         </Badge>
@@ -470,67 +468,64 @@ export default function Analytics() {
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
+          </PageSection>
 
-        {/* SRS Analytics */}
-        <div className="mt-8 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-slate-900">SRS Analytics</h2>
-            <Badge variant="secondary">Near real-time</Badge>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Deck status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {srsAnalytics && srsAnalytics.deckStats.length > 0 ? (
-                  srsAnalytics.deckStats.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <div className="font-medium text-slate-900">{d.title}</div>
-                        <div className="text-xs text-slate-500">
-                          {d.total_cards} cards • {d.suspended_cards} leeches
+          {/* SRS Analytics */}
+          {srsAnalytics && (
+            <div className="mt-6 sm:mt-8 space-y-6">
+              <PageHeader
+                title="SRS Analytics"
+                description="Spaced repetition system performance metrics"
+                badge={<Badge variant="secondary">Near real-time</Badge>}
+              />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PageSection title="Deck Status">
+                  {srsAnalytics.deckStats.length > 0 ? (
+                    <div className="space-y-3">
+                      {srsAnalytics.deckStats.map((d) => (
+                        <div key={d.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <div>
+                            <div className="font-medium text-foreground">{d.title}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {d.total_cards} cards • {d.suspended_cards} leeches
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold text-foreground">{d.due_now} due</div>
+                            <div className="text-xs text-muted-foreground">now</div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-slate-900">{d.due_now} due</div>
-                        <div className="text-xs text-slate-500">now</div>
-                      </div>
+                      ))}
                     </div>
-                  ))
-                ) : (
-                  <div className="text-slate-600">No SRS data yet (create a deck and review a few cards).</div>
-                )}
-              </CardContent>
-            </Card>
+                  ) : (
+                    <div className="text-muted-foreground py-8 text-center">
+                      No SRS data yet (create a deck and review a few cards).
+                    </div>
+                  )}
+                </PageSection>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent SRS reviews</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 max-h-80 overflow-y-auto">
-                {srsAnalytics && srsAnalytics.recentReviews.length > 0 ? (
-                  srsAnalytics.recentReviews.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <div className="font-medium text-slate-900">{r.deck_title || r.deck_id}</div>
-                        <div className="text-xs text-slate-500">{formatTime(r.reviewed_at)}</div>
-                      </div>
-                      <Badge variant={r.grade >= 2 ? "default" : "secondary"}>
-                        {r.grade === 0 ? "Again" : r.grade === 1 ? "Hard" : r.grade === 2 ? "Good" : "Easy"}
-                      </Badge>
+                <PageSection title="Recent SRS Reviews">
+                  {srsAnalytics.recentReviews.length > 0 ? (
+                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                      {srsAnalytics.recentReviews.map((r) => (
+                        <div key={r.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <div>
+                            <div className="font-medium text-foreground">{r.deck_title || r.deck_id}</div>
+                            <div className="text-xs text-muted-foreground">{formatTime(r.reviewed_at)}</div>
+                          </div>
+                          <Badge variant={r.grade >= 2 ? "default" : "secondary"}>
+                            {r.grade === 0 ? "Again" : r.grade === 1 ? "Hard" : r.grade === 2 ? "Good" : "Easy"}
+                          </Badge>
+                        </div>
+                      ))}
                     </div>
-                  ))
-                ) : (
-                  <div className="text-slate-600">No reviews yet.</div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                  ) : (
+                    <div className="text-muted-foreground py-8 text-center">No reviews yet.</div>
+                  )}
+                </PageSection>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </>
