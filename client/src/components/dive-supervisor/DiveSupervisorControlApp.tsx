@@ -10,9 +10,11 @@
  * - Operational Contacts (Clients, VTS, Harbour Master, Permits, etc.)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CollapsibleContainer } from "@/components/ui/collapsible-container";
 import { 
   Shield, 
   Users, 
@@ -50,7 +52,7 @@ import RAMS from "./RAMS";
 import Whiteboard from "./Whiteboard";
 
 // Container configuration with descriptions
-const supervisorContainers = [
+export const supervisorContainers = [
   {
     id: "team",
     title: "Dive Team",
@@ -198,8 +200,18 @@ const supervisorContainers = [
 ] as const;
 
 export default function DiveSupervisorControlApp() {
+  const [location] = useLocation();
   const [selectedOperationId, setSelectedOperationId] = useState<string | null>(null);
   const [activeContainer, setActiveContainer] = useState<string | null>(null);
+
+  // Handle URL parameters for direct container navigation
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const containerParam = params.get('container');
+    if (containerParam) {
+      setActiveContainer(containerParam);
+    }
+  }, [location]);
 
   const handleContainerClick = (containerId: string) => {
     setActiveContainer(activeContainer === containerId ? null : containerId);
@@ -233,27 +245,27 @@ export default function DiveSupervisorControlApp() {
           const isActive = activeContainer === container.id;
           
           return (
-            <Card 
+            <CollapsibleContainer
               key={container.id}
-              className={`cursor-pointer transition-all hover:shadow-lg ${
-                isActive ? 'ring-2 ring-blue-500 shadow-lg' : ''
-              }`}
-              onClick={() => handleContainerClick(container.id)}
-            >
-              <CardHeader className={`${container.bgColor} pb-3`}>
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg bg-white ${container.color}`}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <CardTitle className="text-lg">{container.title}</CardTitle>
+              title={container.title}
+              description={container.description}
+              icon={
+                <div className={`p-2 rounded-lg bg-white ${container.color}`}>
+                  <Icon className="w-6 h-6" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-sm leading-relaxed">
-                  {container.description}
-                </CardDescription>
-              </CardContent>
-            </Card>
+              }
+              className={`transition-all ${isActive ? 'ring-2 ring-blue-500 shadow-lg' : ''}`}
+              headerClassName={`${container.bgColor} pb-3`}
+              defaultCollapsed={true}
+            >
+              <Button
+                className="w-full"
+                onClick={() => handleContainerClick(container.id)}
+                variant={isActive ? "default" : "outline"}
+              >
+                {isActive ? "Close" : "Open"} {container.title}
+              </Button>
+            </CollapsibleContainer>
           );
         })}
       </div>
