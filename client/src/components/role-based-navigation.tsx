@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { 
   BookOpen, 
   ChevronDown, 
+  ChevronRight,
   Users, 
   Shield, 
   FileText,
@@ -14,8 +15,14 @@ import {
   TrendingUp,
   Repeat,
   MessageSquare,
-  HelpCircle
+  HelpCircle,
+  Waves,
+  Search,
+  Package,
+  HeartPulse
 } from "lucide-react";
+import { operationalApps } from "@/pages/operations";
+import { supervisorContainers } from "@/components/dive-supervisor/DiveSupervisorControlApp";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -279,16 +286,81 @@ export default function RoleBasedNavigation() {
                 {/* Operations Section - Only visible to admins */}
                 {isAdmin && (
                   <SidebarMenuItem>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isOperations}
-                      tooltip="Operations"
-                    >
-                      <Link href="/operations" data-testid="link-operations">
-                        <Wrench className="w-4 h-4" />
-                        <span>Operations</span>
-                      </Link>
-                    </SidebarMenuButton>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <SidebarMenuButton 
+                          isActive={isOperations}
+                          tooltip="Operations"
+                        >
+                          <Wrench className="w-4 h-4" />
+                          <span>Operations</span>
+                          <ChevronDown className="ml-auto w-4 h-4" />
+                        </SidebarMenuButton>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-64">
+                        <DropdownMenuItem asChild>
+                          <Link href="/operations" data-testid="link-operations">
+                            <Wrench className="w-4 h-4 mr-2" />
+                            <span>Operations Center</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {operationalApps.map((app) => {
+                          // Get icon component based on app id
+                          const getIcon = () => {
+                            switch (app.id) {
+                              case "diver-well":
+                                return <Waves className="w-4 h-4 mr-2" />;
+                              case "dive-supervisor":
+                                return <Shield className="w-4 h-4 mr-2" />;
+                              case "ndt-inspector":
+                                return <Search className="w-4 h-4 mr-2" />;
+                              case "equipment-manager":
+                                return <Package className="w-4 h-4 mr-2" />;
+                              case "med-ops":
+                              case "dmt-med-ops":
+                                return <HeartPulse className="w-4 h-4 mr-2" />;
+                              default:
+                                return <Wrench className="w-4 h-4 mr-2" />;
+                            }
+                          };
+                          
+                          if (app.id === "dive-supervisor") {
+                            return (
+                              <div key={app.id}>
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/operations?app=${app.id}`}>
+                                    {getIcon()}
+                                    <span>{app.title}</span>
+                                  </Link>
+                                </DropdownMenuItem>
+                                {supervisorContainers.map((container) => {
+                                  const ContainerIcon = container.icon;
+                                  return (
+                                    <DropdownMenuItem key={container.id} asChild className="pl-8">
+                                      <Link href={`/operations?app=dive-supervisor&container=${container.id}`}>
+                                        <ContainerIcon className="w-4 h-4 mr-2" />
+                                        <span>{container.title}</span>
+                                      </Link>
+                                    </DropdownMenuItem>
+                                  );
+                                })}
+                                <DropdownMenuSeparator />
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <DropdownMenuItem key={app.id} asChild>
+                              <Link href={`/operations?app=${app.id}`}>
+                                {getIcon()}
+                                <span>{app.title}</span>
+                              </Link>
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </SidebarMenuItem>
                 )}
 
