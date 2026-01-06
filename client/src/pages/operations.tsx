@@ -495,6 +495,8 @@ export default function Operations() {
         return <MedOpsApp />;
       case "dmt-med-ops":
         return <DMTMedOpsApp />;
+      case "calendar":
+        return <OperationsCalendarWidget timezone={preferences?.timezone || 'UTC'} />;
       default:
         return null;
     }
@@ -526,51 +528,36 @@ export default function Operations() {
           </div>
         </div>
 
-        {/* Operations Calendar Widget */}
-        {preferences?.enableOperationsCalendar && (
-          <div className="mb-8">
-            <OperationsCalendarWidget timezone={preferences.timezone || 'UTC'} />
-          </div>
-        )}
-
-        {selectedApp ? (
+        {/* Main Content Area - Shows selected app or Calendar */}
+        {selectedApp === "calendar" ? (
           <div ref={appContentRef} className="space-y-6">
             <div className="flex items-center justify-between">
-              <Button
-                variant="outline"
-                onClick={() => setSelectedApp(null)}
-                className="flex items-center space-x-2"
-              >
-                ← Back to Operations
-              </Button>
-              <h2 className="text-xl font-semibold text-slate-900">
-                {operationalApps.find(app => app.id === selectedApp)?.title}
+              <h2 className="text-2xl font-semibold text-slate-900">Operations Calendar</h2>
+            </div>
+            <OperationsCalendarWidget timezone={preferences?.timezone || 'UTC'} />
+          </div>
+        ) : selectedApp ? (
+          <div ref={appContentRef} className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-slate-900">
+                {operationalApps.find(app => app.id === selectedApp)?.title || selectedApp}
               </h2>
             </div>
             {renderAppContent(selectedApp)}
           </div>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={orderedApps.map(app => app.id)}
-              strategy={rectSortingStrategy}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {orderedApps.map((app) => (
-                  <SortableItem
-                    key={app.id}
-                    app={app}
-                    hasOperationsAccess={hasOperationsAccess}
-                    onAppClick={handleAppAccess}
-                  />
-                ))}
+          <div className="text-center py-12">
+            <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-slate-700 mb-2">Welcome to Operations Center</h3>
+            <p className="text-slate-600 mb-6">
+              Select an operation from the sidebar to get started
+            </p>
+            {preferences?.enableOperationsCalendar && (
+              <div className="max-w-2xl mx-auto">
+                <OperationsCalendarWidget timezone={preferences.timezone || 'UTC'} />
               </div>
-            </SortableContext>
-          </DndContext>
+            )}
+          </div>
         )}
 
         {/* Subscription Modal */}
