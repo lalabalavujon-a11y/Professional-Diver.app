@@ -3454,12 +3454,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ports = await getPortsNearLocation(finalLat, finalLon, 50);
       const nearestPort = ports && ports.length > 0 ? ports[0] : null;
 
-      // Get reverse geocoding info
+      // Get reverse geocoding info (use internal function instead of HTTP call)
       let locationInfo = null;
       try {
-        const geocodeResponse = await fetch(`http://127.0.0.1:5000/api/geocode/reverse?lat=${finalLat}&lon=${finalLon}`);
-        if (geocodeResponse.ok) {
-          locationInfo = await geocodeResponse.json();
+        // First try ports
+        const ports = await getPortsNearLocation(finalLat, finalLon, 50);
+        if (ports && ports.length > 0) {
+          const nearest = ports[0];
+          locationInfo = {
+            type: 'port',
+            name: nearest.name,
+            city: nearest.city,
+            country: nearest.country,
+            latitude: nearest.latitude,
+            longitude: nearest.longitude,
+            distance: nearest.distance,
+          };
+        } else {
+          // Fallback to OpenStreetMap Nominatim
+          const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${finalLat}&lon=${finalLon}&zoom=10&addressdetails=1`;
+          const geocodeResponse = await fetch(geocodeUrl, {
+            headers: {
+              'User-Agent': 'Diver-Well-Training-App/1.0',
+            },
+          });
+          if (geocodeResponse.ok) {
+            const data = await geocodeResponse.json();
+            const address = data.address || {};
+            locationInfo = {
+              type: address.city ? 'city' : address.town ? 'town' : 'location',
+              name: address.city || address.town || address.village || address.county || 'Unknown',
+              city: address.city || address.town,
+              country: address.country,
+              latitude: parseFloat(data.lat),
+              longitude: parseFloat(data.lon),
+              fullAddress: data.display_name,
+            };
+          }
         }
       } catch (error) {
         console.error('Error getting location info:', error);

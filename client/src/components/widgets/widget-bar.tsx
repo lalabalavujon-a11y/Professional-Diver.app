@@ -162,6 +162,19 @@ export default function WidgetBar() {
         <LocationSelector />
         <WidgetSettings />
       </div>
+
+      {/* GPS Auto-Sync Status Indicator */}
+      {currentPosition && (
+        <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
+          <span className="font-semibold">📍 Auto-syncing GPS:</span> {currentPosition.latitude.toFixed(4)}, {currentPosition.longitude.toFixed(4)}
+          {nearestLocation && (
+            <span className="ml-2">
+              • Nearest {nearestLocation.type}: <strong>{nearestLocation.name}</strong> ({nearestLocation.distance.toFixed(1)}km away)
+            </span>
+          )}
+          {isSyncing && <span className="ml-2">🔄 Updating...</span>}
+        </div>
+      )}
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {widgets}
