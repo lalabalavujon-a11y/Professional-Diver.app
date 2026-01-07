@@ -3348,6 +3348,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reverse Geocoding - Find nearest location from GPS coordinates
+  app.get("/api/geocode/reverse", async (req, res) => {
+    try {
+      const lat = parseFloat(req.query.lat as string);
+      const lon = parseFloat(req.query.lon as string);
+
+      if (isNaN(lat) || isNaN(lon)) {
+        return res.status(400).json({ error: "Valid latitude and longitude required" });
+      }
+
+      // First, try to find nearest port/harbor/marina
+      const portsResponse = await getPortsNearLocation(lat, lon, 50);
+      if (portsResponse && portsResponse.length > 0) {
+        const nearest = portsResponse[0];
+        return res.json({
+          type: 'port',
+          name: nearest.name,
+          city: nearest.city,
+          country: nearest.country,
+          latitude: nearest.latitude,
+          longitude: nearest.longitude,
+          distance: nearest.distance,
+        });
+      }
+
+      // Fallback: Use a geocoding service (OpenStreetMap Nominatim - free, no API key needed)
+      try {
+        const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`;
+        const geocodeResponse = await fetch(geocodeUrl, {
+          headers: {
+            'User-Agent': 'Diver-Well-Training-App/1.0', // Required by Nominatim
+          },
+        });
+
+        if (geocodeResponse.ok) {
+          const data = await geocodeResponse.json();
+          const address = data.address || {};
+          
+          return res.json({
+            type: address.city ? 'city' : address.town ? 'town' : 'location',
+            name: address.city || address.town || address.village || address.county || 'Unknown',
+            city: address.city || address.town,
+            country: address.country,
+            latitude: parseFloat(data.lat),
+            longitude: parseFloat(data.lon),
+            fullAddress: data.display_name,
+          });
+        }
+      } catch (geocodeError) {
+        console.error('Geocoding error:', geocodeError);
+      }
+
+      // Final fallback
+      res.json({
+        type: 'location',
+        name: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+        latitude: lat,
+        longitude: lon,
+      });
+    } catch (error) {
+      console.error("Reverse geocoding error:", error);
+      res.status(500).json({ error: "Failed to reverse geocode location" });
+    }
+  });
+
+  // Enhanced location info endpoint - combines GPS + nearest locations
+  app.get("/api/location/info", async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+      const lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+
+      let finalLat = lat;
+      let finalLon = lon;
+
+      // If no coordinates provided, get from saved location
+      if ((!finalLat || !finalLon) && email) {
+        try {
+          const userId = await getUserIdFromEmail(email);
+          if (userId) {
+            const widgetLocationsTable = getWidgetLocationsTable();
+            const locations = await db
+              .select()
+              .from(widgetLocationsTable)
+              .where(eq(widgetLocationsTable.userId, userId))
+              .orderBy(desc(widgetLocationsTable.updatedAt))
+              .limit(1);
+            
+            if (locations.length > 0) {
+              finalLat = locations[0].latitude;
+              finalLon = locations[0].longitude;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching saved location:", error);
+        }
+      }
+
+      if (!finalLat || !finalLon) {
+        return res.status(400).json({ error: "Location coordinates required" });
+      }
+
+      // Get nearest port
+      const ports = await getPortsNearLocation(finalLat, finalLon, 50);
+      const nearestPort = ports && ports.length > 0 ? ports[0] : null;
+
+      // Get reverse geocoding info
+      let locationInfo = null;
+      try {
+        const geocodeResponse = await fetch(`http://127.0.0.1:5000/api/geocode/reverse?lat=${finalLat}&lon=${finalLon}`);
+        if (geocodeResponse.ok) {
+          locationInfo = await geocodeResponse.json();
+        }
+      } catch (error) {
+        console.error('Error getting location info:', error);
+      }
+
+      res.json({
+        coordinates: {
+          latitude: finalLat,
+          longitude: finalLon,
+        },
+        nearestPort: nearestPort ? {
+          name: nearestPort.name,
+          type: nearestPort.type,
+          distance: nearestPort.distance,
+          latitude: nearestPort.latitude,
+          longitude: nearestPort.longitude,
+        } : null,
+        locationInfo,
+      });
+    } catch (error) {
+      console.error("Location info error:", error);
+      res.status(500).json({ error: "Failed to get location info" });
+    }
+  });
+
   // Notices to Mariners API endpoint
   app.get("/api/notices-to-mariners", async (req, res) => {
     try {
