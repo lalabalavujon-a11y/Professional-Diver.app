@@ -148,6 +148,7 @@ export const clients = sqliteTable("clients", {
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }), // Optional foreign key to users
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
+  phone: text("phone"), // Phone number for communications
   subscriptionType: text("subscription_type", { enum: ["TRIAL", "MONTHLY", "ANNUAL", "LIFETIME"] }).default("TRIAL").notNull(),
   status: text("status", { enum: ["ACTIVE", "PAUSED", "CANCELLED"] }).default("ACTIVE").notNull(),
   subscriptionDate: integer("subscription_date", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
@@ -158,6 +159,31 @@ export const clients = sqliteTable("clients", {
   notes: text("notes"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+// Client Tags for GHL-like tagging system
+export const clientTags = sqliteTable("client_tags", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  clientId: text("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  tagName: text("tag_name").notNull(),
+  color: text("color").default("#3b82f6"), // Hex color for UI display
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }), // Who created the tag
+});
+
+// Communication history for all client interactions
+export const communications = sqliteTable("communications", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  clientId: text("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  type: text("type", { enum: ["email", "phone", "sms", "whatsapp", "note"] }).notNull(),
+  direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
+  subject: text("subject"), // For emails
+  content: text("content").notNull(), // Message body/content
+  status: text("status", { enum: ["sent", "delivered", "read", "failed", "answered", "missed"] }).default("sent").notNull(),
+  duration: integer("duration"), // For phone calls in seconds
+  metadata: text("metadata"), // JSON string for additional data (e.g., email headers, call recordings, etc.)
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }), // Who initiated the communication
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
 export const widgetLocations = sqliteTable("widget_locations", {
@@ -544,7 +570,36 @@ export const userMedicalFacilitySelectionsRelations = relations(userMedicalFacil
   }),
 }));
 
-export const clientsRelations = relations(clients, ({}) => ({}));
+export const clientsRelations = relations(clients, ({ one, many }) => ({
+  tags: many(clientTags),
+  communications: many(communications),
+  user: one(users, {
+    fields: [clients.userId],
+    references: [users.id],
+  }),
+}));
+
+export const clientTagsRelations = relations(clientTags, ({ one }) => ({
+  client: one(clients, {
+    fields: [clientTags.clientId],
+    references: [clients.id],
+  }),
+  creator: one(users, {
+    fields: [clientTags.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const communicationsRelations = relations(communications, ({ one }) => ({
+  client: one(clients, {
+    fields: [communications.clientId],
+    references: [clients.id],
+  }),
+  creator: one(users, {
+    fields: [communications.createdBy],
+    references: [users.id],
+  }),
+}));
 
 // Equipment Relations
 export const equipmentTypesRelations = relations(equipmentTypes, ({ many }) => ({
@@ -766,6 +821,16 @@ export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit
   updatedAt: true,
 });
 
+export const insertClientTagSchema = createInsertSchema(clientTags).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunicationSchema = createInsertSchema(communications).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertOperationsCalendarSchema = createInsertSchema(operationsCalendar).omit({
   id: true,
   createdAt: true,
@@ -835,6 +900,10 @@ export type EquipmentUseLog = typeof equipmentUseLogs.$inferSelect;
 export type InsertEquipmentUseLog = z.infer<typeof insertEquipmentUseLogSchema>;
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type ClientTag = typeof clientTags.$inferSelect;
+export type InsertClientTag = z.infer<typeof insertClientTagSchema>;
+export type Communication = typeof communications.$inferSelect;
+export type InsertCommunication = z.infer<typeof insertCommunicationSchema>;
 export type OperationsCalendar = typeof operationsCalendar.$inferSelect;
 export type InsertOperationsCalendar = z.infer<typeof insertOperationsCalendarSchema>;
 export type CalendarShareLink = typeof calendarShareLinks.$inferSelect;

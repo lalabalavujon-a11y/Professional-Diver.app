@@ -1164,6 +1164,267 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to ensure CRM tables exist (SQLite only)
+  async function ensureCrmTables(): Promise<void> {
+    // Only create tables for SQLite (dev environment)
+    if (process.env.DATABASE_URL && process.env.NODE_ENV !== 'development') {
+      return; // PostgreSQL will use migrations
+    }
+
+    try {
+      // Create client_tags table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS client_tags (
+          id text PRIMARY KEY NOT NULL,
+          client_id text NOT NULL,
+          tag_name text NOT NULL,
+          color text DEFAULT '#3b82f6',
+          created_at integer NOT NULL,
+          created_by text,
+          FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        );
+      `);
+
+      // Create communications table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS communications (
+          id text PRIMARY KEY NOT NULL,
+          client_id text NOT NULL,
+          type text NOT NULL CHECK(type IN ('email', 'phone', 'sms', 'whatsapp', 'note')),
+          direction text NOT NULL CHECK(direction IN ('inbound', 'outbound')),
+          subject text,
+          content text NOT NULL,
+          status text NOT NULL DEFAULT 'sent' CHECK(status IN ('sent', 'delivered', 'read', 'failed', 'answered', 'missed')),
+          duration integer,
+          metadata text,
+          created_by text,
+          created_at integer NOT NULL,
+          FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        );
+      `);
+
+      // Add phone column to clients table if it doesn't exist
+      try {
+        await db.execute(`ALTER TABLE clients ADD COLUMN phone text;`);
+      } catch (e: any) {
+        // Column might already exist, ignore error
+        if (!e.message?.includes('duplicate column')) {
+          console.warn('Error adding phone column to clients:', e.message);
+        }
+      }
+
+      // Create indexes for better performance
+      await db.execute(`CREATE INDEX IF NOT EXISTS idx_client_tags_client_id ON client_tags(client_id);`);
+      await db.execute(`CREATE INDEX IF NOT EXISTS idx_communications_client_id ON communications(client_id);`);
+      await db.execute(`CREATE INDEX IF NOT EXISTS idx_communications_created_at ON communications(created_at DESC);`);
+    } catch (error) {
+      console.error('Error ensuring CRM tables:', error);
+      // Don't throw - allow server to continue
+    }
+  }
+
+  // Client Tags Routes
+  app.get("/api/clients/:id/tags", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { taggingService } = await import("./services/tagging-service");
+      const tags = await taggingService.getClientTags(req.params.id);
+      res.json({ success: true, tags });
+    } catch (error) {
+      console.error('Get client tags error:', error);
+      res.status(500).json({ error: "Failed to fetch client tags" });
+    }
+  });
+
+  app.post("/api/clients/:id/tags", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { taggingService } = await import("./services/tagging-service");
+      const { tagName, color } = req.body;
+      
+      if (!tagName || !tagName.trim()) {
+        return res.status(400).json({ error: "Tag name is required" });
+      }
+
+      // Try to get user email from localStorage via header or from userEmail in body
+      const userEmail = (req.headers['x-user-email'] as string) || req.body.userEmail || undefined;
+      let createdBy = undefined;
+      if (userEmail) {
+        try {
+          const user = await db.select().from(usersSQLite).where(eq(usersSQLite.email, userEmail)).limit(1);
+          if (user.length > 0) {
+            createdBy = user[0].id;
+          }
+        } catch (e) {
+          // User not found, continue without createdBy
+          console.log('User not found for email:', userEmail);
+        }
+      }
+      const tag = await taggingService.addTag(req.params.id, tagName.trim(), color, createdBy);
+      res.json({ success: true, tag });
+    } catch (error) {
+      console.error('Add client tag error:', error);
+      res.status(500).json({ error: "Failed to add tag" });
+    }
+  });
+
+  app.delete("/api/clients/:id/tags/:tagId", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { taggingService } = await import("./services/tagging-service");
+      const success = await taggingService.removeTag(req.params.id, req.params.tagId);
+      res.json({ success });
+    } catch (error) {
+      console.error('Remove client tag error:', error);
+      res.status(500).json({ error: "Failed to remove tag" });
+    }
+  });
+
+  app.get("/api/tags/all", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { taggingService } = await import("./services/tagging-service");
+      const tags = await taggingService.getAllTags();
+      res.json({ success: true, tags });
+    } catch (error) {
+      console.error('Get all tags error:', error);
+      res.status(500).json({ error: "Failed to fetch tags" });
+    }
+  });
+
+  // Communication Routes
+  app.get("/api/clients/:id/communications", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { communicationService } = await import("./services/communication-service");
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const communications = await communicationService.getClientCommunications(req.params.id, limit);
+      res.json({ success: true, communications });
+    } catch (error) {
+      console.error('Get client communications error:', error);
+      res.status(500).json({ error: "Failed to fetch communications" });
+    }
+  });
+
+  app.post("/api/clients/:id/communications", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { communicationService } = await import("./services/communication-service");
+      const { type, direction, subject, content, status, duration, metadata } = req.body;
+      
+      if (!content || !content.trim()) {
+        return res.status(400).json({ error: "Content is required" });
+      }
+
+      // Try to get user email from localStorage via header or from userEmail in body
+      const userEmail = (req.headers['x-user-email'] as string) || req.body.userEmail || undefined;
+      let createdBy = undefined;
+      if (userEmail) {
+        try {
+          const user = await db.select().from(usersSQLite).where(eq(usersSQLite.email, userEmail)).limit(1);
+          if (user.length > 0) {
+            createdBy = user[0].id;
+          }
+        } catch (e) {
+          // User not found, continue without createdBy
+          console.log('User not found for email:', userEmail);
+        }
+      }
+
+      let communication;
+      if (type === "email" && direction === "outbound") {
+        // Send email
+        communication = await communicationService.sendEmail({
+          clientId: req.params.id,
+          to: req.body.to,
+          subject,
+          content,
+          htmlContent: req.body.htmlContent,
+          createdBy,
+        });
+      } else if (type === "phone") {
+        communication = await communicationService.logPhoneCall({
+          clientId: req.params.id,
+          direction,
+          duration,
+          status: status || "answered",
+          notes: content,
+          phoneNumber: req.body.phoneNumber,
+          createdBy,
+        });
+      } else if (type === "sms") {
+        communication = await communicationService.logSMS({
+          clientId: req.params.id,
+          direction,
+          content,
+          phoneNumber: req.body.phoneNumber,
+          status,
+          createdBy,
+        });
+      } else if (type === "whatsapp") {
+        communication = await communicationService.logWhatsApp({
+          clientId: req.params.id,
+          direction,
+          content,
+          phoneNumber: req.body.phoneNumber,
+          status,
+          createdBy,
+        });
+      } else if (type === "note") {
+        communication = await communicationService.addNote({
+          clientId: req.params.id,
+          content,
+          createdBy,
+        });
+      } else {
+        // Generic communication log
+        communication = await communicationService.logCommunication({
+          clientId: req.params.id,
+          type,
+          direction,
+          subject,
+          content,
+          status,
+          duration,
+          metadata,
+          createdBy,
+        });
+      }
+
+      res.json({ success: true, communication });
+    } catch (error) {
+      console.error('Create communication error:', error);
+      res.status(500).json({ error: "Failed to create communication" });
+    }
+  });
+
+  app.get("/api/clients/:id/communications/stats", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { communicationService } = await import("./services/communication-service");
+      const stats = await communicationService.getCommunicationStats(req.params.id);
+      res.json({ success: true, stats });
+    } catch (error) {
+      console.error('Get communication stats error:', error);
+      res.status(500).json({ error: "Failed to fetch communication stats" });
+    }
+  });
+
+  app.patch("/api/communications/:id/status", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { communicationService } = await import("./services/communication-service");
+      const { status } = req.body;
+      const success = await communicationService.updateStatus(req.params.id, status);
+      res.json({ success });
+    } catch (error) {
+      console.error('Update communication status error:', error);
+      res.status(500).json({ error: "Failed to update status" });
+    }
+  });
+
   // Partner routes
   app.get("/api/partners/eligibility/:userId", async (req, res) => {
     try {

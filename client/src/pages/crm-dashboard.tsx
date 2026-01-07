@@ -25,13 +25,16 @@ import {
   Edit2,
   Trash2,
   Phone,
+  Eye,
 } from "lucide-react";
-import CallingButton from "@/components/calling-button";
+import EnhancedCallingButton from "@/components/crm/EnhancedCallingButton";
+import ClientDetailView from "@/components/crm/ClientDetailView";
 
 interface Client {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   subscription_type: "TRIAL" | "MONTHLY" | "ANNUAL";
   status: "ACTIVE" | "PAUSED" | "CANCELLED";
   subscription_date: string;
@@ -50,6 +53,7 @@ interface ClientStats {
 
 export default function CRMDashboard() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
@@ -264,7 +268,17 @@ export default function CRMDashboard() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <CallingButton
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setViewingClient(row.original)}
+            aria-label={`View ${row.original.name} details`}
+            title="View Details"
+          >
+            <Eye className="w-3 h-3" />
+          </Button>
+          <EnhancedCallingButton
+            clientId={row.original.id}
             email={row.original.email}
             name={row.original.name}
             size="sm"
@@ -472,6 +486,21 @@ export default function CRMDashboard() {
             )}
           </PageSection>
 
+        {/* View Client Detail Dialog */}
+        {viewingClient && (
+          <ClientDetailView
+            client={viewingClient}
+            isOpen={!!viewingClient}
+            onClose={() => {
+              setViewingClient(null);
+            }}
+            onUpdate={() => {
+              queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/clients/stats"] });
+            }}
+          />
+        )}
+
         {/* Edit Client Dialog */}
         {editingClient && (
           <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
@@ -479,7 +508,8 @@ export default function CRMDashboard() {
               <DialogHeader>
                 <DialogTitle className="flex items-center justify-between">
                   <span>Edit Client</span>
-                  <CallingButton
+                  <EnhancedCallingButton
+                    clientId={editingClient.id}
                     email={editingClient.email}
                     name={editingClient.name}
                     size="sm"
@@ -503,40 +533,6 @@ export default function CRMDashboard() {
             </DialogContent>
           </Dialog>
         )}
-        </main>
-      </div>
-
-      {/* Edit Client Dialog */}
-      {editingClient && (
-        <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center justify-between">
-                <span>Edit Client</span>
-                <CallingButton
-                  email={editingClient.email}
-                  name={editingClient.name}
-                  size="sm"
-                  variant="outline"
-                />
-              </DialogTitle>
-            </DialogHeader>
-            <ClientForm 
-              client={editingClient}
-              onSubmit={(data) => {
-                const subscriptionRevenue = data.subscription_type === "MONTHLY" ? 2500 : 
-                                          data.subscription_type === "ANNUAL" ? 25000 : 0;
-                updateClientMutation.mutate({
-                  id: editingClient.id,
-                  ...data,
-                  monthly_revenue: subscriptionRevenue
-                });
-              }}
-              loading={updateClientMutation.isPending}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </>
   );
 }
@@ -552,6 +548,7 @@ function ClientForm({ client, onSubmit, loading }: ClientFormProps) {
   const [formData, setFormData] = useState({
     name: client?.name || "",
     email: client?.email || "",
+    phone: client?.phone || "",
     subscription_type: client?.subscription_type || "TRIAL",
     status: client?.status || "ACTIVE",
     notes: client?.notes || ""
@@ -586,6 +583,18 @@ function ClientForm({ client, onSubmit, loading }: ClientFormProps) {
           placeholder="Enter client's email"
           required
           data-testid="input-client-email"
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="phone">Phone Number (Optional)</Label>
+        <Input
+          id="phone"
+          type="tel"
+          value={formData.phone}
+          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+          placeholder="+44 7448 320513"
+          data-testid="input-client-phone"
         />
       </div>
 
