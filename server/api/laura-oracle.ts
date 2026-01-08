@@ -1,14 +1,31 @@
 import { Request, Response } from 'express';
 import LauraOracleService from '../laura-oracle-service';
 
-// Initialize Laura Oracle service
-const lauraOracle = LauraOracleService.getInstance();
+// Initialize Laura Oracle service (with error handling)
+let lauraOracle: LauraOracleService | null = null;
+try {
+  lauraOracle = LauraOracleService.getInstance();
+  console.log('✅ Laura Oracle service initialized successfully');
+} catch (error) {
+  console.error('❌ Failed to initialize Laura Oracle service:', error);
+  console.warn('⚠️ Laura will not be available until service is fixed');
+}
 
 /**
  * Chat with Laura Oracle - Main interface
  */
 export async function chatWithLauraOracle(req: Request, res: Response) {
   try {
+    // Check if service is initialized
+    if (!lauraOracle) {
+      console.error('❌ Laura Oracle service not initialized');
+      return res.status(503).json({
+        error: 'Laura Oracle service is not available',
+        message: 'Service initialization failed. Please check server logs.',
+        details: process.env.NODE_ENV === 'development' ? 'Service failed to initialize - check OPENAI_API_KEY and server logs' : undefined
+      });
+    }
+
     const { message, sessionId, userContext } = req.body;
 
     if (!message) {
@@ -28,7 +45,7 @@ export async function chatWithLauraOracle(req: Request, res: Response) {
       oracle: {
         name: "Laura",
         role: "Super Platform Oracle",
-        capabilities: lauraOracle.getOracleInfo().capabilities
+        capabilities: lauraOracle ? lauraOracle.getOracleInfo().capabilities : []
       }
     });
 
@@ -50,6 +67,13 @@ export async function chatWithLauraOracle(req: Request, res: Response) {
  */
 export async function getPlatformAnalytics(req: Request, res: Response) {
   try {
+    if (!lauraOracle) {
+      return res.status(503).json({
+        error: 'Laura Oracle service is not available',
+        message: 'Service initialization failed. Please check server logs.'
+      });
+    }
+
     const analytics = await lauraOracle.getPlatformAnalytics();
 
     res.json({
@@ -81,6 +105,13 @@ export async function executeAdminTask(req: Request, res: Response) {
     if (!task) {
       return res.status(400).json({
         error: 'Task is required'
+      });
+    }
+
+    if (!lauraOracle) {
+      return res.status(503).json({
+        error: 'Laura Oracle service is not available',
+        message: 'Service initialization failed. Please check server logs.'
       });
     }
 

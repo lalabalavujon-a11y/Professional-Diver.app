@@ -531,10 +531,10 @@ interface PlatformAnalytics {
 
 export class LauraOracleService {
   private static instance: LauraOracleService;
-  private chatModel: ChatOpenAI;
-  private embeddings: OpenAIEmbeddings;
+  private chatModel: ChatOpenAI | null;
+  private embeddings: OpenAIEmbeddings | null;
   private langsmithClient: LangSmithClient;
-  private openai: OpenAI;
+  private openai: OpenAI | null;
   private config: LauraOracleConfig;
   private vectorStore: ProfessionalDivingVectorStore;
 
@@ -546,10 +546,20 @@ export class LauraOracleService {
       apiKey: process.env.LANGSMITH_API_KEY || "dev-mode"
     });
 
-    // Initialize OpenAI client for TTS
+    // Initialize OpenAI client for TTS (with error handling)
+    try {
+      if (process.env.OPENAI_API_KEY) {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+      } else {
+        this.openai = null;
+        console.warn('⚠️ OPENAI_API_KEY not found - voice generation will be disabled');
+      }
+    } catch (openaiError) {
+      console.error('❌ Error initializing OpenAI client:', openaiError);
+      this.openai = null;
+    }
 
     // Validate OpenAI API key
     if (!process.env.OPENAI_API_KEY) {
@@ -562,18 +572,38 @@ export class LauraOracleService {
       console.log(`✅ OpenAI API Key detected for Laura: ${keyPreview}`);
     }
 
-    // Initialize AI models
+    // Initialize AI models (with error handling - allow initialization even without API key)
+    try {
+      const apiKey = process.env.OPENAI_API_KEY || 'not-set';
+      
+      // Only initialize if API key is present
+      if (apiKey && apiKey !== 'not-set') {
     this.chatModel = new ChatOpenAI({
       modelName: 'gpt-4o',
       temperature: 0.3, // Lower temperature for more consistent administrative responses
       maxTokens: 3000,
-      openAIApiKey: process.env.OPENAI_API_KEY,
+          openAIApiKey: apiKey,
     });
 
     this.embeddings = new OpenAIEmbeddings({
       modelName: 'text-embedding-3-small',
-      openAIApiKey: process.env.OPENAI_API_KEY,
-    });
+          openAIApiKey: apiKey,
+        });
+        console.log('✅ Laura AI models initialized');
+      } else {
+        // Create placeholder models that will return helpful fallback responses
+        console.warn('⚠️ OPENAI_API_KEY not found - Laura will use fallback responses');
+        // We'll handle this in chatWithOracle - set to null and check in the method
+        this.chatModel = null;
+        this.embeddings = null;
+      }
+    } catch (modelError) {
+      console.error('❌ Error initializing Laura AI models:', modelError);
+      // Allow service to initialize anyway - we'll handle errors in chatWithOracle
+      this.chatModel = null;
+      this.embeddings = null;
+      console.warn('⚠️ Laura will use fallback responses due to initialization error');
+    }
 
     // Initialize vector store for RAG
     this.vectorStore = ProfessionalDivingVectorStore.getInstance();
@@ -729,6 +759,36 @@ export class LauraOracleService {
 
       console.log('🔵 Laura Oracle: Invoking chat model...');
       let response;
+      
+      // Check if chat model is available
+      if (!this.chatModel) {
+        console.warn('⚠️ Chat model not available - using intelligent fallback');
+        // Provide a helpful, contextual response based on the user's message
+        const lowerMessage = message.toLowerCase();
+        let helpfulResponse = '';
+        
+        if (lowerMessage.includes('support ticket') || lowerMessage.includes('ticket') || lowerMessage.includes('help')) {
+          helpfulResponse = `Absolutely! I'd be happy to help you create a support ticket. You can create one in a few ways:
+
+1. **Visit the Contact page** at /contact - there's a form there for support tickets
+2. **Go to the Support Tickets page** at /support-tickets to view and create tickets
+3. **Or share the details with me now** - tell me what you need help with and I can guide you through creating a well-formatted support ticket with all the necessary details.
+
+What would you like help with today?`;
+        } else {
+          helpfulResponse = `I'm Laura, your Platform Oracle for the Professional Diver Training Platform! I'm here to help with platform administration, support tickets, analytics, and any questions you have.
+
+How can I assist you today?`;
+        }
+        
+        return {
+          response: helpfulResponse,
+          analytics,
+          actions: [],
+          timestamp: new Date().toISOString()
+        };
+      }
+      
       try {
         response = await this.chatModel.invoke(messages);
         console.log('✅ Laura Oracle: Chat model responded');
@@ -737,7 +797,11 @@ export class LauraOracleService {
         console.error('❌ Error invoking chat model:', errorMsg);
         console.error('Full error:', error);
         // Return a helpful response instead of throwing - this allows Laura to respond even if OpenAI fails
-        const helpfulResponse = `I apologize, but I'm having trouble connecting to the AI service right now. However, I can still help you! 
+        const lowerMessage = message.toLowerCase();
+        let helpfulResponse = '';
+        
+        if (lowerMessage.includes('support ticket') || lowerMessage.includes('ticket') || lowerMessage.includes('help')) {
+          helpfulResponse = `I apologize, but I'm having trouble connecting to the AI service right now. However, I can still help you! 
 
 To create a support ticket, you can:
 1. Visit the Contact page at /contact - there's a form there for support tickets
@@ -745,6 +809,9 @@ To create a support ticket, you can:
 3. Or if you'd like, you can share the details of your issue with me now and I can guide you through the process.
 
 What would you like help with today?`;
+        } else {
+          helpfulResponse = `I'm experiencing a technical issue with the AI service right now, but I'm still here to help! What can I assist you with today?`;
+        }
         
         // Still return a response object so the function doesn't throw
         return {
@@ -1521,7 +1588,7 @@ ${userInfoSection}${recentActivity}${relatedTicketsSection}${responseInstruction
    */
   async generateVoiceResponse(text: string): Promise<Buffer | null> {
     try {
-      if (!process.env.OPENAI_API_KEY) {
+      if (!this.openai || !process.env.OPENAI_API_KEY) {
         console.warn('⚠️ OpenAI API key not found, voice generation disabled');
         return null;
       }
