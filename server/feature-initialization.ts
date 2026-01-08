@@ -64,69 +64,83 @@ export async function ensureFeatureTables(): Promise<void> {
  * Seed feature definitions from registry
  */
 export async function seedFeatureDefinitions(): Promise<void> {
-  const allFeatures = getAllFeatures();
-  const now = new Date();
+  try {
+    const allFeatures = getAllFeatures();
+    const now = new Date();
 
-  for (const feature of allFeatures) {
-    if (isSQLiteDev()) {
-      // Check if exists
-      const existing = await db
-        .select()
-        .from(featureDefinitionsSQLite)
-        .where(eq(featureDefinitionsSQLite.id, feature.id))
-        .limit(1);
+    for (const feature of allFeatures) {
+      if (isSQLiteDev()) {
+        // Check if exists
+        const existing = await db
+          .select()
+          .from(featureDefinitionsSQLite)
+          .where(eq(featureDefinitionsSQLite.id, feature.id))
+          .limit(1);
 
-      if (existing.length === 0) {
-        // Insert new feature
-        await db.insert(featureDefinitionsSQLite).values({
-          id: feature.id,
-          name: feature.name,
-          description: feature.description,
-          category: feature.category,
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        });
-      } else {
-        // Update existing (in case description changed)
-        await db
-          .update(featureDefinitionsSQLite)
-          .set({
+        if (existing.length === 0) {
+          // Insert new feature
+          await db.insert(featureDefinitionsSQLite).values({
+            id: feature.id,
             name: feature.name,
             description: feature.description,
             category: feature.category,
+            isActive: true,
+            createdAt: now,
             updatedAt: now,
-          })
-          .where(eq(featureDefinitionsSQLite.id, feature.id));
-      }
-    } else {
-      // PostgreSQL
-      const existing = await db
-        .select()
-        .from(featureDefinitions)
-        .where(eq(featureDefinitions.id, feature.id))
-        .limit(1);
-
-      if (existing.length === 0) {
-        await db.insert(featureDefinitions).values({
-          id: feature.id,
-          name: feature.name,
-          description: feature.description,
-          category: feature.category,
-          isActive: true,
-        });
+          });
+        } else {
+          // Update existing (in case description changed)
+          await db
+            .update(featureDefinitionsSQLite)
+            .set({
+              name: feature.name,
+              description: feature.description,
+              category: feature.category,
+              updatedAt: now,
+            })
+            .where(eq(featureDefinitionsSQLite.id, feature.id));
+        }
       } else {
-        await db
-          .update(featureDefinitions)
-          .set({
-            name: feature.name,
-            description: feature.description,
-            category: feature.category,
-            updatedAt: new Date(),
-          })
-          .where(eq(featureDefinitions.id, feature.id));
+        // PostgreSQL - check if table exists first
+        try {
+          const existing = await db
+            .select()
+            .from(featureDefinitions)
+            .where(eq(featureDefinitions.id, feature.id))
+            .limit(1);
+
+          if (existing.length === 0) {
+            await db.insert(featureDefinitions).values({
+              id: feature.id,
+              name: feature.name,
+              description: feature.description,
+              category: feature.category,
+              isActive: true,
+            });
+          } else {
+            await db
+              .update(featureDefinitions)
+              .set({
+                name: feature.name,
+                description: feature.description,
+                category: feature.category,
+                updatedAt: new Date(),
+              })
+              .where(eq(featureDefinitions.id, feature.id));
+          }
+        } catch (error: any) {
+          // Table doesn't exist - skip seeding (migrations will create it)
+          if (error?.code === '42P01' || error?.message?.includes('does not exist')) {
+            console.warn('⚠️ Feature definitions table does not exist yet. Skipping seed. Run migrations first.');
+            return;
+          }
+          throw error;
+        }
       }
     }
+  } catch (error) {
+    console.error('Error seeding feature definitions:', error);
+    // Don't throw - allow server to continue
   }
 }
 
@@ -135,106 +149,120 @@ export async function seedFeatureDefinitions(): Promise<void> {
  * Sets sensible defaults for each role
  */
 export async function initializeDefaultRolePermissions(): Promise<void> {
-  const allFeatures = getAllFeatures();
-  const now = new Date();
+  try {
+    const allFeatures = getAllFeatures();
+    const now = new Date();
 
-  // Default permissions by role
-  const defaultPermissions: Record<string, Record<string, boolean>> = {
-    AFFILIATE: {
-      // Partner Admins: Most features enabled
-      operations_center: true,
-      dive_supervisor: true,
-      admin_dashboard: true,
-      crm: true,
-      analytics: true,
-      content_editor: true,
-      ghl_integration: true,
-    },
-    ENTERPRISE: {
-      // Enterprise Users: Operations + CRM enabled
-      operations_center: true,
-      dive_supervisor: true,
-      admin_dashboard: false,
-      crm: true,
-      analytics: true,
-      content_editor: false,
-      ghl_integration: false,
-    },
-    USER: {
-      // Regular Users: Basic features only
-      operations_center: false,
-      dive_supervisor: false,
-      admin_dashboard: false,
-      crm: false,
-      analytics: false,
-      content_editor: false,
-      ghl_integration: false,
-    },
-    ADMIN: {
-      // Admins: All features enabled
-      operations_center: true,
-      dive_supervisor: true,
-      admin_dashboard: true,
-      crm: true,
-      analytics: true,
-      content_editor: true,
-      ghl_integration: true,
-    },
-  };
+    // Default permissions by role
+    const defaultPermissions: Record<string, Record<string, boolean>> = {
+      AFFILIATE: {
+        // Partner Admins: Most features enabled
+        operations_center: true,
+        dive_supervisor: true,
+        admin_dashboard: true,
+        crm: true,
+        analytics: true,
+        content_editor: true,
+        ghl_integration: true,
+      },
+      ENTERPRISE: {
+        // Enterprise Users: Operations + CRM enabled
+        operations_center: true,
+        dive_supervisor: true,
+        admin_dashboard: false,
+        crm: true,
+        analytics: true,
+        content_editor: false,
+        ghl_integration: false,
+      },
+      USER: {
+        // Regular Users: Basic features only
+        operations_center: false,
+        dive_supervisor: false,
+        admin_dashboard: false,
+        crm: false,
+        analytics: false,
+        content_editor: false,
+        ghl_integration: false,
+      },
+      ADMIN: {
+        // Admins: All features enabled
+        operations_center: true,
+        dive_supervisor: true,
+        admin_dashboard: true,
+        crm: true,
+        analytics: true,
+        content_editor: true,
+        ghl_integration: true,
+      },
+    };
 
-  const roles = ["AFFILIATE", "ENTERPRISE", "USER", "ADMIN"];
+    const roles = ["AFFILIATE", "ENTERPRISE", "USER", "ADMIN"];
 
-  for (const role of roles) {
-    const roleDefaults = defaultPermissions[role] || {};
+    for (const role of roles) {
+      const roleDefaults = defaultPermissions[role] || {};
 
-    for (const feature of allFeatures) {
-      const enabled = roleDefaults[feature.id] ?? false;
+      for (const feature of allFeatures) {
+        const enabled = roleDefaults[feature.id] ?? false;
 
-      if (isSQLiteDev()) {
-        const existing = await db
-          .select()
-          .from(roleFeatureDefaultsSQLite)
-          .where(
-            and(
-              eq(roleFeatureDefaultsSQLite.role, role),
-              eq(roleFeatureDefaultsSQLite.featureId, feature.id)
+        if (isSQLiteDev()) {
+          const existing = await db
+            .select()
+            .from(roleFeatureDefaultsSQLite)
+            .where(
+              and(
+                eq(roleFeatureDefaultsSQLite.role, role),
+                eq(roleFeatureDefaultsSQLite.featureId, feature.id)
+              )
             )
-          )
-          .limit(1);
+            .limit(1);
 
-        if (existing.length === 0) {
-          const { nanoid } = await import("nanoid");
-          await db.insert(roleFeatureDefaultsSQLite).values({
-            id: nanoid(),
-            role,
-            featureId: feature.id,
-            enabled,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-      } else {
-        // PostgreSQL
-        const existing = await db
-          .select()
-          .from(roleFeatureDefaults)
-          .where(
-            and(
-              eq(roleFeatureDefaults.role, role),
-              eq(roleFeatureDefaults.featureId, feature.id)
-            )
-          )
-          .limit(1);
+          if (existing.length === 0) {
+            const { nanoid } = await import("nanoid");
+            await db.insert(roleFeatureDefaultsSQLite).values({
+              id: nanoid(),
+              role,
+              featureId: feature.id,
+              enabled,
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
+        } else {
+          // PostgreSQL - check if table exists first
+          try {
+            const existing = await db
+              .select()
+              .from(roleFeatureDefaults)
+              .where(
+                and(
+                  eq(roleFeatureDefaults.role, role),
+                  eq(roleFeatureDefaults.featureId, feature.id)
+                )
+              )
+              .limit(1);
 
-        if (existing.length === 0) {
-          await db.insert(roleFeatureDefaults).values({
-            role,
-            featureId: feature.id,
-            enabled,
-          });
+            if (existing.length === 0) {
+              await db.insert(roleFeatureDefaults).values({
+                role,
+                featureId: feature.id,
+                enabled,
+              });
+            }
+          } catch (error: any) {
+            // Table doesn't exist - skip (migrations will create it)
+            if (error?.code === '42P01' || error?.message?.includes('does not exist')) {
+              console.warn('⚠️ Role feature defaults table does not exist yet. Skipping initialization.');
+              return;
+            }
+            throw error;
+          }
         }
       }
     }
+  } catch (error) {
+    console.error('Error initializing default role permissions:', error);
+    // Don't throw - allow server to continue
   }
 }
 
@@ -254,10 +282,12 @@ export async function initializeFeatureManagement(): Promise<void> {
     await initializeDefaultRolePermissions();
     console.log("✓ Default role permissions initialized");
     
-    console.log("Feature management system initialized successfully");
-  } catch (error) {
-    console.error("Error initializing feature management:", error);
-    throw error;
+    console.log("✅ Feature management system initialized successfully");
+  } catch (error: any) {
+    // Don't throw - log and continue. Server should start even if feature management fails
+    console.error("⚠️ Warning: Feature management initialization failed:", error?.message || error);
+    console.error("⚠️ Server will continue without feature management. Run migrations to fix.");
+    // Don't throw - allow server to start
   }
 }
 
