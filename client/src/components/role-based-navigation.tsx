@@ -165,13 +165,11 @@ export default function RoleBasedNavigation() {
     }
     
     // Normal mode - check user's actual permissions
-    // If permission check fails or returns false, fall back to role check for admins
     const hasPermission = hasFeature(item.featureId);
     
-    // Fallback: If user is admin/super admin and permission check fails, show all features
-    // This handles cases where permissions API fails or returns wrong format
-    if (!hasPermission && (isAdmin || isSuperAdmin)) {
-      // For admins, if permission system isn't working, show all features
+    // Fallback: If user is admin/super admin, always show features
+    // This ensures admins always have access even if permission system fails
+    if (isAdmin || isSuperAdmin) {
       return true;
     }
     
@@ -587,7 +585,7 @@ export default function RoleBasedNavigation() {
             </AlertDescription>
           </Alert>
         )}
-        {/* Header - Fixed position to stay at top, CSS handles positioning */}
+        {/* Header - Fixed position to stay at top */}
         <header 
           className="sticky top-0 z-50 flex h-20 shrink-0 items-center gap-3 md:gap-4 border-b bg-background/95 backdrop-blur-sm px-3 sm:px-4 py-2" 
           data-testid="navigation-header"
