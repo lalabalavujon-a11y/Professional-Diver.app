@@ -2179,6 +2179,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdAt: storedProfile.createdAt || new Date('2024-01-01').toISOString(),
         };
       }
+      // Partner Admin (AFFILIATE) users
+      else if (['freddierusseljoseph@yahoo.com', 'deesuks@gmail.com', 'steve44hall@yahoo.co.uk', 'mike@ascotwood.com'].includes(email)) {
+        const user = userManagement.getSpecialUser(email);
+        baseUser = {
+          id: user?.id || 'partner-admin',
+          name: storedProfile.name || user?.name || 'Partner Admin',
+          email: email,
+          role: 'AFFILIATE',
+          subscriptionType: 'LIFETIME',
+          subscriptionDate: new Date('2024-01-01').toISOString(),
+          trialExpiresAt: null,
+          createdAt: storedProfile.createdAt || new Date('2024-01-01').toISOString(),
+        };
+      }
       // Lifetime access users
       else if (['eroni2519@gmail.com', 'jone.cirikidaveta@gmail.com', 'jone7898@gmail.com', 'samueltabuya35@gmail.com', 'jone.viti@gmail.com'].includes(email)) {
         baseUser = {

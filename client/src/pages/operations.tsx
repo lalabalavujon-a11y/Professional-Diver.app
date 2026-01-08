@@ -568,8 +568,8 @@ export default function Operations() {
   return (
     <>
       <RoleBasedNavigation />
-      <div className="min-h-screen bg-background" data-sidebar-content="true">
-        <div className="flex h-[calc(100vh-5rem)] mt-20 overflow-hidden">
+      <div className="min-h-screen bg-background pt-20" data-sidebar-content="true">
+        <div className="flex h-[calc(100vh-5rem)] overflow-hidden">
           {/* Main Content Area */}
           <ResizablePanelGroup direction="horizontal" className="w-full h-full">
             <ResizablePanel defaultSize={75} minSize={50} className="overflow-auto">
