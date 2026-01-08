@@ -17,7 +17,7 @@
     "build": "vite build",
     "start": "npm run db:push || echo '⚠️ db:push failed, continuing anyway...' ; cross-env NODE_ENV=production HOST=0.0.0.0 tsx server/index.ts",
     "check": "tsc",
-    "db:push": "timeout 60 bash -c 'echo "" | CI=true DRIZZLE_NON_INTERACTIVE=true drizzle-kit push' || echo '⚠️ db:push timed out or failed'",
+    "db:push": "timeout 120 bash -c 'printf \"\\n\" | CI=true DRIZZLE_NON_INTERACTIVE=true drizzle-kit push' || echo '⚠️ db:push timed out or failed'",
     "debug:start": "eslint . --ext .js,.jsx,.ts,.tsx",
     "debug:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "debug:monitor": "node ./super-debug-agent/index.js",
