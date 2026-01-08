@@ -23,6 +23,7 @@
     "typecheck": "tsc --noEmit",
     "init-laura-oracle": "tsx scripts/init-laura-oracle.ts",
     "laura-oracle:test": "tsx scripts/init-laura-oracle.ts",
+    "import-exam-questions": "tsx scripts/import-exam-questions.ts",
     "cap:sync": "cap sync",
     "cap:copy": "cap copy",
     "cap:open:ios": "cap open ios",

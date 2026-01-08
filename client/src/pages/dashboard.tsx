@@ -4,14 +4,40 @@ import UserStatusBadge from "@/components/user-status-badge";
 import WidgetBar from "@/components/widgets/widget-bar";
 import { PageHeader, PageSection, StatCard } from "@/components/ui/page-header";
 import { LoadingSpinner } from "@/components/ui/loading-states";
-import { CheckCircle, AlertTriangle, Flame, BookOpen, BarChart3 } from "lucide-react";
+import { CheckCircle, AlertTriangle, Flame, BookOpen, BarChart3, Award, FileText } from "lucide-react";
 import { Link } from "wouter";
 
-export default function Dashboard() {
-  const { data: userProgress, isLoading } = useQuery({
-    queryKey: ["/api/users/current/progress"],
-  });
+interface UserProgressData {
+  lessonProgress: Array<{
+    lessonId: string;
+    completedAt: number | string;
+    score?: number | null;
+    timeSpent?: number | null;
+  }>;
+  quizAttempts: Array<{
+    quiz_id: string;
+    score: number;
+    completed_at: number;
+    lesson_id?: string;
+    track_id?: string;
+  }>;
+  examAttempts: Array<{
+    exam_slug: string;
+    score: number;
+    total_questions: number;
+    completed_at: number;
+  }>;
+  trackProgress: Array<{
+    track_id: string;
+    track_title: string;
+    track_slug: string;
+    total_lessons: number;
+    completed_lessons: number;
+    completion_percentage: number;
+  }>;
+}
 
+export default function Dashboard() {
   // Get current user data to determine role and subscription
   const { data: currentUser } = useQuery({
     queryKey: ["/api/users/current"],
@@ -23,6 +49,43 @@ export default function Dashboard() {
       return response.json();
     }
   });
+
+  // Get user progress data
+  const { data: userProgress, isLoading } = useQuery<UserProgressData>({
+    queryKey: ["/api/users/current/progress"],
+    enabled: !!currentUser,
+  });
+
+  // Get exam analytics
+  const { data: examAnalytics } = useQuery({
+    queryKey: ["/api/analytics/exams"],
+  });
+
+  // Calculate stats from real data
+  const completedLessons = userProgress?.lessonProgress?.length || 0;
+  const totalLessons = userProgress?.trackProgress?.reduce((sum, track) => sum + (track.total_lessons || 0), 0) || 0;
+  const quizAttempts = userProgress?.quizAttempts || [];
+  const examAttempts = userProgress?.examAttempts || [];
+  
+  // Calculate quiz average
+  const quizScores = quizAttempts.map(q => {
+    // Need to calculate percentage - would need total questions from quiz
+    return q.score;
+  });
+  const quizAverage = quizAttempts.length > 0 
+    ? Math.round((quizAttempts.reduce((sum, q) => sum + (q.score || 0), 0) / quizAttempts.length) * 10) / 10 
+    : 0;
+
+  // Calculate exam average
+  const examScores = examAttempts.map(e => (e.score / e.total_questions) * 100);
+  const examAverage = examScores.length > 0 
+    ? Math.round((examScores.reduce((sum, s) => sum + s, 0) / examScores.length) * 10) / 10 
+    : 0;
+
+  // Calculate overall track completion
+  const overallCompletion = userProgress?.trackProgress?.length > 0
+    ? Math.round(userProgress.trackProgress.reduce((sum, track) => sum + (track.completion_percentage || 0), 0) / userProgress.trackProgress.length)
+    : 0;
 
   return (
     <>
@@ -54,30 +117,38 @@ export default function Dashboard() {
             />
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <StatCard
                 title="Lessons Completed"
-                value="8"
-                description="of 12 total"
+                value={completedLessons.toString()}
+                description={`of ${totalLessons} total`}
                 icon={CheckCircle}
                 variant="primary"
                 data-testid="stat-lessons-completed"
               />
               <StatCard
                 title="Quiz Average"
-                value="87%"
-                description="across 5 quizzes"
+                value={quizAttempts.length > 0 ? `${Math.round(quizAverage)}%` : "N/A"}
+                description={`across ${quizAttempts.length} ${quizAttempts.length === 1 ? 'quiz' : 'quizzes'}`}
                 icon={BarChart3}
                 variant="success"
                 data-testid="stat-quiz-average"
               />
               <StatCard
-                title="Study Streak"
-                value="12"
-                description="days active"
-                icon={Flame}
+                title="Exam Average"
+                value={examAttempts.length > 0 ? `${Math.round(examAverage)}%` : "N/A"}
+                description={`across ${examAttempts.length} ${examAttempts.length === 1 ? 'exam' : 'exams'}`}
+                icon={Award}
+                variant="info"
+                data-testid="stat-exam-average"
+              />
+              <StatCard
+                title="Track Completion"
+                value={`${overallCompletion}%`}
+                description="overall progress"
+                icon={FileText}
                 variant="warning"
-                data-testid="stat-study-streak"
+                data-testid="stat-track-completion"
               />
             </div>
 
@@ -111,27 +182,49 @@ export default function Dashboard() {
               </div>
             </PageSection>
 
-            <PageSection
-              title="Continue Learning"
-              description="3 of 5 lessons completed"
-            >
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-foreground" data-testid="text-current-track">Physiology Basics</h4>
-                    <p className="text-sm text-muted-foreground">Next: Circulatory System</p>
-                  </div>
-                  <Link href="/tracks/diving-physiology-basics">
-                    <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 sm:px-6 py-2 rounded-lg font-medium transition-colors w-full sm:w-auto" data-testid="button-continue">
-                      Continue
-                    </button>
-                  </Link>
+            {/* Track Progress Overview */}
+            {userProgress?.trackProgress && userProgress.trackProgress.length > 0 && (
+              <PageSection
+                title="Track Progress"
+                description="Your completion across all learning tracks"
+              >
+                <div className="space-y-4">
+                  {userProgress.trackProgress.slice(0, 5).map((track) => (
+                    <div key={track.track_id} className="space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-foreground">{track.track_title}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {track.completed_lessons} of {track.total_lessons} lessons completed
+                          </p>
+                        </div>
+                        <Link href={`/tracks/${track.track_slug}`}>
+                          <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors w-full sm:w-auto">
+                            Continue
+                          </button>
+                        </Link>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full transition-all" 
+                          style={{ width: `${Math.min(track.completion_percentage || 0, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                  {userProgress.trackProgress.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No track progress yet. Start a track to begin tracking your progress!</p>
+                      <Link href="/tracks">
+                        <button className="mt-4 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors">
+                          Browse Tracks
+                        </button>
+                      </Link>
+                    </div>
+                  )}
                 </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-primary h-2 rounded-full transition-all" style={{ width: "60%" }}></div>
-                </div>
-              </div>
-            </PageSection>
+              </PageSection>
+            )}
 
             <PageSection
               title="Recent Quiz Results"

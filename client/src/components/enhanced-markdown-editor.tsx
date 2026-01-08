@@ -495,7 +495,7 @@ export default function EnhancedMarkdownEditor({
                   rehypePlugins={[rehypeRaw]}
                   components={components}
                 >
-                  {value || "*Nothing to preview yet. Start writing in the Write tab.*"}
+                  {transformAITutorNames(value || "*Nothing to preview yet. Start writing in the Write tab.*")}
                 </ReactMarkdown>
               </div>
             </TabsContent>
@@ -519,7 +519,7 @@ export default function EnhancedMarkdownEditor({
                     rehypePlugins={[rehypeRaw]}
                     components={components}
                   >
-                    {value || "*Nothing to preview yet. Start writing...*"}
+                    {transformAITutorNames(value || "*Nothing to preview yet. Start writing...*")}
                   </ReactMarkdown>
                 </div>
               </div>

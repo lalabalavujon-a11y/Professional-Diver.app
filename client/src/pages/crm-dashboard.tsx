@@ -35,10 +35,11 @@ interface Client {
   name: string;
   email: string;
   phone?: string;
-  subscription_type: "TRIAL" | "MONTHLY" | "ANNUAL";
+  subscription_type: "TRIAL" | "MONTHLY" | "ANNUAL" | "LIFETIME";
   status: "ACTIVE" | "PAUSED" | "CANCELLED";
   subscription_date: string;
   monthly_revenue: number;
+  partner_status?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -485,6 +486,8 @@ export default function CRMDashboard() {
               />
             )}
           </PageSection>
+        </main>
+      </div>
 
         {/* View Client Detail Dialog */}
         {viewingClient && (

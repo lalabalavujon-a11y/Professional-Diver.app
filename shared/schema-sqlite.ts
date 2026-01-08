@@ -92,6 +92,9 @@ export const lessons = sqliteTable("lessons", {
   objectives: text("objectives").default("[]"), // Learning objectives array as JSON string
   estimatedMinutes: integer("estimated_minutes").default(30),
   isRequired: integer("is_required", { mode: "boolean" }).default(true).notNull(),
+  podcastUrl: text("podcast_url"), // Podcast audio file URL
+  podcastDuration: integer("podcast_duration"), // Duration in seconds
+  notebookLmUrl: text("notebook_lm_url"), // Notebook LM integration URL
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });

@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, Link } from "wouter";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import QuizQuestion from "@/components/quiz-question";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, Clock } from "lucide-react";
+import { AlertCircle, Clock, ArrowLeft } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 type Question = {
   id: string;
@@ -42,11 +43,15 @@ export default function Quiz() {
     enabled: !!params?.id,
   });
 
-  // Initialize timer when quiz data is loaded
+  // Initialize timer when quiz data is loaded - dynamic based on question count
   useEffect(() => {
     if (quiz && !quizStarted && timeRemaining === null) {
-      const timeLimit = quiz.timeLimit || 30; // Default 30 minutes
-      setTimeRemaining(timeLimit * 60); // Convert to seconds
+      const questionCount = quiz.questions?.length || 0;
+      // Dynamic timer: 2 minutes per question, minimum 5 minutes, maximum 30 minutes
+      const calculatedTimeLimit = questionCount > 0 
+        ? Math.max(5, Math.min(30, questionCount * 2))
+        : 10; // Default 10 minutes if no questions
+      setTimeRemaining(calculatedTimeLimit * 60); // Convert to seconds
     }
   }, [quiz, quizStarted, timeRemaining]);
 
@@ -227,6 +232,20 @@ export default function Quiz() {
       <RoleBasedNavigation />
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Back Button */}
+        <div className="mb-4">
+          <Link href={`/lessons/${params?.id}`}>
+            <Button 
+              variant="ghost" 
+              className="text-slate-600 hover:text-slate-900"
+              data-testid="button-back-to-lesson"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Lesson Review
+            </Button>
+          </Link>
+        </div>
+        
         <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
@@ -235,7 +254,7 @@ export default function Quiz() {
                   {quiz.title}
                 </h2>
                 <p className="text-sm text-slate-500" data-testid="text-quiz-meta">
-                  {totalQuestions} questions • {quiz.timeLimit || 10} minutes
+                  {totalQuestions} questions • {Math.max(5, Math.min(30, totalQuestions * 2))} minutes
                 </p>
               </div>
               <div className="text-right">

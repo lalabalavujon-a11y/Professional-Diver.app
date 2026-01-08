@@ -73,6 +73,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Calling routes
   registerCallingRoutes(app);
 
+  // Serve uploaded files statically
+  const path = await import('path');
+  const express = await import('express');
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  app.use('/uploads', express.default.static(uploadsDir));
+
   // Object storage routes
   app.post("/api/objects/upload", async (req, res) => {
     try {
@@ -85,12 +91,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Local development upload endpoint
+  // Local development upload endpoint with proper file handling
+  // IMPORTANT: This route must be registered BEFORE express.json() middleware
+  // or we need to skip body parsing for this route
   app.post("/api/objects/upload-local/:objectId", async (req, res) => {
     try {
       const { objectId } = req.params;
       const fs = await import('fs');
       const path = await import('path');
+      const multer = await import('multer');
       
       // Create uploads directory if it doesn't exist
       const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -98,15 +107,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
       
-      // For now, just return success - the actual file handling would be done by the frontend
-      res.json({ 
-        success: true, 
-        objectId,
-        message: "Local upload endpoint - file handling not implemented yet" 
+      // Configure multer for file uploads
+      const storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+          cb(null, uploadsDir);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          const ext = path.extname(file.originalname);
+          cb(null, `${objectId}-${uniqueSuffix}${ext}`);
+        }
       });
-    } catch (error) {
+      
+      const upload = multer({ 
+        storage,
+        limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+        fileFilter: (req, file, cb) => {
+          // Get file extension
+          const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+          
+          // Define allowed extensions
+          const allowedExtensions = ['jpeg', 'jpg', 'png', 'gif', 'pdf', 'mp3', 'mp4', 'wav', 'm4a', 'webm', 'ogg', 'aac'];
+          
+          // Define allowed MIME types (including variants for M4A)
+          const allowedMimeTypes = [
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+            'application/pdf',
+            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/mp4', 'audio/x-m4a', 'audio/ogg', 'audio/aac', 'audio/webm',
+            'video/mp4', 'video/webm'
+          ];
+          
+          // Check if extension is allowed
+          const extAllowed = allowedExtensions.includes(ext);
+          
+          // Check if MIME type is allowed
+          // Special handling for M4A files which can have audio/mp4 MIME type
+          const mimeAllowed = allowedMimeTypes.includes(file.mimetype) || 
+                            (ext === 'm4a' && (file.mimetype.startsWith('audio/') || file.mimetype === 'audio/mp4')) ||
+                            (ext === 'mp4' && (file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/')));
+          
+          // Accept if extension is allowed AND (MIME type is allowed OR extension is audio/video type)
+          if (extAllowed && (mimeAllowed || file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/') || file.mimetype.startsWith('image/'))) {
+            return cb(null, true);
+          } else {
+            cb(new Error(`Invalid file type: ${file.mimetype || 'unknown'} (${ext || 'no extension'}). Allowed: images, PDFs, audio (MP3, WAV, M4A/MP4a, OGG, AAC), and video files.`));
+          }
+        }
+      }).single('file');
+      
+      upload(req, res, (err) => {
+        if (err) {
+          console.error("Upload error:", err);
+          console.error("File details:", {
+            originalname: req.file?.originalname,
+            mimetype: req.file?.mimetype,
+            size: req.file?.size
+          });
+          return res.status(400).json({ 
+            error: err.message,
+            details: {
+              originalname: req.file?.originalname,
+              mimetype: req.file?.mimetype
+            }
+          });
+        }
+        
+        if (!req.file) {
+          return res.status(400).json({ error: 'No file uploaded' });
+        }
+        
+        console.log("File uploaded successfully:", {
+          filename: req.file.filename,
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        });
+        
+        const fileUrl = `/uploads/${req.file.filename}`;
+        
+        res.json({
+          success: true,
+          objectId,
+          filename: req.file.filename,
+          originalName: req.file.originalname,
+          path: fileUrl,
+          url: fileUrl, // For compatibility
+          size: req.file.size,
+          mimetype: req.file.mimetype
+        });
+      });
+    } catch (error: any) {
       console.error("Error in local upload:", error);
-      res.status(500).json({ error: "Failed to handle local upload" });
+      res.status(500).json({ 
+        error: "Failed to handle local upload",
+        message: error.message || "Unknown error"
+      });
     }
   });
 
@@ -1586,15 +1681,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Exam analytics endpoint
+  app.get("/api/analytics/exams", async (req, res) => {
+    try {
+      const analytics = await tempStorage.getQuizAnalytics();
+      // Extract just exam-related data
+      res.json({
+        examStats: analytics.examStats || [],
+        recentExamAttempts: analytics.recentExamAttempts || [],
+      });
+    } catch (error) {
+      console.error('Exam analytics API error:', error);
+      res.status(500).json({ error: "Failed to fetch exam analytics" });
+    }
+  });
+
   // User progress routes
   app.get("/api/users/current/progress", async (req, res) => {
     try {
-      // For now, return empty progress since we don't have user auth
-      const progress = await tempStorage.getUserProgress("temp-user");
+      // Get user email from query params or localStorage
+      const email = req.query.email as string || req.headers['x-user-email'] as string || 'lalabalavu.jon@gmail.com';
+      
+      // Get user ID (use email as userId for consistency)
+      let userId = email;
+      if (email === 'lalabalavu.jon@gmail.com' || email === 'sephdee@hotmail.com') {
+        userId = email === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : 'super-admin-2';
+      }
+      
+      const progress = await tempStorage.getUserProgress(userId);
       res.json(progress);
     } catch (error) {
       console.error('User progress API error:', error);
       res.status(500).json({ error: "Failed to fetch user progress" });
+    }
+  });
+
+  // Track progress endpoint - calculate completion percentage for a specific track
+  app.get("/api/tracks/:slug/progress", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const email = req.query.email as string || req.headers['x-user-email'] as string || 'lalabalavu.jon@gmail.com';
+      
+      let userId = email;
+      if (email === 'lalabalavu.jon@gmail.com' || email === 'sephdee@hotmail.com') {
+        userId = email === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : 'super-admin-2';
+      }
+
+      // Get track by slug
+      const track = await tempStorage.getTrackBySlug(slug);
+      if (!track) {
+        return res.status(404).json({ error: "Track not found" });
+      }
+
+      // Calculate track progress
+      const progress = await tempStorage.getUserProgress(userId);
+      const trackProgressData = progress.trackProgress?.find(tp => tp.track_slug === slug);
+
+      res.json({
+        trackId: track.id,
+        trackTitle: track.title,
+        trackSlug: slug,
+        totalLessons: trackProgressData?.total_lessons || 0,
+        completedLessons: trackProgressData?.completed_lessons || 0,
+        completionPercentage: trackProgressData?.completion_percentage || 0,
+      });
+    } catch (error) {
+      console.error('Track progress API error:', error);
+      res.status(500).json({ error: "Failed to fetch track progress" });
     }
   });
 
@@ -2084,21 +2237,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get user from user management service
       const user = userManagement.getSpecialUser(email);
+      
+      // If user not found in special users, return default USER permissions
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        try {
+          const defaultPermissions = await resolveUserPermissions(email, 'USER');
+          return res.json(defaultPermissions);
+        } catch (error) {
+          console.error("Error resolving default permissions:", error);
+          // Return minimal default permissions if resolution fails
+          return res.json({
+            userId: email,
+            role: 'USER',
+            permissions: {}
+          });
+        }
       }
 
       // Use preview role if provided, otherwise use user's actual role
-      const roleToUse = previewRole || user.role;
+      const roleToUse = previewRole || user.role || 'USER';
       const userId = user.id || email;
 
       // Resolve permissions for the role
       const permissions = await resolveUserPermissions(userId, roleToUse);
 
       res.json(permissions);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user permissions:", error);
-      res.status(500).json({ error: "Failed to fetch user permissions" });
+      console.error("Error stack:", error.stack);
+      // Return default permissions instead of 500 error
+      res.json({
+        userId: req.query.email as string || 'unknown',
+        role: 'USER',
+        permissions: {},
+        error: error.message
+      });
     }
   });
 
@@ -2116,10 +2289,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users/:userId/progress", async (req, res) => {
     try {
       const { userId } = req.params;
-      const { lessonId } = req.body;
-      const progress = await storage.markLessonComplete(userId, lessonId);
+      const { lessonId, score, timeSpent } = req.body;
+      const progress = await tempStorage.markLessonComplete(userId, lessonId, score, timeSpent);
       res.status(201).json(progress);
     } catch (error) {
+      console.error('Error marking lesson complete:', error);
+      res.status(500).json({ error: "Failed to mark lesson complete" });
+    }
+  });
+
+  // Alternative endpoint for marking lesson complete
+  app.post("/api/lessons/:lessonId/complete", async (req, res) => {
+    try {
+      const { lessonId } = req.params;
+      const email = req.body.email || req.query.email as string || req.headers['x-user-email'] as string || 'lalabalavu.jon@gmail.com';
+      
+      let userId = email;
+      if (email === 'lalabalavu.jon@gmail.com' || email === 'sephdee@hotmail.com') {
+        userId = email === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : 'super-admin-2';
+      }
+
+      const { score, timeSpent } = req.body;
+      const progress = await tempStorage.markLessonComplete(userId, lessonId, score, timeSpent);
+      res.status(201).json(progress);
+    } catch (error) {
+      console.error('Error marking lesson complete:', error);
       res.status(500).json({ error: "Failed to mark lesson complete" });
     }
   });
@@ -2247,10 +2441,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users/:userId/progress", async (req, res) => {
     try {
       const { userId } = req.params;
-      const { lessonId } = req.body;
-      const progress = await storage.markLessonComplete(userId, lessonId);
+      const { lessonId, score, timeSpent } = req.body;
+      const progress = await tempStorage.markLessonComplete(userId, lessonId, score, timeSpent);
       res.status(201).json(progress);
     } catch (error) {
+      console.error('Error marking lesson complete:', error);
+      res.status(500).json({ error: "Failed to mark lesson complete" });
+    }
+  });
+
+  // Alternative endpoint for marking lesson complete
+  app.post("/api/lessons/:lessonId/complete", async (req, res) => {
+    try {
+      const { lessonId } = req.params;
+      const email = req.body.email || req.query.email as string || req.headers['x-user-email'] as string || 'lalabalavu.jon@gmail.com';
+      
+      let userId = email;
+      if (email === 'lalabalavu.jon@gmail.com' || email === 'sephdee@hotmail.com') {
+        userId = email === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : 'super-admin-2';
+      }
+
+      const { score, timeSpent } = req.body;
+      const progress = await tempStorage.markLessonComplete(userId, lessonId, score, timeSpent);
+      res.status(201).json(progress);
+    } catch (error) {
+      console.error('Error marking lesson complete:', error);
       res.status(500).json({ error: "Failed to mark lesson complete" });
     }
   });
