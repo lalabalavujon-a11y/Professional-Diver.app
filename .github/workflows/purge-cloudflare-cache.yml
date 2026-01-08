@@ -1,0 +1,55 @@
+name: Purge Cloudflare Cache
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  purge-cache:
+    name: Purge Cloudflare Cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - name: Wait for Cloudflare Pages deployment
+        run: |
+          echo "⏳ Waiting 60 seconds for Cloudflare Pages deployment to complete..."
+          sleep 60
+      
+      - name: Purge Cloudflare Cache
+        run: |
+          echo "🧹 Purging Cloudflare cache for professionaldiver.app..."
+          
+          # Get Zone ID for the domain
+          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=professionaldiver.app" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+          
+          if [ "$ZONE_ID" = "null" ] || [ -z "$ZONE_ID" ]; then
+            echo "❌ Error: Could not find Zone ID for professionaldiver.app"
+            exit 1
+          fi
+          
+          echo "✅ Found Zone ID: $ZONE_ID"
+          
+          # Purge everything
+          RESPONSE=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}')
+          
+          SUCCESS=$(echo $RESPONSE | jq -r '.success')
+          
+          if [ "$SUCCESS" = "true" ]; then
+            echo "✅ Cloudflare cache purged successfully!"
+            echo "Response: $RESPONSE"
+          else
+            echo "❌ Error purging cache: $RESPONSE"
+            exit 1
+          fi
+      
+      - name: Verify cache purge
+        run: |
+          echo "✅ Cache purge completed. Changes should be visible within 1-2 minutes."
+
