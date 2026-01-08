@@ -33,10 +33,28 @@ export async function apiRequest(
   const baseUrl = getApiBaseUrl();
   const fullUrl = baseUrl + url;
   
+  // Get user email from localStorage if available
+  const userEmail = localStorage.getItem('userEmail');
+  const headers: Record<string, string> = {};
+  
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  if (userEmail) {
+    headers["x-user-email"] = userEmail;
+  }
+  
+  // If data is an object, add userEmail to it for routes that might need it
+  let requestData = data;
+  if (data && typeof data === 'object' && userEmail) {
+    requestData = { ...data as any, userEmail };
+  }
+  
   const res = await fetch(fullUrl, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    headers,
+    body: requestData ? JSON.stringify(requestData) : undefined,
     credentials: "include",
   });
 

@@ -185,9 +185,22 @@ export default function CompactNavigationWidget({ latitude, longitude }: Compact
       });
     } catch (error: any) {
       console.error('Error getting/saving GPS location:', error);
+      let errorMessage = error.message || 'Failed to get location.';
+      
+      // Provide more helpful error messages
+      if (error.message?.includes('denied') || error.code === 1) {
+        errorMessage = 'Location permission denied. Please enable location access in your browser/device settings.';
+      } else if (error.message?.includes('unavailable') || error.code === 2) {
+        errorMessage = 'Location unavailable. Please ensure GPS is enabled and try again.';
+      } else if (error.message?.includes('timeout') || error.code === 3) {
+        errorMessage = 'Location request timed out. Please check your internet connection and try again.';
+      } else if (!navigator.geolocation) {
+        errorMessage = 'Geolocation is not supported by your browser.';
+      }
+      
       toast({
-        title: "Location error",
-          description: error.message || 'Failed to get location.',
+        title: "GPS Location Error",
+        description: errorMessage,
         variant: "destructive",
       });
       // Refresh to show default location

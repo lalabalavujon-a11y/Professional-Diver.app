@@ -91,3 +91,5 @@ export function mapCategoryToOperationType(category: string): 'DIVE' | 'INSPECTI
   return 'OTHER';
 }
 
+
+

@@ -35,10 +35,10 @@ async function addWeldingLessons() {
         order: 1,
         content: `# Underwater Welding Fundamentals & Safety
 
-**AI Tutor: Lisa Thompson - Underwater Welding Specialist**
+**AI Tutor: Lisa - Underwater Welding Specialist**
 *Expert in Marine Welding Operations with 12+ years in underwater welding techniques, quality control, and safety protocols*
 
-Welcome to professional underwater welding training! I'm Lisa Thompson, your specialized AI tutor for underwater welding operations. Let's master the essential techniques and safety protocols required for commercial marine welding operations.
+Welcome to professional underwater welding training! I'm Lisa, your specialized AI tutor for underwater welding operations. Let's master the essential techniques and safety protocols required for commercial marine welding operations.
 
 ## Learning Objectives
 - Master fundamental underwater welding principles and techniques

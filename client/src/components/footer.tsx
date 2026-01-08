@@ -31,15 +31,17 @@ export default function Footer() {
             <div className="space-y-2">
               <div className="flex items-center space-x-2 text-sm text-slate-300">
                 <Mail className="w-4 h-4" />
-                <a href="mailto:support@diverwell.app" className="hover:text-white">support@diverwell.app</a>
+                <a href="mailto:1pull@professionaldiver.app" className="hover:text-white">1pull@professionaldiver.app</a>
               </div>
               <div className="flex items-center space-x-2 text-sm text-slate-300">
                 <Phone className="w-4 h-4" />
-                <span>+44 (0) 208 123 4567</span>
+                <a href="https://wa.me/447448320513" target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                  WhatsApp: +447448320513
+                </a>
               </div>
               <div className="flex items-center space-x-2 text-sm text-slate-300">
                 <MapPin className="w-4 h-4" />
-                <span>London, United Kingdom</span>
+                <span>Southampton, United Kingdom</span>
               </div>
             </div>
           </div>
@@ -60,8 +62,8 @@ export default function Footer() {
             </div>
             
             <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-slate-400">
-              <p>&copy; 2025 Professional Diver - Diver Well Training. All rights reserved.</p>
-              <p>Professional diving education platform | Brand-neutral content</p>
+              <p>&copy; 2026 Professional Diver - Diver Well Training & Systems. All rights reserved.</p>
+              <p>Professional diving education & operations platform | Brand-neutral content</p>
             </div>
           </div>
         </div>

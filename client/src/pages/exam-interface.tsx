@@ -18,72 +18,9 @@ const examQuestions = {
   "ndt-inspection": fullExamQuestions.ndt,
   "diver-medic": fullExamQuestions.dmt,
   "saturation-diving": fullExamQuestions.alst,
-  "underwater-welding": fullExamQuestions.lst,
+  "underwater-welding": fullExamQuestions["underwater-welding"],
   "commercial-supervisor": fullExamQuestions["commercial-supervisor"],
-  "hyperbaric-operations": [
-    {
-      id: "hbo-1",
-      type: "MULTIPLE_CHOICE" as const,
-      prompt: "In hyperbaric chamber operations, what is the primary responsibility during emergency decompression procedures?",
-    options: [
-        "To minimize operational costs during emergency situations",
-        "To ensure safe patient decompression while monitoring for decompression sickness symptoms",
-        "To reduce training requirements for chamber operators",
-        "To standardize emergency procedures across all facilities"
-      ],
-      correctAnswer: "To ensure safe patient decompression while monitoring for decompression sickness symptoms",
-      explanation: "Hyperbaric chamber operators must carefully manage decompression procedures while continuously monitoring patients for signs of decompression sickness or other complications.",
-    points: 3,
-    order: 1
-  },
-  {
-      id: "hbo-2",
-      type: "WRITTEN" as const,
-      prompt: "Describe the complete protocol for hyperbaric chamber emergency procedures including patient assessment, pressure management, and communication protocols with medical support teams.",
-      points: 5,
-      order: 2
-    },
-    {
-      id: "hbo-3",
-      type: "MULTIPLE_CHOICE" as const,
-      prompt: "What is the maximum safe compression rate for hyperbaric chamber operations according to industry standards?",
-      options: [
-        "1 atmosphere per minute",
-        "2 atmospheres per minute",
-        "3 atmospheres per minute",
-        "4 atmospheres per minute"
-      ],
-      correctAnswer: "1 atmosphere per minute",
-      explanation: "The maximum safe compression rate is 1 atmosphere per minute to prevent barotrauma and ensure patient safety during hyperbaric treatments.",
-      points: 2,
-      order: 3
-    },
-    {
-      id: "hbo-4",
-      type: "TRUE_FALSE" as const,
-      prompt: "Hyperbaric chamber operators must maintain continuous monitoring of oxygen levels during all treatment procedures.",
-      options: ["True", "False"],
-      correctAnswer: "True",
-      explanation: "Continuous oxygen monitoring is essential to prevent oxygen toxicity and ensure patient safety during hyperbaric treatments.",
-      points: 2,
-      order: 4
-    },
-    {
-      id: "hbo-5",
-      type: "MULTIPLE_CHOICE" as const,
-      prompt: "Which condition requires immediate hyperbaric oxygen therapy in diving emergencies?",
-      options: [
-        "Barotrauma of descent",
-        "Decompression sickness (DCS)",
-        "Nitrogen narcosis",
-        "Oxygen toxicity"
-      ],
-      correctAnswer: "Decompression sickness (DCS)",
-      explanation: "Decompression sickness requires immediate hyperbaric oxygen therapy to reduce bubble size and restore proper gas exchange in affected tissues.",
-      points: 3,
-      order: 5
-    }
-  ],
+  "hyperbaric-operations": fullExamQuestions["hyperbaric-operations"],
   "alst": fullExamQuestions.alst,
   "lst": fullExamQuestions.lst
 };
@@ -153,10 +90,10 @@ const getQuestionsForExam = (slug: string, isSRS: boolean = false): ExamQuestion
     console.log('SRS: Returning 15 questions for SRS test:', srsQuestions.length);
     return srsQuestions;
   } else {
-    // Full Exam: Return exactly 75 questions
-    const fullExamQuestions = expandQuestionsToCount(allQuestions, 75);
-    console.log('Full Exam: Returning 75 questions for full exam:', fullExamQuestions.length);
-    return fullExamQuestions;
+    // Full Exam: Return all available questions (actual counts vary by subject)
+    // No need to expand - use all available questions
+    console.log('Full Exam: Returning all available questions:', allQuestions.length);
+    return allQuestions;
   }
 };
 

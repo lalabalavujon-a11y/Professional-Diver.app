@@ -73,6 +73,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Calling routes
   registerCallingRoutes(app);
 
+  // Serve uploaded files statically
+  const path = await import('path');
+  const express = await import('express');
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  app.use('/uploads', express.default.static(uploadsDir));
+
   // Object storage routes
   app.post("/api/objects/upload", async (req, res) => {
     try {
@@ -85,12 +91,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Local development upload endpoint
+  // Local development upload endpoint with proper file handling
+  // IMPORTANT: This route must be registered BEFORE express.json() middleware
+  // or we need to skip body parsing for this route
   app.post("/api/objects/upload-local/:objectId", async (req, res) => {
     try {
       const { objectId } = req.params;
       const fs = await import('fs');
       const path = await import('path');
+      const multer = await import('multer');
       
       // Create uploads directory if it doesn't exist
       const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -98,15 +107,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
       
-      // For now, just return success - the actual file handling would be done by the frontend
-      res.json({ 
-        success: true, 
-        objectId,
-        message: "Local upload endpoint - file handling not implemented yet" 
+      // Configure multer for file uploads
+      const storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+          cb(null, uploadsDir);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          const ext = path.extname(file.originalname);
+          cb(null, `${objectId}-${uniqueSuffix}${ext}`);
+        }
       });
-    } catch (error) {
+      
+      const upload = multer({ 
+        storage,
+        limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+        fileFilter: (req, file, cb) => {
+          // Get file extension
+          const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+          
+          // Define allowed extensions
+          const allowedExtensions = ['jpeg', 'jpg', 'png', 'gif', 'pdf', 'mp3', 'mp4', 'wav', 'm4a', 'webm', 'ogg', 'aac'];
+          
+          // Define allowed MIME types (including variants for M4A)
+          const allowedMimeTypes = [
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+            'application/pdf',
+            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/mp4', 'audio/x-m4a', 'audio/ogg', 'audio/aac', 'audio/webm',
+            'video/mp4', 'video/webm'
+          ];
+          
+          // Check if extension is allowed
+          const extAllowed = allowedExtensions.includes(ext);
+          
+          // Check if MIME type is allowed
+          // Special handling for M4A files which can have audio/mp4 MIME type
+          const mimeAllowed = allowedMimeTypes.includes(file.mimetype) || 
+                            (ext === 'm4a' && (file.mimetype.startsWith('audio/') || file.mimetype === 'audio/mp4')) ||
+                            (ext === 'mp4' && (file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/')));
+          
+          // Accept if extension is allowed AND (MIME type is allowed OR extension is audio/video type)
+          if (extAllowed && (mimeAllowed || file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/') || file.mimetype.startsWith('image/'))) {
+            return cb(null, true);
+          } else {
+            cb(new Error(`Invalid file type: ${file.mimetype || 'unknown'} (${ext || 'no extension'}). Allowed: images, PDFs, audio (MP3, WAV, M4A/MP4a, OGG, AAC), and video files.`));
+          }
+        }
+      }).single('file');
+      
+      upload(req, res, (err) => {
+        if (err) {
+          console.error("Upload error:", err);
+          console.error("File details:", {
+            originalname: req.file?.originalname,
+            mimetype: req.file?.mimetype,
+            size: req.file?.size
+          });
+          return res.status(400).json({ 
+            error: err.message,
+            details: {
+              originalname: req.file?.originalname,
+              mimetype: req.file?.mimetype
+            }
+          });
+        }
+        
+        if (!req.file) {
+          return res.status(400).json({ error: 'No file uploaded' });
+        }
+        
+        console.log("File uploaded successfully:", {
+          filename: req.file.filename,
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        });
+        
+        const fileUrl = `/uploads/${req.file.filename}`;
+        
+        res.json({
+          success: true,
+          objectId,
+          filename: req.file.filename,
+          originalName: req.file.originalname,
+          path: fileUrl,
+          url: fileUrl, // For compatibility
+          size: req.file.size,
+          mimetype: req.file.mimetype
+        });
+      });
+    } catch (error: any) {
       console.error("Error in local upload:", error);
-      res.status(500).json({ error: "Failed to handle local upload" });
+      res.status(500).json({ 
+        error: "Failed to handle local upload",
+        message: error.message || "Unknown error"
+      });
     }
   });
 
@@ -1164,6 +1259,267 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to ensure CRM tables exist (SQLite only)
+  async function ensureCrmTables(): Promise<void> {
+    // Only create tables for SQLite (dev environment)
+    if (process.env.DATABASE_URL && process.env.NODE_ENV !== 'development') {
+      return; // PostgreSQL will use migrations
+    }
+
+    try {
+      // Create client_tags table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS client_tags (
+          id text PRIMARY KEY NOT NULL,
+          client_id text NOT NULL,
+          tag_name text NOT NULL,
+          color text DEFAULT '#3b82f6',
+          created_at integer NOT NULL,
+          created_by text,
+          FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        );
+      `);
+
+      // Create communications table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS communications (
+          id text PRIMARY KEY NOT NULL,
+          client_id text NOT NULL,
+          type text NOT NULL CHECK(type IN ('email', 'phone', 'sms', 'whatsapp', 'note')),
+          direction text NOT NULL CHECK(direction IN ('inbound', 'outbound')),
+          subject text,
+          content text NOT NULL,
+          status text NOT NULL DEFAULT 'sent' CHECK(status IN ('sent', 'delivered', 'read', 'failed', 'answered', 'missed')),
+          duration integer,
+          metadata text,
+          created_by text,
+          created_at integer NOT NULL,
+          FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+          FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        );
+      `);
+
+      // Add phone column to clients table if it doesn't exist
+      try {
+        await db.execute(`ALTER TABLE clients ADD COLUMN phone text;`);
+      } catch (e: any) {
+        // Column might already exist, ignore error
+        if (!e.message?.includes('duplicate column')) {
+          console.warn('Error adding phone column to clients:', e.message);
+        }
+      }
+
+      // Create indexes for better performance
+      await db.execute(`CREATE INDEX IF NOT EXISTS idx_client_tags_client_id ON client_tags(client_id);`);
+      await db.execute(`CREATE INDEX IF NOT EXISTS idx_communications_client_id ON communications(client_id);`);
+      await db.execute(`CREATE INDEX IF NOT EXISTS idx_communications_created_at ON communications(created_at DESC);`);
+    } catch (error) {
+      console.error('Error ensuring CRM tables:', error);
+      // Don't throw - allow server to continue
+    }
+  }
+
+  // Client Tags Routes
+  app.get("/api/clients/:id/tags", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { taggingService } = await import("./services/tagging-service");
+      const tags = await taggingService.getClientTags(req.params.id);
+      res.json({ success: true, tags });
+    } catch (error) {
+      console.error('Get client tags error:', error);
+      res.status(500).json({ error: "Failed to fetch client tags" });
+    }
+  });
+
+  app.post("/api/clients/:id/tags", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { taggingService } = await import("./services/tagging-service");
+      const { tagName, color } = req.body;
+      
+      if (!tagName || !tagName.trim()) {
+        return res.status(400).json({ error: "Tag name is required" });
+      }
+
+      // Try to get user email from localStorage via header or from userEmail in body
+      const userEmail = (req.headers['x-user-email'] as string) || req.body.userEmail || undefined;
+      let createdBy = undefined;
+      if (userEmail) {
+        try {
+          const user = await db.select().from(usersSQLite).where(eq(usersSQLite.email, userEmail)).limit(1);
+          if (user.length > 0) {
+            createdBy = user[0].id;
+          }
+        } catch (e) {
+          // User not found, continue without createdBy
+          console.log('User not found for email:', userEmail);
+        }
+      }
+      const tag = await taggingService.addTag(req.params.id, tagName.trim(), color, createdBy);
+      res.json({ success: true, tag });
+    } catch (error) {
+      console.error('Add client tag error:', error);
+      res.status(500).json({ error: "Failed to add tag" });
+    }
+  });
+
+  app.delete("/api/clients/:id/tags/:tagId", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { taggingService } = await import("./services/tagging-service");
+      const success = await taggingService.removeTag(req.params.id, req.params.tagId);
+      res.json({ success });
+    } catch (error) {
+      console.error('Remove client tag error:', error);
+      res.status(500).json({ error: "Failed to remove tag" });
+    }
+  });
+
+  app.get("/api/tags/all", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { taggingService } = await import("./services/tagging-service");
+      const tags = await taggingService.getAllTags();
+      res.json({ success: true, tags });
+    } catch (error) {
+      console.error('Get all tags error:', error);
+      res.status(500).json({ error: "Failed to fetch tags" });
+    }
+  });
+
+  // Communication Routes
+  app.get("/api/clients/:id/communications", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { communicationService } = await import("./services/communication-service");
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const communications = await communicationService.getClientCommunications(req.params.id, limit);
+      res.json({ success: true, communications });
+    } catch (error) {
+      console.error('Get client communications error:', error);
+      res.status(500).json({ error: "Failed to fetch communications" });
+    }
+  });
+
+  app.post("/api/clients/:id/communications", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { communicationService } = await import("./services/communication-service");
+      const { type, direction, subject, content, status, duration, metadata } = req.body;
+      
+      if (!content || !content.trim()) {
+        return res.status(400).json({ error: "Content is required" });
+      }
+
+      // Try to get user email from localStorage via header or from userEmail in body
+      const userEmail = (req.headers['x-user-email'] as string) || req.body.userEmail || undefined;
+      let createdBy = undefined;
+      if (userEmail) {
+        try {
+          const user = await db.select().from(usersSQLite).where(eq(usersSQLite.email, userEmail)).limit(1);
+          if (user.length > 0) {
+            createdBy = user[0].id;
+          }
+        } catch (e) {
+          // User not found, continue without createdBy
+          console.log('User not found for email:', userEmail);
+        }
+      }
+
+      let communication;
+      if (type === "email" && direction === "outbound") {
+        // Send email
+        communication = await communicationService.sendEmail({
+          clientId: req.params.id,
+          to: req.body.to,
+          subject,
+          content,
+          htmlContent: req.body.htmlContent,
+          createdBy,
+        });
+      } else if (type === "phone") {
+        communication = await communicationService.logPhoneCall({
+          clientId: req.params.id,
+          direction,
+          duration,
+          status: status || "answered",
+          notes: content,
+          phoneNumber: req.body.phoneNumber,
+          createdBy,
+        });
+      } else if (type === "sms") {
+        communication = await communicationService.logSMS({
+          clientId: req.params.id,
+          direction,
+          content,
+          phoneNumber: req.body.phoneNumber,
+          status,
+          createdBy,
+        });
+      } else if (type === "whatsapp") {
+        communication = await communicationService.logWhatsApp({
+          clientId: req.params.id,
+          direction,
+          content,
+          phoneNumber: req.body.phoneNumber,
+          status,
+          createdBy,
+        });
+      } else if (type === "note") {
+        communication = await communicationService.addNote({
+          clientId: req.params.id,
+          content,
+          createdBy,
+        });
+      } else {
+        // Generic communication log
+        communication = await communicationService.logCommunication({
+          clientId: req.params.id,
+          type,
+          direction,
+          subject,
+          content,
+          status,
+          duration,
+          metadata,
+          createdBy,
+        });
+      }
+
+      res.json({ success: true, communication });
+    } catch (error) {
+      console.error('Create communication error:', error);
+      res.status(500).json({ error: "Failed to create communication" });
+    }
+  });
+
+  app.get("/api/clients/:id/communications/stats", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { communicationService } = await import("./services/communication-service");
+      const stats = await communicationService.getCommunicationStats(req.params.id);
+      res.json({ success: true, stats });
+    } catch (error) {
+      console.error('Get communication stats error:', error);
+      res.status(500).json({ error: "Failed to fetch communication stats" });
+    }
+  });
+
+  app.patch("/api/communications/:id/status", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { communicationService } = await import("./services/communication-service");
+      const { status } = req.body;
+      const success = await communicationService.updateStatus(req.params.id, status);
+      res.json({ success });
+    } catch (error) {
+      console.error('Update communication status error:', error);
+      res.status(500).json({ error: "Failed to update status" });
+    }
+  });
+
   // Partner routes
   app.get("/api/partners/eligibility/:userId", async (req, res) => {
     try {
@@ -1325,15 +1681,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Exam analytics endpoint
+  app.get("/api/analytics/exams", async (req, res) => {
+    try {
+      const analytics = await tempStorage.getQuizAnalytics();
+      // Extract just exam-related data
+      res.json({
+        examStats: analytics.examStats || [],
+        recentExamAttempts: analytics.recentExamAttempts || [],
+      });
+    } catch (error) {
+      console.error('Exam analytics API error:', error);
+      res.status(500).json({ error: "Failed to fetch exam analytics" });
+    }
+  });
+
   // User progress routes
   app.get("/api/users/current/progress", async (req, res) => {
     try {
-      // For now, return empty progress since we don't have user auth
-      const progress = await tempStorage.getUserProgress("temp-user");
+      // Get user email from query params or localStorage
+      const email = req.query.email as string || req.headers['x-user-email'] as string || 'lalabalavu.jon@gmail.com';
+      
+      // Get user ID (use email as userId for consistency)
+      let userId = email;
+      if (email === 'lalabalavu.jon@gmail.com' || email === 'sephdee@hotmail.com') {
+        userId = email === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : 'super-admin-2';
+      }
+      
+      const progress = await tempStorage.getUserProgress(userId);
       res.json(progress);
     } catch (error) {
       console.error('User progress API error:', error);
       res.status(500).json({ error: "Failed to fetch user progress" });
+    }
+  });
+
+  // Track progress endpoint - calculate completion percentage for a specific track
+  app.get("/api/tracks/:slug/progress", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const email = req.query.email as string || req.headers['x-user-email'] as string || 'lalabalavu.jon@gmail.com';
+      
+      let userId = email;
+      if (email === 'lalabalavu.jon@gmail.com' || email === 'sephdee@hotmail.com') {
+        userId = email === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : 'super-admin-2';
+      }
+
+      // Get track by slug
+      const track = await tempStorage.getTrackBySlug(slug);
+      if (!track) {
+        return res.status(404).json({ error: "Track not found" });
+      }
+
+      // Calculate track progress
+      const progress = await tempStorage.getUserProgress(userId);
+      const trackProgressData = progress.trackProgress?.find(tp => tp.track_slug === slug);
+
+      res.json({
+        trackId: track.id,
+        trackTitle: track.title,
+        trackSlug: slug,
+        totalLessons: trackProgressData?.total_lessons || 0,
+        completedLessons: trackProgressData?.completed_lessons || 0,
+        completionPercentage: trackProgressData?.completion_percentage || 0,
+      });
+    } catch (error) {
+      console.error('Track progress API error:', error);
+      res.status(500).json({ error: "Failed to fetch track progress" });
     }
   });
 
@@ -1823,21 +2237,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get user from user management service
       const user = userManagement.getSpecialUser(email);
+      
+      // If user not found in special users, return default USER permissions
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        try {
+          const defaultPermissions = await resolveUserPermissions(email, 'USER');
+          return res.json(defaultPermissions);
+        } catch (error) {
+          console.error("Error resolving default permissions:", error);
+          // Return minimal default permissions if resolution fails
+          return res.json({
+            userId: email,
+            role: 'USER',
+            permissions: {}
+          });
+        }
       }
 
       // Use preview role if provided, otherwise use user's actual role
-      const roleToUse = previewRole || user.role;
+      const roleToUse = previewRole || user.role || 'USER';
       const userId = user.id || email;
 
       // Resolve permissions for the role
       const permissions = await resolveUserPermissions(userId, roleToUse);
 
       res.json(permissions);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user permissions:", error);
-      res.status(500).json({ error: "Failed to fetch user permissions" });
+      console.error("Error stack:", error.stack);
+      // Return default permissions instead of 500 error
+      res.json({
+        userId: req.query.email as string || 'unknown',
+        role: 'USER',
+        permissions: {},
+        error: error.message
+      });
     }
   });
 
@@ -1855,10 +2289,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users/:userId/progress", async (req, res) => {
     try {
       const { userId } = req.params;
-      const { lessonId } = req.body;
-      const progress = await storage.markLessonComplete(userId, lessonId);
+      const { lessonId, score, timeSpent } = req.body;
+      const progress = await tempStorage.markLessonComplete(userId, lessonId, score, timeSpent);
       res.status(201).json(progress);
     } catch (error) {
+      console.error('Error marking lesson complete:', error);
+      res.status(500).json({ error: "Failed to mark lesson complete" });
+    }
+  });
+
+  // Alternative endpoint for marking lesson complete
+  app.post("/api/lessons/:lessonId/complete", async (req, res) => {
+    try {
+      const { lessonId } = req.params;
+      const email = req.body.email || req.query.email as string || req.headers['x-user-email'] as string || 'lalabalavu.jon@gmail.com';
+      
+      let userId = email;
+      if (email === 'lalabalavu.jon@gmail.com' || email === 'sephdee@hotmail.com') {
+        userId = email === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : 'super-admin-2';
+      }
+
+      const { score, timeSpent } = req.body;
+      const progress = await tempStorage.markLessonComplete(userId, lessonId, score, timeSpent);
+      res.status(201).json(progress);
+    } catch (error) {
+      console.error('Error marking lesson complete:', error);
       res.status(500).json({ error: "Failed to mark lesson complete" });
     }
   });
@@ -1986,10 +2441,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users/:userId/progress", async (req, res) => {
     try {
       const { userId } = req.params;
-      const { lessonId } = req.body;
-      const progress = await storage.markLessonComplete(userId, lessonId);
+      const { lessonId, score, timeSpent } = req.body;
+      const progress = await tempStorage.markLessonComplete(userId, lessonId, score, timeSpent);
       res.status(201).json(progress);
     } catch (error) {
+      console.error('Error marking lesson complete:', error);
+      res.status(500).json({ error: "Failed to mark lesson complete" });
+    }
+  });
+
+  // Alternative endpoint for marking lesson complete
+  app.post("/api/lessons/:lessonId/complete", async (req, res) => {
+    try {
+      const { lessonId } = req.params;
+      const email = req.body.email || req.query.email as string || req.headers['x-user-email'] as string || 'lalabalavu.jon@gmail.com';
+      
+      let userId = email;
+      if (email === 'lalabalavu.jon@gmail.com' || email === 'sephdee@hotmail.com') {
+        userId = email === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : 'super-admin-2';
+      }
+
+      const { score, timeSpent } = req.body;
+      const progress = await tempStorage.markLessonComplete(userId, lessonId, score, timeSpent);
+      res.status(201).json(progress);
+    } catch (error) {
+      console.error('Error marking lesson complete:', error);
       res.status(500).json({ error: "Failed to mark lesson complete" });
     }
   });
@@ -3345,6 +3821,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in ports endpoint:", error);
       res.status(500).json({ error: "Failed to fetch ports data" });
+    }
+  });
+
+  // Reverse Geocoding - Find nearest location from GPS coordinates
+  app.get("/api/geocode/reverse", async (req, res) => {
+    try {
+      const lat = parseFloat(req.query.lat as string);
+      const lon = parseFloat(req.query.lon as string);
+
+      if (isNaN(lat) || isNaN(lon)) {
+        return res.status(400).json({ error: "Valid latitude and longitude required" });
+      }
+
+      // First, try to find nearest port/harbor/marina
+      const portsResponse = await getPortsNearLocation(lat, lon, 50);
+      if (portsResponse && portsResponse.length > 0) {
+        const nearest = portsResponse[0];
+        return res.json({
+          type: 'port',
+          name: nearest.name,
+          city: nearest.city,
+          country: nearest.country,
+          latitude: nearest.latitude,
+          longitude: nearest.longitude,
+          distance: nearest.distance,
+        });
+      }
+
+      // Fallback: Use a geocoding service (OpenStreetMap Nominatim - free, no API key needed)
+      try {
+        const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`;
+        const geocodeResponse = await fetch(geocodeUrl, {
+          headers: {
+            'User-Agent': 'Diver-Well-Training-App/1.0', // Required by Nominatim
+          },
+        });
+
+        if (geocodeResponse.ok) {
+          const data = await geocodeResponse.json();
+          const address = data.address || {};
+          
+          return res.json({
+            type: address.city ? 'city' : address.town ? 'town' : 'location',
+            name: address.city || address.town || address.village || address.county || 'Unknown',
+            city: address.city || address.town,
+            country: address.country,
+            latitude: parseFloat(data.lat),
+            longitude: parseFloat(data.lon),
+            fullAddress: data.display_name,
+          });
+        }
+      } catch (geocodeError) {
+        console.error('Geocoding error:', geocodeError);
+      }
+
+      // Final fallback
+      res.json({
+        type: 'location',
+        name: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+        latitude: lat,
+        longitude: lon,
+      });
+    } catch (error) {
+      console.error("Reverse geocoding error:", error);
+      res.status(500).json({ error: "Failed to reverse geocode location" });
+    }
+  });
+
+  // Enhanced location info endpoint - combines GPS + nearest locations
+  app.get("/api/location/info", async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+      const lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+
+      let finalLat = lat;
+      let finalLon = lon;
+
+      // If no coordinates provided, get from saved location
+      if ((!finalLat || !finalLon) && email) {
+        try {
+          const userId = await getUserIdFromEmail(email);
+          if (userId) {
+            const widgetLocationsTable = getWidgetLocationsTable();
+            const locations = await db
+              .select()
+              .from(widgetLocationsTable)
+              .where(eq(widgetLocationsTable.userId, userId))
+              .orderBy(desc(widgetLocationsTable.updatedAt))
+              .limit(1);
+            
+            if (locations.length > 0) {
+              finalLat = locations[0].latitude;
+              finalLon = locations[0].longitude;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching saved location:", error);
+        }
+      }
+
+      if (!finalLat || !finalLon) {
+        return res.status(400).json({ error: "Location coordinates required" });
+      }
+
+      // Get nearest port
+      const ports = await getPortsNearLocation(finalLat, finalLon, 50);
+      const nearestPort = ports && ports.length > 0 ? ports[0] : null;
+
+      // Get reverse geocoding info (use internal function instead of HTTP call)
+      let locationInfo = null;
+      try {
+        // First try ports
+        const ports = await getPortsNearLocation(finalLat, finalLon, 50);
+        if (ports && ports.length > 0) {
+          const nearest = ports[0];
+          locationInfo = {
+            type: 'port',
+            name: nearest.name,
+            city: nearest.city,
+            country: nearest.country,
+            latitude: nearest.latitude,
+            longitude: nearest.longitude,
+            distance: nearest.distance,
+          };
+        } else {
+          // Fallback to OpenStreetMap Nominatim
+          const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${finalLat}&lon=${finalLon}&zoom=10&addressdetails=1`;
+          const geocodeResponse = await fetch(geocodeUrl, {
+            headers: {
+              'User-Agent': 'Diver-Well-Training-App/1.0',
+            },
+          });
+          if (geocodeResponse.ok) {
+            const data = await geocodeResponse.json();
+            const address = data.address || {};
+            locationInfo = {
+              type: address.city ? 'city' : address.town ? 'town' : 'location',
+              name: address.city || address.town || address.village || address.county || 'Unknown',
+              city: address.city || address.town,
+              country: address.country,
+              latitude: parseFloat(data.lat),
+              longitude: parseFloat(data.lon),
+              fullAddress: data.display_name,
+            };
+          }
+        }
+      } catch (error) {
+        console.error('Error getting location info:', error);
+      }
+
+      res.json({
+        coordinates: {
+          latitude: finalLat,
+          longitude: finalLon,
+        },
+        nearestPort: nearestPort ? {
+          name: nearestPort.name,
+          type: nearestPort.type,
+          distance: nearestPort.distance,
+          latitude: nearestPort.latitude,
+          longitude: nearestPort.longitude,
+        } : null,
+        locationInfo,
+      });
+    } catch (error) {
+      console.error("Location info error:", error);
+      res.status(500).json({ error: "Failed to get location info" });
     }
   });
 

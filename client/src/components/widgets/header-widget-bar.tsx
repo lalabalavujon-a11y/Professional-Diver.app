@@ -6,6 +6,7 @@ import CompactTidesWidget from './compact-tides-widget';
 import CompactMoonPhaseWidget from './compact-moon-phase-widget';
 import CompactNavigationWidget from './compact-navigation-widget';
 import CompactAISWidget from './compact-ais-widget';
+import { useAutoGPSSync } from '@/hooks/use-auto-gps-sync';
 import { GripVertical } from 'lucide-react';
 
 interface WidgetLocation {
@@ -63,7 +64,14 @@ export default function HeaderWidgetBar() {
     ? (localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com')
     : 'lalabalavu.jon@gmail.com';
 
-  // Fetch widget location
+  // Auto-sync GPS position (PRIMARY location source)
+  const { currentPosition, nearestLocation } = useAutoGPSSync({
+    enabled: true,
+    updateInterval: 60000,
+    autoSave: true,
+  });
+
+  // Fetch widget location (SECONDARY fallback)
   const { data: widgetLocation } = useQuery<WidgetLocation | null>({
     queryKey: ['/api/widgets/location', userEmail],
     queryFn: async () => {
@@ -84,6 +92,11 @@ export default function HeaderWidgetBar() {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
   });
+
+  // Use GPS position if available (PRIMARY), otherwise fall back to saved location (SECONDARY)
+  const activeLocation = currentPosition 
+    ? { latitude: currentPosition.latitude, longitude: currentPosition.longitude }
+    : widgetLocation;
 
   const { data: preferences } = useQuery<WidgetPreferences>({
     queryKey: ['userPreferences'],
@@ -111,29 +124,29 @@ export default function HeaderWidgetBar() {
       <CompactWeatherWidget 
         key="weather" 
         timezone={prefs.timezone} 
-        latitude={widgetLocation?.latitude}
-        longitude={widgetLocation?.longitude}
+        latitude={activeLocation?.latitude}
+        longitude={activeLocation?.longitude}
       />
     ) : null,
     tides: prefs.enableTides ? (
       <CompactTidesWidget 
         key="tides" 
         timezone={prefs.timezone} 
-        latitude={widgetLocation?.latitude}
-        longitude={widgetLocation?.longitude}
+        latitude={activeLocation?.latitude}
+        longitude={activeLocation?.longitude}
       />
     ) : null,
     moon: prefs.enableMoonPhase ? <CompactMoonPhaseWidget key="moon" timezone={prefs.timezone} /> : null,
     navigation: <CompactNavigationWidget 
       key="navigation" 
-      latitude={widgetLocation?.latitude}
-      longitude={widgetLocation?.longitude}
+      latitude={activeLocation?.latitude}
+      longitude={activeLocation?.longitude}
     />,
     ais: prefs.enableAIS ? (
       <CompactAISWidget 
         key="ais" 
-        latitude={widgetLocation?.latitude}
-        longitude={widgetLocation?.longitude}
+        latitude={activeLocation?.latitude}
+        longitude={activeLocation?.longitude}
       />
     ) : null,
   };

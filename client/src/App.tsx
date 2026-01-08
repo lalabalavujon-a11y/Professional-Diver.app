@@ -15,7 +15,8 @@ import AdminInvites from "@/pages/admin-invites";
 import AdminLessonEditor from "@/pages/admin-lesson-editor";
 import Analytics from "@/pages/analytics";
 import CRMDashboard from "@/pages/crm-dashboard";
-import Landing from "@/pages/landing";
+import EnterpriseHome from "@/pages/enterprise-home";
+import Training from "@/pages/training";
 import TrialSignup from "@/pages/trial-signup";
 import Privacy from "@/pages/privacy";
 import Contact from "@/pages/contact";
@@ -37,11 +38,13 @@ import ProfessionalExams from "@/pages/professional-exams";
 import ExamInterface from "@/pages/exam-interface";
 import SrsReview from "@/pages/srs-review";
 import AdminSrs from "@/pages/admin-srs";
+import SupportTickets from "@/pages/support-tickets";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Landing} />
+      <Route path="/" component={EnterpriseHome} />
+      <Route path="/training" component={Training} />
       <Route path="/home" component={Home} />
       <Route path="/trial-signup" component={TrialSignup} />
       <Route path="/login" component={SignIn} />
@@ -61,6 +64,8 @@ function Router() {
       <Route path="/crm" component={CRMDashboard} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/contact" component={Contact} />
+      <Route path="/support" component={SupportTickets} />
+      <Route path="/support-tickets" component={SupportTickets} />
       <Route path="/affiliate" component={AffiliateDashboard} />
       <Route path="/markdown-editor" component={MarkdownEditor} />
       <Route path="/invite/:token" component={Invite} />
