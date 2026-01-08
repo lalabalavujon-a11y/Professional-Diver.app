@@ -15,7 +15,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <>
       <RoleBasedNavigation />
       <div 
-        className="min-h-screen md:ml-[var(--sidebar-width,16rem)] ml-0 pt-16 md:pt-16 transition-all duration-200 ease-linear"
+        className="min-h-screen md:ml-[var(--sidebar-width,16rem)] ml-0 pt-20 md:pt-20 transition-all duration-200 ease-linear"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
           {children}

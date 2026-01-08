@@ -37,7 +37,17 @@ export function useFeaturePermissions() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to fetch permissions");
       }
-      return response.json();
+      const data = await response.json();
+      
+      // Handle both flat permissions object and nested structure
+      // If response has a 'permissions' property, use that, otherwise use the whole object
+      if (data && typeof data === 'object' && 'permissions' in data && !('userId' in data)) {
+        // This shouldn't happen with our new endpoint, but handle it for backwards compatibility
+        return data.permissions || {};
+      }
+      
+      // Return flat permissions object
+      return data || {};
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 1,
