@@ -128,7 +128,17 @@ async function main() {
   
   // Start the server that was returned from registerRoutes
   httpServer.listen(port, host, () => {
-    console.log(`[express] serving on http://${host}:${port}`);
+    console.log(`✅ [express] Server started successfully on http://${host}:${port}`);
+    console.log(`✅ PORT environment variable: ${process.env.PORT || 'not set'}`);
+    console.log(`✅ NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+  });
+  
+  // Handle server errors
+  httpServer.on('error', (error: any) => {
+    console.error('❌ Server error:', error);
+    if (error.code === 'EADDRINUSE') {
+      console.error(`Port ${port} is already in use`);
+    }
   });
 }
 
