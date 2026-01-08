@@ -6,6 +6,7 @@ import MoonPhaseWidget from './moon-phase-widget';
 import NavigationWidget from './navigation-widget';
 import LocationSelector from './location-selector';
 import WidgetSettings from './widget-settings';
+import { useAutoGPSSync } from '@/hooks/use-auto-gps-sync';
 
 interface WidgetPreferences {
   timezone: string;
@@ -83,6 +84,21 @@ export default function WidgetBar() {
   const prefs = preferences || defaultPreferences;
   const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
+  // Auto-sync GPS position (PRIMARY location source)
+  const { currentPosition, nearestLocation, isSyncing } = useAutoGPSSync({
+    enabled: true, // Enable automatic GPS syncing
+    updateInterval: 60000, // Update every minute
+    autoSave: true, // Automatically save to backend
+    onLocationUpdate: (position) => {
+      console.log('GPS position updated:', position);
+    },
+  });
+
+  // Use GPS position if available (PRIMARY), otherwise fall back to saved location (SECONDARY)
+  const activeLocation = currentPosition 
+    ? { latitude: currentPosition.latitude, longitude: currentPosition.longitude }
+    : widgetLocation;
+
   // Determine which widgets to show
   const widgets = [];
   
@@ -96,8 +112,8 @@ export default function WidgetBar() {
       <WeatherWidget 
         key="weather" 
         timezone={prefs.timezone} 
-        latitude={widgetLocation?.latitude}
-        longitude={widgetLocation?.longitude}
+        latitude={activeLocation?.latitude}
+        longitude={activeLocation?.longitude}
       />
     );
   }
@@ -107,8 +123,8 @@ export default function WidgetBar() {
       <TidesWidget 
         key="tides" 
         timezone={prefs.timezone} 
-        latitude={widgetLocation?.latitude}
-        longitude={widgetLocation?.longitude}
+        latitude={activeLocation?.latitude}
+        longitude={activeLocation?.longitude}
       />
     );
   }
@@ -118,8 +134,8 @@ export default function WidgetBar() {
       <MoonPhaseWidget 
         key="moon" 
         timezone={prefs.timezone} 
-        latitude={widgetLocation?.latitude}
-        longitude={widgetLocation?.longitude}
+        latitude={activeLocation?.latitude}
+        longitude={activeLocation?.longitude}
       />
     );
   }
@@ -128,8 +144,8 @@ export default function WidgetBar() {
     widgets.push(
       <NavigationWidget 
         key="navigation" 
-        latitude={widgetLocation?.latitude}
-        longitude={widgetLocation?.longitude}
+        latitude={activeLocation?.latitude}
+        longitude={activeLocation?.longitude}
       />
     );
   }
@@ -146,6 +162,19 @@ export default function WidgetBar() {
         <LocationSelector />
         <WidgetSettings />
       </div>
+
+      {/* GPS Auto-Sync Status Indicator */}
+      {currentPosition && (
+        <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
+          <span className="font-semibold">📍 Auto-syncing GPS:</span> {currentPosition.latitude.toFixed(4)}, {currentPosition.longitude.toFixed(4)}
+          {nearestLocation && (
+            <span className="ml-2">
+              • Nearest {nearestLocation.type}: <strong>{nearestLocation.name}</strong> ({nearestLocation.distance.toFixed(1)}km away)
+            </span>
+          )}
+          {isSyncing && <span className="ml-2">🔄 Updating...</span>}
+        </div>
+      )}
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {widgets}

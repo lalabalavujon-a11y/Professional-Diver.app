@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { tracks, lessons, quizzes, questions, invites, clients, users, aiTutors } from "@shared/schema-sqlite";
-import { eq, sql } from "drizzle-orm";
+import { tracks, lessons, quizzes, questions, invites, clients, users, aiTutors, userProgress } from "@shared/schema-sqlite";
+import { eq, sql, desc } from "drizzle-orm";
 
 // Temporary storage class that works with current database structure
 export class TempDatabaseStorage {
@@ -154,9 +154,39 @@ export class TempDatabaseStorage {
         order: questions.order,
       }).from(questions).where(eq(questions.quizId, quiz.id)).orderBy(questions.order);
       
+      // Transform questions to parse options JSON into a, b, c, d fields
+      const transformedQuestions = quizQuestions.map((q: any) => {
+        let a = '', b = '', c = '', d = '';
+        
+        // Parse options JSON string or object
+        try {
+          const optionsObj = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+          if (optionsObj && typeof optionsObj === 'object') {
+            a = optionsObj.a || optionsObj[0] || '';
+            b = optionsObj.b || optionsObj[1] || '';
+            c = optionsObj.c || optionsObj[2] || '';
+            d = optionsObj.d || optionsObj[3] || '';
+          }
+        } catch (e) {
+          console.error('Error parsing question options:', e, q.options);
+        }
+        
+        return {
+          id: q.id,
+          quizId: q.quizId,
+          prompt: q.prompt,
+          a,
+          b,
+          c,
+          d,
+          answer: q.correctAnswer,
+          order: q.order,
+        };
+      });
+      
       return {
         ...quiz,
-        questions: quizQuestions
+        questions: transformedQuestions
       };
     } catch (error) {
       console.error('Error fetching quiz:', error);
@@ -176,25 +206,195 @@ export class TempDatabaseStorage {
 
   async getUserProgress(userId: string) {
     try {
-      // Since user_progress table may not exist, return empty array for now
-      return [];
+      // Get lesson progress
+      const lessonProgress = await db.select({
+        lessonId: userProgress.lessonId,
+        completedAt: userProgress.completedAt,
+        score: userProgress.score,
+        timeSpent: userProgress.timeSpent,
+      }).from(userProgress).where(eq(userProgress.userId, userId));
+
+      // Get quiz attempts
+      const quizAttemptsResult = await db.execute(`
+        SELECT 
+          qa.quiz_id,
+          qa.score,
+          qa.completed_at,
+          q.lesson_id,
+          l.track_id
+        FROM quiz_attempts qa
+        LEFT JOIN quizzes q ON qa.quiz_id = q.id
+        LEFT JOIN lessons l ON q.lesson_id = l.id
+        WHERE qa.user_id = $1
+        ORDER BY qa.completed_at DESC
+        LIMIT 50
+      `, [userId]);
+      const quizAttempts = Array.isArray(quizAttemptsResult) ? quizAttemptsResult : (quizAttemptsResult.rows || []);
+
+      // Get exam attempts
+      const examAttemptsResult = await db.execute(`
+        SELECT 
+          exam_slug,
+          score,
+          total_questions,
+          completed_at
+        FROM exam_attempts
+        WHERE user_id = $1
+        ORDER BY completed_at DESC
+        LIMIT 50
+      `, [userId]);
+      const examAttempts = Array.isArray(examAttemptsResult) ? examAttemptsResult : (examAttemptsResult.rows || []);
+
+      // Get track progress
+      const trackProgressResult = await db.execute(`
+        WITH track_lesson_counts AS (
+          SELECT track_id, COUNT(*) as total_lessons
+          FROM lessons
+          GROUP BY track_id
+        ),
+        completed_lessons AS (
+          SELECT 
+            l.track_id,
+            COUNT(DISTINCT up.lesson_id) as completed_lessons
+          FROM user_progress up
+          LEFT JOIN lessons l ON up.lesson_id = l.id
+          WHERE up.user_id = $1
+          GROUP BY l.track_id
+        )
+        SELECT 
+          t.id as track_id,
+          t.title as track_title,
+          t.slug as track_slug,
+          COALESCE(tlc.total_lessons, 0) as total_lessons,
+          COALESCE(cl.completed_lessons, 0) as completed_lessons,
+          CASE 
+            WHEN COALESCE(tlc.total_lessons, 0) > 0 
+            THEN (COALESCE(cl.completed_lessons, 0) * 100.0 / tlc.total_lessons)
+            ELSE 0
+          END as completion_percentage
+        FROM tracks t
+        LEFT JOIN track_lesson_counts tlc ON t.id = tlc.track_id
+        LEFT JOIN completed_lessons cl ON t.id = cl.track_id
+        WHERE t.is_published = true
+      `, [userId]);
+      const trackProgress = Array.isArray(trackProgressResult) ? trackProgressResult : (trackProgressResult.rows || []);
+
+      return {
+        lessonProgress,
+        quizAttempts,
+        examAttempts,
+        trackProgress,
+      };
     } catch (error) {
       console.error('Error fetching user progress:', error);
-      return [];
+      return {
+        lessonProgress: [],
+        quizAttempts: [],
+        examAttempts: [],
+        trackProgress: [],
+      };
+    }
+  }
+
+  async markLessonComplete(userId: string, lessonId: string, score?: number, timeSpent?: number): Promise<any> {
+    try {
+      // Check if progress already exists
+      const existing = await db.select().from(userProgress)
+        .where(eq(userProgress.userId, userId))
+        .where(eq(userProgress.lessonId, lessonId))
+        .limit(1);
+
+      if (existing.length > 0) {
+        // Update existing progress
+        const [updated] = await db.update(userProgress)
+          .set({
+            completedAt: new Date(),
+            score: score ?? existing[0].score,
+            timeSpent: timeSpent ?? existing[0].timeSpent,
+          })
+          .where(eq(userProgress.id, existing[0].id))
+          .returning();
+        return updated;
+      } else {
+        // Create new progress
+        const [newProgress] = await db.insert(userProgress)
+          .values({
+            userId,
+            lessonId,
+            completedAt: new Date(),
+            score: score ?? null,
+            timeSpent: timeSpent ?? null,
+          })
+          .returning();
+        return newProgress;
+      }
+    } catch (error) {
+      console.error('Error marking lesson complete:', error);
+      throw error;
     }
   }
 
   // Client Management
   async getAllClients() {
     try {
-      const result = await db.execute(`
-        SELECT id, user_id, name, email, subscription_type, status, subscription_date, monthly_revenue, notes, partner_status, conversion_date, highlevel_contact_id, created_at, updated_at 
-        FROM clients 
-        ORDER BY created_at DESC
-      `);
-      return result.rows;
+      console.log('[getAllClients] Fetching clients from database...');
+      // Use Drizzle ORM for SQLite compatibility
+      const clientsData = await db.select({
+        id: clients.id,
+        userId: clients.userId,
+        name: clients.name,
+        email: clients.email,
+        subscriptionType: clients.subscriptionType,
+        status: clients.status,
+        subscriptionDate: clients.subscriptionDate,
+        monthlyRevenue: clients.monthlyRevenue,
+        notes: clients.notes,
+        partnerStatus: clients.partnerStatus,
+        conversionDate: clients.conversionDate,
+        highlevelContactId: clients.highlevelContactId,
+        createdAt: clients.createdAt,
+        updatedAt: clients.updatedAt,
+        phone: clients.phone,
+      }).from(clients).orderBy(desc(clients.createdAt));
+      
+      console.log(`[getAllClients] Found ${clientsData.length} clients in database`);
+      
+      // Convert to snake_case for API response (for backward compatibility)
+      const formatDate = (date: Date | number | string | null | undefined): string => {
+        if (!date) return new Date().toISOString();
+        if (typeof date === 'number') return new Date(date).toISOString();
+        if (typeof date === 'string') {
+          // If it's already an ISO string, return it
+          if (date.includes('T')) return date;
+          // Otherwise parse it
+          return new Date(date).toISOString();
+        }
+        return date.toISOString();
+      };
+
+      const formattedClients = clientsData.map(client => ({
+        id: client.id,
+        user_id: client.userId || null,
+        name: client.name,
+        email: client.email,
+        phone: client.phone || null,
+        subscription_type: client.subscriptionType,
+        status: client.status,
+        subscription_date: formatDate(client.subscriptionDate),
+        monthly_revenue: client.monthlyRevenue || 0,
+        notes: client.notes || null,
+        partner_status: client.partnerStatus || 'NONE',
+        conversion_date: client.conversionDate ? formatDate(client.conversionDate) : null,
+        highlevel_contact_id: client.highlevelContactId || null,
+        created_at: formatDate(client.createdAt),
+        updated_at: formatDate(client.updatedAt),
+      }));
+      
+      console.log(`[getAllClients] Returning ${formattedClients.length} formatted clients`);
+      return formattedClients;
     } catch (error) {
-      console.error('Error fetching clients:', error);
+      console.error('[getAllClients] Error fetching clients:', error);
+      console.error('[getAllClients] Error details:', error instanceof Error ? error.stack : error);
       return [];
     }
   }
@@ -433,12 +633,19 @@ export class TempDatabaseStorage {
         LIMIT 20
       `);
 
+      // Handle drizzle results - SQLite returns array directly, PostgreSQL returns .rows
+      const quizStatsData = Array.isArray(quizStats) ? quizStats : (quizStats.rows || []);
+      const trackStatsData = Array.isArray(trackStats) ? trackStats : (trackStats.rows || []);
+      const recentAttemptsData = Array.isArray(recentAttempts) ? recentAttempts : (recentAttempts.rows || []);
+      const examStatsData = Array.isArray(examStats) ? examStats : (examStats.rows || []);
+      const recentExamAttemptsData = Array.isArray(recentExamAttempts) ? recentExamAttempts : (recentExamAttempts.rows || []);
+
       return {
-        quizStats: quizStats.rows,
-        trackStats: trackStats.rows,
-        recentAttempts: recentAttempts.rows,
-        examStats: examStats.rows,
-        recentExamAttempts: recentExamAttempts.rows,
+        quizStats: quizStatsData,
+        trackStats: trackStatsData,
+        recentAttempts: recentAttemptsData,
+        examStats: examStatsData,
+        recentExamAttempts: recentExamAttemptsData,
       };
     } catch (error) {
       console.error('Error fetching quiz analytics:', error);

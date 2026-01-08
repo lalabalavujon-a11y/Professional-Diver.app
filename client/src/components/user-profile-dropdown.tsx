@@ -92,7 +92,23 @@ export default function UserProfileDropdown() {
           className="flex items-center space-x-2 hover:bg-gray-100"
           data-testid="button-user-profile"
         >
-          <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+          {currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar ? (
+            <img 
+              src={currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar}
+              alt={currentUser?.name || 'User'}
+              className="w-8 h-8 rounded-full object-cover border-2 border-slate-200"
+              onError={(e) => {
+                // Fallback to initials if image fails to load
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <div 
+            className={`w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center ${currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar ? 'hidden' : ''}`}
+          >
             <span className="text-primary-700 font-medium text-sm">
               {getInitials(currentUser?.name || '', currentUser?.email || '')}
             </span>
@@ -108,7 +124,23 @@ export default function UserProfileDropdown() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-3">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+              {currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar ? (
+                <img 
+                  src={currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar}
+                  alt={currentUser?.name || 'User'}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-slate-200"
+                  onError={(e) => {
+                    // Fallback to initials if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div 
+                className={`w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center ${currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar ? 'hidden' : ''}`}
+              >
                 <span className="text-primary-700 font-medium text-lg">
                   {getInitials(currentUser?.name || '', currentUser?.email || '')}
                 </span>

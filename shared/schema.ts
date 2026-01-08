@@ -87,6 +87,9 @@ export const lessons = pgTable("lessons", {
   objectives: json("objectives").default([]), // Learning objectives array
   estimatedMinutes: integer("estimated_minutes").default(30),
   isRequired: boolean("is_required").default(true).notNull(),
+  podcastUrl: text("podcast_url"), // Podcast audio file URL
+  podcastDuration: integer("podcast_duration"), // Duration in seconds
+  notebookLmUrl: text("notebook_lm_url"), // Notebook LM integration URL
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

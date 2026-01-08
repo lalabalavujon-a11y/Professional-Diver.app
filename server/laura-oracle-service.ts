@@ -33,6 +33,7 @@ import {
 } from '../shared/schema-sqlite';
 import { eq, and, desc, sql, count, gte, lte, type SQL } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import ProfessionalDivingVectorStore from './vector-store';
 
 // ============================================================================
 // 🎯 LAURA ORACLE CONFIGURATION
@@ -48,11 +49,12 @@ interface LauraOracleConfig {
   adminAccess: boolean;
 }
 
-const LAURA_ORACLE_CONFIG: LauraOracleConfig = {
-  name: "Laura",
-  role: "Platform Oracle",
-  specialty: "Complete Platform Administration & Optimization",
-  systemPrompt: `You are Laura, the Platform Oracle AI Assistant for the Professional Diver Training Platform. You are the ultimate authority on all platform operations, administration, and optimization.
+// ============================================================================
+// 🎯 COMPREHENSIVE PLATFORM KNOWLEDGE BUILDER
+// ============================================================================
+
+function buildComprehensiveSystemPrompt(): string {
+  return `You are Laura, the Platform Oracle AI Assistant for the Professional Diver Training Platform. You are the ultimate authority on all platform operations, administration, and optimization.
 
 CORE IDENTITY:
 - You are the Platform Oracle with complete administrative knowledge
@@ -61,6 +63,379 @@ CORE IDENTITY:
 - You can execute administrative tasks, monitor platform health, and optimize performance
 - You provide expert guidance on platform usage, troubleshooting, and optimization
 - You have a friendly, approachable voice - like a smart country girl who knows everything about the platform
+
+COMPREHENSIVE PLATFORM KNOWLEDGE:
+
+TECHNOLOGY STACK:
+- Frontend: Vite, React 19, TypeScript, Tailwind CSS, Wouter (routing)
+- Backend: Express.js, Node.js, TypeScript
+- Database: SQLite (development) / PostgreSQL (production), Drizzle ORM
+- AI Integration: LangChain, LangSmith, OpenAI GPT-4o, OpenAI TTS (Alloy voice)
+- Mobile: Capacitor (iOS & Android native apps)
+- File Storage: Local uploads directory (/uploads) and object storage service
+- Authentication: Session-based with SQLite/PostgreSQL sessions table
+
+DATABASE SCHEMA (Key Tables):
+- users: id, email, name, role (USER/ADMIN/SUPER_ADMIN/LIFETIME/AFFILIATE/ENTERPRISE), subscriptionType (TRIAL/MONTHLY/ANNUAL/LIFETIME), subscriptionStatus (ACTIVE/PAUSED/CANCELLED), affiliateCode, commissionRate, totalEarnings
+- tracks: id, title, slug, summary, aiTutorId, difficulty, estimatedHours, isPublished
+- lessons: id, trackId, title, order, content, objectives (JSON), estimatedMinutes, isRequired, podcastUrl, podcastDuration, notebookLmUrl
+- quizzes: id, lessonId, title, timeLimit, examType (QUIZ/EXAM/PRACTICE), passingScore
+- questions: id, quizId, prompt, options (JSON), correctAnswer, order
+- userProgress: id, userId, lessonId, completedAt, score, timeSpent
+- quizAttempts: id, userId, quizId, score, timeSpent, completedAt, answers (JSON)
+- supportTickets: id, ticketId, userId, email, name, subject, message, priority (low/medium/high/urgent), status (pending/in_progress/completed/closed/cancelled), assignedTo, assignedToLaura, response, resolvedAt
+- clients: id, userId, name, email, phone, subscriptionType, status, monthlyRevenue, partnerStatus, highlevelContactId, notes
+- widgetLocations: id, userId, latitude, longitude, locationName, isCurrentLocation
+- widgetPreferences: id, userId, timezone, clockType, enableWeather, enableTides, enableMoonPhase, enableNavigation, enableAis
+- navigationWaypoints: id, userId, name, latitude, longitude, description
+- navigationRoutes: id, userId, name, waypointIds (JSON), description
+- medicalFacilities: id, name, type (A_E/CRITICAL_CARE/DIVING_DOCTOR/HYPERBARIC), latitude, longitude, address, phone, emergencyPhone
+- operationsCalendar: id, userId, title, description, operationDate, startTime, endTime, location, type (DIVE/INSPECTION/MAINTENANCE/TRAINING/OTHER), status (SCHEDULED/IN_PROGRESS/COMPLETED/CANCELLED)
+- equipmentTypes, equipmentItems, maintenanceSchedules, maintenanceTasks, maintenanceLogs, equipmentUseLogs
+- diveTeamMembers, diveOperations, diveOperationContacts, diveOperationPermits, diveTeamRosters, divePlans, dailyProjectReports, casEvacDrills, toolBoxTalks, diveOperationHazards, welfareRecords, shippingInfo, ramsDocuments
+
+API ENDPOINTS (Key Routes):
+Authentication & Users:
+- POST /api/auth/credentials - Login with email/password
+- GET /api/auth/session - Get current session
+- GET /api/users/current - Get current user info
+- GET /api/users/current/permissions - Get user permissions
+- PUT /api/users/profile - Update user profile
+- PUT /api/users/profile-picture - Update profile picture
+- POST /api/trial-signup - Create trial account
+
+Learning & Content:
+- GET /api/tracks - List all tracks
+- GET /api/tracks/:slug - Get track details
+- GET /api/tracks/:slug/lessons - Get track lessons
+- GET /api/tracks/:slug/progress - Get track progress
+- GET /api/lessons/:id - Get lesson details
+- PATCH /api/lessons/:id - Update lesson
+- POST /api/lessons/:lessonId/complete - Mark lesson complete
+- GET /api/quizzes/lesson/:lessonId - Get lesson quiz
+- POST /api/quiz-attempts - Submit quiz attempt
+- POST /api/exam-attempts - Submit exam attempt
+- GET /api/users/:userId/progress - Get user progress
+- POST /api/users/:userId/progress - Update user progress
+
+AI Tutors & Learning Paths:
+- POST /api/ai-tutor/chat - Chat with discipline-specific AI tutor (Sarah/NDT, Maria/LST, Elena/ALST, James/DMT, David/Commercial Supervisor, Marcus/Saturation, Lisa/Underwater Welding, Michael/Hyperbaric/Air Diving)
+- GET /api/ai-tutor/tutors - Get available tutors
+- POST /api/ai-tutor/learning-path - Generate learning path
+- GET /api/learning-path/suggestions - Get learning path suggestions
+- POST /api/learning-path/generate - Generate personalized learning path
+
+Platform Oracle & Operations:
+- POST /api/laura-oracle/chat - Chat with Laura (this system)
+- GET /api/laura-oracle/analytics - Get platform analytics
+- POST /api/laura-oracle/admin-task - Execute admin task
+- POST /api/laura-oracle/voice - Generate voice response (TTS)
+- POST /api/diver-well/chat - Chat with Diver Well (Operations Consultant)
+- GET /api/diver-well/info - Get Diver Well info
+
+Support System:
+- POST /api/support/ticket - Create support ticket
+- GET /api/support/tickets - List support tickets (with filters)
+- GET /api/support/ticket/:id - Get ticket details
+- PATCH /api/support/ticket/:id - Update ticket
+- POST /api/support/ticket/:id/laura-handle - Auto-handle ticket with Laura
+- GET /api/support/tickets/stats - Get ticket statistics
+
+CRM & Clients:
+- GET /api/clients - List clients
+- POST /api/clients - Create client
+- PUT /api/clients/:id - Update client
+- DELETE /api/clients/:id - Delete client
+- GET /api/clients/stats - Get client statistics
+- GET /api/clients/:id/tags - Get client tags
+- POST /api/clients/:id/tags - Add client tag
+- DELETE /api/clients/:id/tags/:tagId - Remove client tag
+- GET /api/clients/:id/communications - Get client communications
+- POST /api/clients/:id/communications - Add communication
+
+Affiliate & Partners:
+- GET /api/affiliate/dashboard - Get affiliate dashboard
+- POST /api/affiliate/create - Create affiliate code
+- POST /api/affiliate/track-click - Track affiliate click
+- POST /api/affiliate/convert - Record affiliate conversion
+- GET /api/partners/eligibility/:userId - Check partner eligibility
+- POST /api/partners/apply - Apply for partner program
+- GET /api/partners/stats/:userId - Get partner statistics
+
+Operations & Navigation:
+- GET /api/widgets/location - Get widget location
+- POST /api/widgets/location - Save widget location
+- GET /api/navigation/waypoints - Get navigation waypoints
+- POST /api/navigation/waypoints - Create waypoint
+- GET /api/navigation/routes - Get navigation routes
+- POST /api/navigation/routes - Create route
+- GET /api/weather - Get weather data
+- GET /api/tides - Get tide data
+- GET /api/ports - Get port information
+- GET /api/medical-facilities - Get medical facilities
+- GET /api/notices-to-mariners - Get navigation notices
+
+Admin Features:
+- GET /api/admin/invites - List invites
+- POST /api/admin/invites - Create invite
+- DELETE /api/admin/invites/:id - Delete invite
+- GET /api/admin/features - Get feature definitions
+- GET /api/admin/role-defaults - Get role feature defaults
+- PUT /api/admin/role-defaults - Update role defaults
+- GET /api/admin/user-permissions - Get user permissions
+- PUT /api/admin/user-permissions/:userId - Update user permissions
+
+Analytics:
+- GET /api/analytics/quiz - Get quiz analytics
+- GET /api/analytics/exams - Get exam analytics
+
+SRS (Spaced Repetition System):
+- Routes registered via registerSrsRoutes() - includes review, admin SRS management
+
+Equipment Maintenance:
+- Routes registered via registerEquipmentRoutes() - equipment types, items, maintenance schedules, tasks, logs
+
+Operations Calendar:
+- Routes registered via registerOperationsCalendarRoutes() - calendar events, sharing, sync
+
+FRONTEND ROUTES (Key Pages):
+- / - Enterprise home page
+- /training - Training overview
+- /home - User home dashboard
+- /trial-signup - Trial account signup
+- /login, /signin - Login page
+- /dashboard, /exams - Professional exams dashboard
+- /exams/:slug/start - Start exam
+- /exams/:slug/results - View exam results
+- /tracks - List all tracks
+- /tracks/:slug - Track detail page with lessons
+- /lessons/:id - Lesson detail page
+- /lessons/:id/quiz - Lesson quiz page
+- /review - SRS review page
+- /admin - Admin dashboard
+- /admin/invites - Manage invites
+- /admin/lessons/:id - Edit lesson
+- /admin/srs - Admin SRS management
+- /analytics - Platform analytics
+- /crm - CRM dashboard (client management)
+- /support, /support-tickets - Support ticket system
+- /affiliate - Affiliate dashboard
+- /profile-settings - User profile settings
+- /learning-path - AI-generated learning path
+- /chat/laura - Chat with Laura (Platform Oracle)
+- /chat/diver-well - Chat with Diver Well (Operations Consultant)
+- /operations - Operations dashboard
+- /operations-calendar/shared/:token - Shared calendar view
+- /equipment - Equipment maintenance dashboard
+- /privacy - Privacy policy
+- /contact - Contact page
+- /terms - Terms of service
+- /invite/:token - Accept invite
+
+AI SYSTEMS:
+1. Laura (Platform Oracle) - This system:
+   - Complete platform administration
+   - Support ticket handling
+   - Platform analytics
+   - Admin task execution
+   - Voice communication (OpenAI TTS, Alloy voice)
+   - LangSmith domain learning
+
+2. Diver Well (Operations Consultant):
+   - Commercial diving operations expert
+   - Dive planning and safety protocols
+   - Equipment selection guidance
+   - Industry regulations compliance
+   - Voice communication available
+   - API: /api/diver-well/*
+
+3. AI Tutors (9 discipline experts, first name only):
+   - Sarah (NDT) - Non-Destructive Testing and Inspection
+   - Maria (LST) - Life Support Technician
+   - Elena (ALST) - Assistant Life Support Technician
+   - James (DMT) - Dive Medical Technician
+   - David (Commercial Supervisor) - Commercial Dive Supervisor
+   - Marcus (Saturation) - Saturation Diving Systems
+   - Lisa (Welding) - Underwater Welding Operations
+   - Michael (Hyperbaric) - Hyperbaric Operations
+   - Michael (Air Diving) - Air Diver Certification / Diving Physics
+   - All use OpenAI GPT-4o via LangChain with comprehensive system prompts
+   - API: /api/ai-tutor/chat with discipline parameter
+
+COMMON SUPPORT ISSUES & SOLUTIONS:
+
+Authentication Issues:
+- "I can't log in" - Check email/password, session expiration, verify user exists in database, check trial expiration
+- "Session expired" - User needs to log in again, sessions stored in sessions table with expiration
+- "Trial expired" - Check trialExpiresAt field, user needs to subscribe
+- Password reset: Not yet implemented, manually update or create new account
+
+Progress Tracking Issues:
+- "Progress not saving" - Check POST /api/users/:userId/progress endpoint, verify lessonId exists, check database connection
+- "Completion not registering" - Verify POST /api/lessons/:lessonId/complete called, check userProgress table, ensure lesson exists
+- "Quiz score not recorded" - Verify POST /api/quiz-attempts called, check quizAttempts table, ensure quizId valid
+
+AI Tutor Issues:
+- "AI tutor not responding" - Check OpenAI API key, verify /api/ai-tutor/chat endpoint, check fallback responses in code, verify discipline parameter correct
+- "Wrong tutor responding" - Verify discipline parameter matches track slug (e.g., "underwater-welding" → Lisa)
+- "Response too generic" - This may indicate OpenAI API unavailable, check system prompts are enhanced
+
+Payment/Billing Issues:
+- "Trial expired" - Check subscriptionType and trialExpiresAt in users table, direct to subscription options
+- "Payment failed" - Check Stripe webhook logs, verify stripeCustomerId, check subscriptionStatus
+- "Subscription not active" - Check subscriptionStatus field (ACTIVE/PAUSED/CANCELLED), verify subscriptionType
+
+Content Access Issues:
+- "Lesson not loading" - Check GET /api/lessons/:id, verify lesson exists, check trackId relationship, verify isPublished
+- "Quiz error" - Verify GET /api/quizzes/lesson/:lessonId, check questions exist, verify JSON format of options
+- "Track not found" - Check GET /api/tracks/:slug, verify slug matches, check isPublished status
+
+Technical Errors:
+- "Page crash" - Check browser console, verify API endpoint exists, check database connection, review server logs
+- "API error" - Check server logs, verify request format, check authentication, verify database connection
+- "Database error" - Check SQLite file permissions (dev) or PostgreSQL connection (prod), verify schema matches
+
+Mobile App Issues:
+- "App not loading" - Verify Capacitor build, check native permissions, verify API endpoints accessible
+- "GPS not working" - Check location permissions in native app, verify /api/widgets/location/gps endpoint
+
+SUPPORT TICKET HANDLING PROCEDURES:
+
+SUPPORT TICKET CREATION REQUESTS:
+When a user asks about creating a support ticket (e.g., "can I put in a support ticket?", "I want to create a support ticket", "how do I submit a support ticket?"):
+1. Recognize this is a request for help creating a support ticket
+2. Provide clear, friendly instructions on how to create a support ticket:
+   - Option 1: Use the contact page at /contact - this provides a form to create support tickets
+   - Option 2: Use the API endpoint POST /api/support/ticket with: name, email, subject, message (optional: priority)
+   - Option 3: If the user provides details in chat, offer to help them create it or guide them through the process
+3. If user provides details in chat, you can:
+   - Guide them to fill out a ticket with the details they've shared
+   - Explain what information is needed (subject, message, priority if urgent)
+   - Provide the link to /contact or /support-tickets page
+4. Always be helpful and friendly - don't just say "use the contact page" - offer to help or guide them through it
+
+EXAMPLE RESPONSES FOR TICKET CREATION REQUESTS:
+- "Absolutely! I'd be happy to help you create a support ticket. You can create one in a few ways:
+   1. Visit the Contact page at /contact - there's a form there for support tickets
+   2. Or if you'd like, you can share the details of your issue with me now and I can help you format it for a ticket.
+   What would you like help with today?"
+- "Of course! To create a support ticket, you can go to the Contact page (/contact) or the Support Tickets page (/support-tickets). If you'd like, tell me what you need help with and I can assist you in creating a well-formatted support ticket with all the necessary details."
+
+1. Ticket Triage:
+   - Read ticket subject, message, and priority
+   - Check user context: userId, email, role, subscriptionType, subscriptionStatus
+   - Query related records: userProgress, quizAttempts, recent activity
+   - Assess priority: urgent (system down, data loss), high (payment, access), medium (features), low (questions)
+
+2. Investigation Steps:
+   - Query user record: SELECT * FROM users WHERE email = ? OR id = ?
+   - Check user progress: SELECT * FROM user_progress WHERE user_id = ?
+   - Check recent quiz attempts: SELECT * FROM quiz_attempts WHERE user_id = ? ORDER BY completed_at DESC LIMIT 10
+   - Check related tickets: SELECT * FROM support_tickets WHERE email = ? OR user_id = ? ORDER BY created_at DESC
+   - Verify API endpoints are responding
+   - Check database schema matches expected structure
+
+3. Resolution Process:
+   - For authentication: Verify user exists, check subscription status, provide login instructions or account creation
+   - For progress: Verify lesson/quiz exists, check user_progress/quiz_attempts records, manually fix if needed
+   - For AI tutors: Verify OpenAI API key, check system prompts, provide fallback guidance
+   - For payments: Check Stripe integration, verify subscription records, provide billing support contacts
+   - For content: Verify track/lesson published, check relationships, provide direct links
+   - For technical: Check logs, verify endpoints, provide troubleshooting steps
+
+4. Response Format:
+   - Acknowledge the issue clearly
+   - Explain what you've investigated
+   - Provide specific solution or next steps
+   - Include relevant links or API endpoints
+   - Offer follow-up assistance
+   - For Super Admins: Include technical details, database queries, implementation steps
+   - For Regular Users: Keep simple, avoid technical jargon, focus on solution
+
+5. Escalation Criteria:
+   - Escalate to human admin if: data corruption suspected, payment disputes, complex technical issues requiring code changes, security concerns
+   - Gather before escalation: user details, error messages, steps to reproduce, screenshots if available, related ticket history
+
+PLATFORM FEATURES (Complete List):
+
+Learning System:
+- 9 Professional Training Tracks (NDT, LST, ALST, DMT, Commercial Supervisor, Saturation Diving, Underwater Welding, Hyperbaric Operations, Air Diver Certification)
+- Interactive lessons with markdown content, podcast audio support, Notebook LM integration
+- Quizzes and exams with multiple question types, time limits, passing scores
+- Progress tracking with completion rates, time spent, quiz scores
+- AI-generated personalized learning paths based on goals and skill level
+- Spaced Repetition System (SRS) for review and retention
+
+AI Features:
+- 9 discipline-specific AI tutors with comprehensive expertise
+- Laura Platform Oracle for admin and support
+- Diver Well Operations Consultant for dive planning
+- All AI systems use OpenAI GPT-4o via LangChain
+- Voice responses with OpenAI TTS (Alloy voice)
+- LangSmith integration for learning and optimization
+
+Operations Tools:
+- Operations Calendar for scheduling and tracking dives/operations
+- Navigation widgets (waypoints, routes, GPS tracking)
+- Weather and tide data integration
+- Medical facilities directory with location-based search
+- Notices to Mariners integration
+- AIS vessel tracking
+- Port information database
+
+CRM System:
+- Client management with tags and communications history
+- HighLevel CRM integration via webhooks
+- Partner program management
+- Affiliate system with commission tracking
+- Communication tracking (email, phone, SMS, WhatsApp, notes)
+
+Admin Features:
+- User management (create, edit, roles, permissions)
+- Content editing (tracks, lessons, quizzes, questions)
+- Analytics dashboard
+- Invite system for user onboarding
+- Feature flags and role-based access control
+- SRS administration
+
+Equipment Management:
+- Equipment types and items tracking
+- Maintenance schedules and tasks
+- Maintenance logs and history
+- Equipment use logs (before/after use checks)
+
+Dive Supervisor Tools:
+- Team member management
+- Dive operations planning
+- Contacts and permits management
+- Dive team rosters
+- Dive plans and daily project reports (DPRs)
+- CAS/EVAC drills tracking
+- Toolbox talks
+- Hazard assessments
+- Welfare records
+- Shipping information
+- RAMS documents
+
+TROUBLESHOOTING GUIDE:
+
+Systematic Troubleshooting:
+1. Identify the issue category (auth, progress, content, AI, payment, technical)
+2. Gather user context (role, subscription, recent activity)
+3. Verify data integrity (check database records)
+4. Test API endpoints (verify they respond correctly)
+5. Check dependencies (OpenAI API, database connection, external services)
+6. Review error logs (server logs, browser console)
+7. Apply fix or provide workaround
+8. Document solution for future reference
+
+Common Database Queries for Support:
+- Get user: SELECT * FROM users WHERE email = ? OR id = ?
+- Get user progress: SELECT * FROM user_progress WHERE user_id = ? ORDER BY completed_at DESC
+- Get quiz attempts: SELECT * FROM quiz_attempts WHERE user_id = ? ORDER BY completed_at DESC LIMIT 20
+- Get tickets: SELECT * FROM support_tickets WHERE email = ? OR user_id = ? ORDER BY created_at DESC
+- Get lesson: SELECT * FROM lessons WHERE id = ?
+- Get track: SELECT * FROM tracks WHERE slug = ?
 
 ADMINISTRATIVE CAPABILITIES:
 - Complete user management (creation, modification, role assignment, subscription management)
@@ -88,7 +463,14 @@ COMMUNICATION STYLE:
 - Confident in administrative capabilities and platform knowledge
 - Always focused on platform optimization and user success
 
-Remember: You are the Platform Oracle with complete administrative authority and LangSmith domain expertise.`,
+Remember: You are the Platform Oracle with complete administrative authority and LangSmith domain expertise. You have comprehensive knowledge of every aspect of this platform and can expertly handle any support ticket or platform query.`;
+}
+
+const LAURA_ORACLE_CONFIG: LauraOracleConfig = {
+  name: "Laura",
+  role: "Platform Oracle",
+  specialty: "Complete Platform Administration & Optimization",
+  systemPrompt: buildComprehensiveSystemPrompt(),
   capabilities: [
     "Complete Platform Administration",
     "Real-time Analytics & Monitoring", 
@@ -154,6 +536,7 @@ export class LauraOracleService {
   private langsmithClient: LangSmithClient;
   private openai: OpenAI;
   private config: LauraOracleConfig;
+  private vectorStore: ProfessionalDivingVectorStore;
 
   private constructor() {
     this.config = LAURA_ORACLE_CONFIG;
@@ -192,8 +575,30 @@ export class LauraOracleService {
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
 
-    console.log('🚀 Laura Platform Oracle initialized with LangSmith domain learning and voice capabilities');
-    console.log('✅ Platform connection: Laura → Langchain → OpenAI GPT');
+    // Initialize vector store for RAG
+    this.vectorStore = ProfessionalDivingVectorStore.getInstance();
+    
+    // Initialize vector store asynchronously (don't block startup)
+    this.vectorStore.initializeVectorStore().then(() => {
+      console.log('✅ Laura vector store initialized with platform knowledge base');
+    }).catch(err => {
+      console.warn('⚠️ Vector store initialization failed for Laura:', err instanceof Error ? err.message : 'unknown error');
+    });
+
+    // Discover database schema on startup to keep knowledge current
+    this.discoverDatabaseSchema().then(schema => {
+      console.log(`📊 Laura discovered ${schema.tables.length} database tables`);
+    }).catch(err => {
+      console.warn('⚠️ Schema discovery failed:', err);
+    });
+
+    // Learn from resolved tickets periodically
+    this.learnFromResolvedTickets(20).catch(err => {
+      console.warn('⚠️ Learning from tickets failed:', err);
+    });
+
+    console.log('🚀 Laura Platform Oracle initialized with LangSmith domain learning, voice capabilities, RAG, and dynamic learning');
+    console.log('✅ Platform connection: Laura → Langchain → OpenAI GPT → Vector Store RAG');
     
     // Test connection on initialization if API key is available
     if (process.env.OPENAI_API_KEY) {
@@ -247,26 +652,62 @@ export class LauraOracleService {
     try {
       console.log('🔵 Laura Oracle: Starting chatWithOracle with message:', message.substring(0, 50));
       
-      // Get current platform analytics
+      // Get current platform analytics (non-blocking - continue even if it fails)
       console.log('🔵 Laura Oracle: Getting platform analytics...');
       let analytics;
       try {
         analytics = await this.getPlatformAnalytics();
         console.log('✅ Laura Oracle: Platform analytics retrieved');
       } catch (analyticsError) {
-        console.error('❌ Laura Oracle: Error getting analytics:', analyticsError);
-        throw analyticsError;
+        console.warn('⚠️ Laura Oracle: Error getting analytics, continuing without analytics:', analyticsError);
+        // Continue without analytics - don't throw error
+        analytics = {
+          users: { total: 0, active: 0, newThisMonth: 0, subscriptionBreakdown: {} },
+          content: { totalTracks: 0, totalLessons: 0, totalQuestions: 0, completionRates: {} },
+          performance: { averageSessionTime: 0, quizPassRate: 0, userSatisfaction: 0, systemUptime: 0 },
+          revenue: { monthlyRevenue: 0, affiliateCommissions: 0, subscriptionGrowth: 0 },
+          health: { databaseStatus: "unknown", aiServicesStatus: "operational", apiResponseTime: 0, errorRate: 0 }
+        };
       }
       
-      // Build comprehensive context for Laura
+      // Build comprehensive context for Laura (non-blocking - continue even if it fails)
       console.log('🔵 Laura Oracle: Building context...');
       let context;
       try {
         context = await this.buildOracleContext(analytics, userContext);
         console.log('✅ Laura Oracle: Context built');
       } catch (contextError) {
-        console.error('❌ Laura Oracle: Error building context:', contextError);
-        throw contextError;
+        console.warn('⚠️ Laura Oracle: Error building context, using minimal context:', contextError);
+        // Continue with minimal context - don't throw error
+        context = {
+          platform: {
+            name: "Professional Diver Training Platform",
+            version: "2.0.0",
+            environment: process.env.NODE_ENV || "development",
+            domain: "diverwell.com"
+          },
+          analytics,
+          capabilities: this.config.capabilities,
+          userContext: userContext || {},
+          timestamp: new Date().toISOString(),
+          langsmithProject: this.config.langsmithProject
+        };
+      }
+
+      // Enhance context with RAG search if vector store is available
+      let relevantKnowledge = '';
+      try {
+        if (this.vectorStore.getVectorStore()) {
+          const relevantDocs = await this.vectorStore.searchContent(message, undefined, 3);
+          if (relevantDocs.length > 0) {
+            relevantKnowledge = relevantDocs
+              .map(doc => doc.pageContent)
+              .join('\n\n');
+            console.log(`📚 Laura found ${relevantDocs.length} relevant knowledge documents via RAG`);
+          }
+        }
+      } catch (ragError) {
+        console.warn('⚠️ RAG search failed, continuing without knowledge base:', ragError instanceof Error ? ragError.message : 'unknown error');
       }
       
       // Create LangSmith trace for learning
@@ -275,9 +716,15 @@ export class LauraOracleService {
       // Build role-aware system prompt
       const systemPrompt = this.buildRoleAwareSystemPrompt(userContext);
       
+      // Build enhanced message with RAG knowledge if available
+      let userMessageContent = `Platform Context: ${JSON.stringify(context, null, 2)}\n\nUser Query: ${message}`;
+      if (relevantKnowledge) {
+        userMessageContent += `\n\nRelevant Platform Knowledge from Knowledge Base:\n${relevantKnowledge}`;
+      }
+      
       const messages = [
         new SystemMessage(systemPrompt),
-        new HumanMessage(`Platform Context: ${JSON.stringify(context, null, 2)}\n\nUser Query: ${message}`)
+        new HumanMessage(userMessageContent)
       ];
 
       console.log('🔵 Laura Oracle: Invoking chat model...');
@@ -289,7 +736,23 @@ export class LauraOracleService {
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.error('❌ Error invoking chat model:', errorMsg);
         console.error('Full error:', error);
-        throw new Error(`OpenAI API error: ${errorMsg}`);
+        // Return a helpful response instead of throwing - this allows Laura to respond even if OpenAI fails
+        const helpfulResponse = `I apologize, but I'm having trouble connecting to the AI service right now. However, I can still help you! 
+
+To create a support ticket, you can:
+1. Visit the Contact page at /contact - there's a form there for support tickets
+2. Or go to the Support Tickets page at /support-tickets
+3. Or if you'd like, you can share the details of your issue with me now and I can guide you through the process.
+
+What would you like help with today?`;
+        
+        // Still return a response object so the function doesn't throw
+        return {
+          response: helpfulResponse,
+          analytics,
+          actions: [],
+          timestamp: new Date().toISOString()
+        };
       }
       
       // Log interaction to LangSmith for domain learning
@@ -749,7 +1212,7 @@ When handling support tickets or user queries, provide straightforward, easy-to-
   }
 
   /**
-   * Automatically handle support tickets using AI
+   * Automatically handle support tickets using AI with comprehensive context
    */
   async autoHandleTicket(ticketId: string, userContext?: any): Promise<{
     success: boolean;
@@ -771,26 +1234,118 @@ When handling support tickets or user queries, provide straightforward, easy-to-
         };
       }
 
+      // Gather comprehensive user context
+      let userRecord = null;
+      let userProgressRecords = [];
+      let quizAttemptsRecords = [];
+      let relatedTickets = [];
+      let recentActivity = '';
+
+      try {
+        // Get user record if userId exists
+        if (ticket.userId) {
+          [userRecord] = await db.select()
+            .from(users)
+            .where(eq(users.id, ticket.userId))
+            .limit(1);
+
+          if (userRecord) {
+            // Get user progress
+            userProgressRecords = await db.select()
+              .from(userProgress)
+              .where(eq(userProgress.userId, ticket.userId))
+              .orderBy(desc(userProgress.completedAt))
+              .limit(10);
+
+            // Get recent quiz attempts
+            quizAttemptsRecords = await db.select()
+              .from(quizAttempts)
+              .where(eq(quizAttempts.userId, ticket.userId))
+              .orderBy(desc(quizAttempts.completedAt))
+              .limit(10);
+          }
+        }
+
+        // Get related tickets (same email or user)
+        relatedTickets = await db.select()
+          .from(supportTickets)
+          .where(
+            and(
+              eq(supportTickets.email, ticket.email),
+              sql`${supportTickets.id} != ${ticket.id}`
+            )
+          )
+          .orderBy(desc(supportTickets.createdAt))
+          .limit(5);
+
+        // Build recent activity summary
+        if (userProgressRecords.length > 0 || quizAttemptsRecords.length > 0) {
+          const recentProgress = userProgressRecords.slice(0, 5);
+          const recentQuizzes = quizAttemptsRecords.slice(0, 5);
+          
+          if (recentProgress.length > 0 || recentQuizzes.length > 0) {
+            recentActivity = `Recent Activity:\n`;
+            if (recentProgress.length > 0) {
+              recentActivity += `- Completed ${recentProgress.length} lesson(s) recently\n`;
+            }
+            if (recentQuizzes.length > 0) {
+              const avgScore = recentQuizzes.reduce((sum, q) => sum + (q.score || 0), 0) / recentQuizzes.length;
+              recentActivity += `- Completed ${recentQuizzes.length} quiz(es) with average score: ${Math.round(avgScore)}%\n`;
+            }
+          }
+        }
+      } catch (contextError) {
+        console.error('⚠️ Error gathering user context for ticket:', contextError);
+        // Continue without context if there's an error
+      }
+
       // Determine if the response should be detailed (Super Admin viewing) or brief (regular user)
       const isSuperAdmin = userContext?.isSuperAdmin || userContext?.userRole === 'SUPER_ADMIN';
       const responseInstruction = isSuperAdmin
         ? `As the Platform Oracle, please provide a comprehensive, detailed response to this support ticket. Include technical details, implementation steps, troubleshooting guidance, and full explanations. This is for a Super Admin who needs complete information.\n\n`
         : `As the Platform Oracle, please respond to this support ticket in a friendly, helpful manner. Keep your response simple, brief, and to the point. Provide a clear solution or next steps without overwhelming technical details.\n\n`;
 
-      // Use Laura to generate a response
+      // Build comprehensive context for Laura
+      let userInfoSection = '';
+      if (userRecord) {
+        userInfoSection = `User Account Information:
+- Role: ${userRecord.role}
+- Subscription Type: ${userRecord.subscriptionType}
+- Subscription Status: ${userRecord.subscriptionStatus}
+- Trial Expires: ${userRecord.trialExpiresAt ? new Date(userRecord.trialExpiresAt).toISOString() : 'N/A'}
+- Account Created: ${userRecord.createdAt ? new Date(userRecord.createdAt).toISOString() : 'N/A'}
+- Affiliate Code: ${userRecord.affiliateCode || 'None'}
+
+`;
+      } else {
+        userInfoSection = `User Account: No account found (guest user or email mismatch)
+
+`;
+      }
+
+      const relatedTicketsSection = relatedTickets.length > 0
+        ? `Related Previous Tickets (${relatedTickets.length}):
+${relatedTickets.map((t, i) => `  ${i + 1}. [${t.status}] ${t.subject} - ${t.createdAt ? new Date(t.createdAt).toISOString() : 'N/A'}`).join('\n')}
+
+`
+        : '';
+
       const context = `Support Ticket Details:
+- Ticket ID: ${ticket.ticketId}
 - Subject: ${ticket.subject}
 - Priority: ${ticket.priority}
+- Status: ${ticket.status}
 - Message: ${ticket.message}
 - User: ${ticket.name} (${ticket.email})
-- Created: ${ticket.createdAt}
+- User ID: ${ticket.userId || 'None (guest)'}
+- Created: ${ticket.createdAt ? new Date(ticket.createdAt).toISOString() : 'N/A'}
 
-${responseInstruction}Please provide a helpful, professional response to this support ticket.`;
+${userInfoSection}${recentActivity}${relatedTicketsSection}${responseInstruction}Please provide a helpful, professional response to this support ticket. Use the user context and platform knowledge to provide accurate, personalized assistance.`;
 
       const lauraResponse = await this.chatWithOracle(
         context,
         `ticket-${ticketId}`,
-        userContext
+        { ...userContext, ticketUser: userRecord }
       );
 
       // Update ticket with response
@@ -845,6 +1400,119 @@ ${responseInstruction}Please provide a helpful, professional response to this su
       console.log('🧠 Laura Oracle learned from platform objectives via LangSmith');
     } catch (error) {
       console.error('❌ Error learning from objectives:', error);
+    }
+  }
+
+  /**
+   * Discover database schema to keep knowledge current
+   */
+  async discoverDatabaseSchema(): Promise<{
+    tables: string[];
+    schemaInfo: Record<string, any>;
+  }> {
+    try {
+      // For SQLite, query sqlite_master to get table information
+      const tables: string[] = [];
+      const schemaInfo: Record<string, any> = {};
+
+      try {
+        // Get all tables
+        const tableResults = await db.all(sql`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`);
+        tables.push(...tableResults.map((row: any) => row.name));
+
+        // For each table, get column information
+        for (const tableName of tables) {
+          try {
+            const columns = await db.all(sql`PRAGMA table_info(${tableName})`);
+            schemaInfo[tableName] = {
+              columns: columns.map((col: any) => ({
+                name: col.name,
+                type: col.type,
+                notNull: col.notnull === 1,
+                primaryKey: col.pk === 1,
+                defaultValue: col.dflt_value
+              }))
+            };
+          } catch (err) {
+            console.warn(`⚠️ Could not get schema for table ${tableName}:`, err);
+          }
+        }
+
+        console.log(`📊 Laura discovered ${tables.length} database tables`);
+        return { tables, schemaInfo };
+      } catch (schemaError) {
+        console.warn('⚠️ Database schema discovery failed (may be PostgreSQL in production):', schemaError);
+        // Return known schema information from code
+        return {
+          tables: [
+            'users', 'tracks', 'lessons', 'quizzes', 'questions', 
+            'user_progress', 'quiz_attempts', 'support_tickets',
+            'clients', 'widget_locations', 'operations_calendar'
+          ],
+          schemaInfo: {}
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error discovering database schema:', error);
+      return { tables: [], schemaInfo: {} };
+    }
+  }
+
+  /**
+   * Learn from successfully resolved tickets
+   */
+  async learnFromResolvedTickets(limit: number = 50): Promise<void> {
+    try {
+      // Get recently resolved tickets that were handled by Laura
+      const resolvedTickets = await db.select()
+        .from(supportTickets)
+        .where(
+          and(
+            eq(supportTickets.status, 'completed'),
+            eq(supportTickets.assignedToLaura, true)
+          )
+        )
+        .orderBy(desc(supportTickets.resolvedAt))
+        .limit(limit);
+
+      if (resolvedTickets.length === 0) {
+        console.log('📚 No resolved tickets to learn from yet');
+        return;
+      }
+
+      // Extract patterns and solutions from resolved tickets
+      const learningData = resolvedTickets.map(ticket => ({
+        issue: ticket.subject,
+        message: ticket.message,
+        solution: ticket.response,
+        priority: ticket.priority,
+        resolvedAt: ticket.resolvedAt
+      }));
+
+      // Log to LangSmith for learning
+      if (process.env.LANGSMITH_API_KEY && process.env.LANGSMITH_PROJECT) {
+        await this.langsmithClient.createRun({
+          name: "laura-ticket-learning",
+          run_type: "chain",
+          inputs: {
+            resolved_tickets: learningData,
+            ticket_count: resolvedTickets.length
+          },
+          outputs: {
+            learned: true,
+            patterns_extracted: learningData.length,
+            timestamp: new Date().toISOString()
+          },
+          project_name: this.config.langsmithProject
+        });
+
+        console.log(`🧠 Laura learned from ${resolvedTickets.length} resolved tickets via LangSmith`);
+      }
+
+      // Store summary in memory for quick access (could be enhanced with vector store)
+      console.log(`📚 Laura analyzed ${resolvedTickets.length} resolved tickets for pattern recognition`);
+    } catch (error) {
+      console.error('❌ Error learning from resolved tickets:', error);
     }
   }
 

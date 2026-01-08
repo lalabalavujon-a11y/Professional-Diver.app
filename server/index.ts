@@ -6,8 +6,31 @@ import healthRouter from "./health";
 import { initializeFeatureManagement } from "./feature-initialization";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// CORS headers for development
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Skip body parsing for multipart/form-data (file uploads) - multer will handle it
+app.use((req, res, next) => {
+  if (req.headers['content-type']?.includes('multipart/form-data')) {
+    return next(); // Skip body parsing for file uploads
+  }
+  express.json()(req, res, next);
+});
+app.use((req, res, next) => {
+  if (req.headers['content-type']?.includes('multipart/form-data')) {
+    return next(); // Skip body parsing for file uploads
+  }
+  express.urlencoded({ extended: false })(req, res, next);
+});
 
 // Simple request logging
 app.use((req, _res, next) => { 

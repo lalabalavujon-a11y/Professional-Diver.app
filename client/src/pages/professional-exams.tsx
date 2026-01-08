@@ -33,7 +33,7 @@ const professionalExamTracks: ExamTrack[] = [
     description: "Practice visual inspection, magnetic particle testing, and ultrasonic testing exam preparation",
     difficulty: 'Advanced',
     srsQuestions: 15,
-    fullExamQuestions: 75,
+    fullExamQuestions: 75, // Actual: 75 questions
     srsTimeLimit: 30,
     fullExamTimeLimit: 120,
     passingScore: 80,
@@ -50,7 +50,7 @@ const professionalExamTracks: ExamTrack[] = [
     description: "Practice emergency medical response, ABCDE assessment, and diving injury treatment exam prep",
     difficulty: 'Expert',
     srsQuestions: 15,
-    fullExamQuestions: 75,
+    fullExamQuestions: 65, // Actual: 65 questions
     srsTimeLimit: 25,
     fullExamTimeLimit: 90,
     passingScore: 85,
@@ -67,7 +67,7 @@ const professionalExamTracks: ExamTrack[] = [
     description: "Practice dive operations management, safety protocols, and emergency response exam prep",
     difficulty: 'Expert',
     srsQuestions: 15,
-    fullExamQuestions: 75,
+    fullExamQuestions: 80, // Actual: 80 questions
     srsTimeLimit: 30,
     fullExamTimeLimit: 150,
     passingScore: 80,
@@ -84,7 +84,7 @@ const professionalExamTracks: ExamTrack[] = [
     description: "Saturation diving operations, life support systems, and decompression management",
     difficulty: 'Expert',
     srsQuestions: 15,
-    fullExamQuestions: 75,
+    fullExamQuestions: 70, // Actual: 70 questions (uses ALST questions)
     srsTimeLimit: 30,
     fullExamTimeLimit: 135,
     passingScore: 85,
@@ -101,7 +101,7 @@ const professionalExamTracks: ExamTrack[] = [
     description: "Professional underwater welding techniques, electrode selection, and quality control",
     difficulty: 'Advanced',
     srsQuestions: 15,
-    fullExamQuestions: 75,
+    fullExamQuestions: 60, // Actual: 60 questions
     srsTimeLimit: 25,
     fullExamTimeLimit: 100,
     passingScore: 80,
@@ -118,7 +118,7 @@ const professionalExamTracks: ExamTrack[] = [
     description: "Hyperbaric treatment protocols, emergency procedures, and patient monitoring",
     difficulty: 'Intermediate',
     srsQuestions: 15,
-    fullExamQuestions: 75,
+    fullExamQuestions: 55, // Actual: 55 questions
     srsTimeLimit: 25,
     fullExamTimeLimit: 90,
     passingScore: 85,
@@ -135,7 +135,7 @@ const professionalExamTracks: ExamTrack[] = [
     description: "Assistant life support operations, emergency response protocols, and life support system procedures",
     difficulty: 'Expert',
     srsQuestions: 15,
-    fullExamQuestions: 75,
+    fullExamQuestions: 70, // Actual: 70 questions
     srsTimeLimit: 30,
     fullExamTimeLimit: 120,
     passingScore: 85,
@@ -152,7 +152,7 @@ const professionalExamTracks: ExamTrack[] = [
     description: "Life support system operations, gas management, and emergency response procedures",
     difficulty: 'Advanced',
     srsQuestions: 15,
-    fullExamQuestions: 75,
+    fullExamQuestions: 60, // Actual: 60 questions
     srsTimeLimit: 25,
     fullExamTimeLimit: 100,
     passingScore: 80,

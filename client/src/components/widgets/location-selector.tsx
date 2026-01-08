@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLa
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useGPS } from '@/hooks/use-gps';
+import { useAutoGPSSync } from '@/hooks/use-auto-gps-sync';
 import { fetchPorts, combineLocations, timezonesToLocations, getLocationDetails, type LocationOption } from '@/utils/locations';
 import { timezones } from '@/utils/timezones';
-import { MapPin, Navigation, Loader2, AlertCircle, X } from 'lucide-react';
+import { MapPin, Navigation, Loader2, AlertCircle, X, Radio } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface WidgetLocation {
@@ -39,6 +40,13 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { getCurrentPosition, isGettingGPS } = useGPS();
+  
+  // Auto-sync GPS (PRIMARY location source)
+  const { currentPosition, nearestLocation, isSyncing } = useAutoGPSSync({
+    enabled: true,
+    updateInterval: 60000,
+    autoSave: true,
+  });
 
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setIsOpen = onOpenChange || setInternalOpen;
@@ -300,10 +308,53 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
             </DialogHeader>
             
             <div className="space-y-4 py-4">
-              {/* Current location display */}
-              {currentLocation && (
-                <Card>
-                  <CardContent className="p-4">
+              {/* GPS Auto-Sync Section (PRIMARY) */}
+              <div className="border-2 border-green-200 bg-green-50 rounded-lg p-4">
+                <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
+                  <Radio className="w-4 h-4" />
+                  Current GPS Location (Auto-Sync)
+                </h4>
+                {currentPosition ? (
+                  <div className="text-sm space-y-1">
+                    <div className="font-mono text-green-800">
+                      {currentPosition.latitude.toFixed(6)}, {currentPosition.longitude.toFixed(6)}
+                    </div>
+                    {nearestLocation && (
+                      <div className="text-green-700">
+                        📍 Nearest {nearestLocation.type}: <strong>{nearestLocation.name}</strong> ({nearestLocation.distance.toFixed(1)}km away)
+                      </div>
+                    )}
+                    {isSyncing && (
+                      <div className="text-xs text-green-600 flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Updating...
+                      </div>
+                    )}
+                    <div className="text-xs text-green-600 mt-2">
+                      Widgets automatically sync with this location
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-green-700">
+                    Waiting for GPS signal... {isSyncing && <span className="ml-2">🔄</span>}
+                  </div>
+                )}
+              </div>
+
+              {/* Manual Input Section (SECONDARY - For Search & Planning) */}
+              <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Manual Location (For Search & Planning)
+                </h4>
+                <p className="text-xs text-slate-600 mb-4">
+                  Use this to search for locations, plan routes, or set a specific location for widgets.
+                </p>
+
+              {/* Current saved location display */}
+              {currentLocation && !currentLocation.isCurrentLocation && (
+                <Card className="mb-4">
+                  <CardContent className="p-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="text-sm font-medium text-slate-900">
@@ -312,12 +363,6 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
                         <div className="text-xs text-slate-600 mt-1">
                           {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
                         </div>
-                        {currentLocation.isCurrentLocation && (
-                          <div className="text-xs text-blue-600 mt-1 flex items-center gap-1">
-                            <Navigation className="w-3 h-3" />
-                            Current Location
-                          </div>
-                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -513,6 +558,7 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
                   </Button>
                 </div>
               </div> */}
+              </div>
             </div>
 
             <DialogFooter>

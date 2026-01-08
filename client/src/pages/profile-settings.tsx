@@ -37,7 +37,8 @@ import {
   Moon,
   Calendar,
   Ruler,
-  Phone
+  Phone,
+  Loader2
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import UserStatusBadge from "@/components/user-status-badge";
@@ -85,6 +86,10 @@ export default function ProfileSettings() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [twoFactorSecret, setTwoFactorSecret] = useState<string>("");
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+  const [twoFactorToken, setTwoFactorToken] = useState<string>("");
+  const [is2FAEnabled, setIs2FAEnabled] = useState<boolean>(false);
   
   // Fetch ports for location selector
   const { data: ports = [] } = useQuery({
@@ -418,6 +423,125 @@ export default function ProfileSettings() {
     }
   };
 
+  // 2FA Setup Mutation - Generate Secret and QR Code
+  const setup2FAMutation = useMutation({
+    mutationFn: async () => {
+      const email = localStorage.getItem('userEmail') || currentUser?.email || '';
+      const response = await apiRequest("POST", `/api/auth/2fa/setup?email=${encodeURIComponent(email)}`, {});
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to setup 2FA");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setTwoFactorSecret(data.secret);
+      setQrCodeDataUrl(data.qrCode);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to setup 2FA",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // 2FA Verify Mutation
+  const verify2FAMutation = useMutation({
+    mutationFn: async (token: string) => {
+      const email = localStorage.getItem('userEmail') || currentUser?.email || '';
+      const response = await apiRequest("POST", "/api/auth/2fa/verify", {
+        token,
+        secret: twoFactorSecret,
+        email,
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to verify 2FA");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "2FA Enabled",
+        description: "Two-factor authentication has been successfully enabled.",
+      });
+      setIs2FAEnabled(true);
+      setShow2FADialog(false);
+      setTwoFactorSecret("");
+      setQrCodeDataUrl("");
+      setTwoFactorToken("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Invalid verification code",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Password Change Mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const email = localStorage.getItem('userEmail') || currentUser?.email || '';
+      const response = await apiRequest("POST", "/api/auth/change-password", {
+        email,
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to change password");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password Changed",
+        description: "Your password has been successfully updated.",
+      });
+      setShowPasswordDialog(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Check 2FA status on mount
+  useEffect(() => {
+    const check2FAStatus = async () => {
+      const email = localStorage.getItem('userEmail') || currentUser?.email || '';
+      if (!email) return;
+      
+      try {
+        const response = await fetch(`/api/auth/2fa/status?email=${encodeURIComponent(email)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setIs2FAEnabled(data.enabled);
+        }
+      } catch (error) {
+        console.error("Failed to check 2FA status:", error);
+      }
+    };
+    check2FAStatus();
+  }, [currentUser]);
+
+  // Auto-setup 2FA when dialog opens
+  useEffect(() => {
+    if (show2FADialog && !twoFactorSecret && !setup2FAMutation.isPending) {
+      setup2FAMutation.mutate();
+    }
+  }, [show2FADialog]);
+
   const handleProfileSubmit = (data: ProfileFormData) => {
     console.log('Form submitted with data:', data);
     updateProfileMutation.mutate(data);
@@ -739,10 +863,15 @@ export default function ProfileSettings() {
                 <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
                   <div>
                     <h4 className="font-medium">Two-Factor Authentication</h4>
-                    <p className="text-sm text-slate-500">Add an extra layer of security</p>
+                    <p className="text-sm text-slate-500">
+                      {is2FAEnabled ? "2FA is enabled" : "Add an extra layer of security"}
+                    </p>
                   </div>
-                  <Button variant="outline" onClick={() => setShow2FADialog(true)}>
-                    Enable 2FA
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShow2FADialog(true)}
+                  >
+                    {is2FAEnabled ? "Manage 2FA" : "Enable 2FA"}
                   </Button>
                 </div>
               </CardContent>
@@ -1192,48 +1321,62 @@ export default function ProfileSettings() {
             }}>
               Cancel
             </Button>
-            <Button onClick={() => {
-              if (!currentPassword || !newPassword || !confirmPassword) {
-                toast({
-                  title: "Error",
-                  description: "All fields are required",
-                  variant: "destructive",
+            <Button 
+              onClick={() => {
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                  toast({
+                    title: "Error",
+                    description: "All fields are required",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                if (newPassword !== confirmPassword) {
+                  toast({
+                    title: "Error",
+                    description: "New passwords do not match",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                if (newPassword.length < 8) {
+                  toast({
+                    title: "Error",
+                    description: "New password must be at least 8 characters",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                changePasswordMutation.mutate({
+                  currentPassword,
+                  newPassword,
                 });
-                return;
-              }
-              if (newPassword !== confirmPassword) {
-                toast({
-                  title: "Error",
-                  description: "New passwords do not match",
-                  variant: "destructive",
-                });
-                return;
-              }
-              if (newPassword.length < 8) {
-                toast({
-                  title: "Error",
-                  description: "New password must be at least 8 characters",
-                  variant: "destructive",
-                });
-                return;
-              }
-              toast({
-                title: "Password Changed",
-                description: "Your password has been successfully updated.",
-              });
-              setShowPasswordDialog(false);
-              setCurrentPassword("");
-              setNewPassword("");
-              setConfirmPassword("");
-            }}>
-              Change Password
+              }}
+              disabled={changePasswordMutation.isPending}
+            >
+              {changePasswordMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Changing...
+                </>
+              ) : (
+                "Change Password"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Two-Factor Authentication Dialog */}
-      <Dialog open={show2FADialog} onOpenChange={setShow2FADialog}>
+      <Dialog open={show2FADialog} onOpenChange={(open) => {
+        setShow2FADialog(open);
+        if (!open) {
+          // Reset state when dialog closes
+          setTwoFactorSecret("");
+          setQrCodeDataUrl("");
+          setTwoFactorToken("");
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
@@ -1242,20 +1385,55 @@ export default function ProfileSettings() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {!twoFactorSecret ? (
+              <>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-medium text-blue-900 mb-2">How to set up 2FA:</h4>
               <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
                 <li>Download an authenticator app (Google Authenticator, Authy, or Microsoft Authenticator)</li>
-                <li>Scan the QR code or enter the secret key</li>
+                    <li>Click "Generate QR Code" below</li>
+                    <li>Scan the QR code or enter the secret key manually</li>
                 <li>Enter the 6-digit code from your app to verify</li>
               </ol>
             </div>
-            <div className="flex items-center justify-center p-4 border-2 border-dashed border-slate-300 rounded-lg">
+                <Button 
+                  onClick={() => setup2FAMutation.mutate()}
+                  disabled={setup2FAMutation.isPending}
+                  className="w-full"
+                >
+                  {setup2FAMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    "Generate QR Code"
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">How to set up 2FA:</h4>
+                  <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
+                    <li>Download an authenticator app (Google Authenticator, Authy, or Microsoft Authenticator)</li>
+                    <li>Scan the QR code below or enter the secret key manually</li>
+                    <li>Enter the 6-digit code from your app to verify</li>
+                  </ol>
+                </div>
+                <div className="flex items-center justify-center p-4 border-2 border-dashed border-slate-300 rounded-lg bg-white">
+                  {qrCodeDataUrl ? (
+                    <img src={qrCodeDataUrl} alt="2FA QR Code" className="w-48 h-48" />
+                  ) : (
               <div className="text-center">
                 <Smartphone className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-                <p className="text-sm text-slate-600">QR Code will appear here</p>
-                <p className="text-xs text-slate-500 mt-1">Secret: ABC123XYZ789</p>
+                      <p className="text-sm text-slate-600">Loading QR Code...</p>
               </div>
+                  )}
+                </div>
+                <div className="bg-slate-50 p-3 rounded-lg">
+                  <p className="text-xs text-slate-600 mb-1">Manual Entry Key:</p>
+                  <p className="text-sm font-mono text-slate-900 break-all">{twoFactorSecret}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="2fa-code">Enter 6-digit code</Label>
@@ -1263,24 +1441,52 @@ export default function ProfileSettings() {
                 id="2fa-code"
                 type="text"
                 maxLength={6}
+                    value={twoFactorToken}
+                    onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, ''))}
                 placeholder="000000"
                 className="text-center text-2xl tracking-widest"
               />
             </div>
+              </>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShow2FADialog(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShow2FADialog(false);
+                setTwoFactorSecret("");
+                setQrCodeDataUrl("");
+                setTwoFactorToken("");
+              }}
+            >
               Cancel
             </Button>
-            <Button onClick={() => {
+            {twoFactorSecret && (
+              <Button 
+                onClick={() => {
+                  if (twoFactorToken.length !== 6) {
               toast({
-                title: "2FA Enabled",
-                description: "Two-factor authentication has been successfully enabled.",
-              });
-              setShow2FADialog(false);
-            }}>
-              Enable 2FA
+                      title: "Error",
+                      description: "Please enter a 6-digit code",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  verify2FAMutation.mutate(twoFactorToken);
+                }}
+                disabled={verify2FAMutation.isPending}
+              >
+                {verify2FAMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  "Enable 2FA"
+                )}
             </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

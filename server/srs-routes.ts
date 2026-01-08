@@ -954,11 +954,16 @@ export function registerSrsRoutes(app: Express): void {
         [userId, since7d],
       );
 
+      // Handle drizzle results - SQLite returns array directly, PostgreSQL returns .rows
+      const deckStatsData = Array.isArray(deckStats) ? deckStats : (deckStats.rows || []);
+      const recentReviewsData = Array.isArray(recentReviews) ? recentReviews : (recentReviews.rows || []);
+      const reviewStats7dData = Array.isArray(reviewStats7d) ? reviewStats7d : (reviewStats7d.rows || []);
+
       res.json({
         now,
-        deckStats: deckStats.rows,
-        recentReviews: recentReviews.rows,
-        reviewStats7d: reviewStats7d.rows,
+        deckStats: deckStatsData,
+        recentReviews: recentReviewsData,
+        reviewStats7d: reviewStats7dData,
       });
     } catch (error) {
       if (error instanceof z.ZodError) {

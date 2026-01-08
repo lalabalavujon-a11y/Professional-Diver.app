@@ -39,11 +39,11 @@ export default function QuizQuestion({
 }: QuizQuestionProps) {
   const progressPercentage = (currentQuestion / totalQuestions) * 100;
   const options = [
-    { key: 'a', text: question.a },
-    { key: 'b', text: question.b },
-    { key: 'c', text: question.c },
-    { key: 'd', text: question.d }
-  ];
+    { key: 'a', text: question.a || '(Option A)' },
+    { key: 'b', text: question.b || '(Option B)' },
+    { key: 'c', text: question.c || '(Option C)' },
+    { key: 'd', text: question.d || '(Option D)' }
+  ].filter(opt => opt.text && opt.text !== '(Option A)' && opt.text !== '(Option B)' && opt.text !== '(Option C)' && opt.text !== '(Option D)' || question[opt.key as 'a' | 'b' | 'c' | 'd']); // Keep all options for now, even if placeholder
 
   return (
     <div className="p-6">
@@ -73,38 +73,43 @@ export default function QuizQuestion({
         </h3>
         
         <div className="space-y-3">
-          {options.map((option) => (
-            <label 
-              key={option.key}
-              className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                selectedAnswer === option.key
-                  ? "border-primary-200 bg-primary-50"
-                  : "border-gray-200 hover:bg-gray-50"
-              }`}
-              data-testid={`option-${option.key}`}
-            >
-              <input 
-                type="radio" 
-                name={`question-${question.id}`}
-                value={option.key}
-                checked={selectedAnswer === option.key}
-                onChange={() => onAnswerSelect(option.key)}
-                className="sr-only"
-              />
-              <div className={`flex items-center justify-center w-5 h-5 border-2 rounded-full mr-4 ${
-                selectedAnswer === option.key
-                  ? "border-primary-500"
-                  : "border-gray-300"
-              }`}>
-                {selectedAnswer === option.key && (
-                  <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
-                )}
-              </div>
-              <span className={`text-slate-700 ${selectedAnswer === option.key ? 'font-medium' : ''}`}>
-                {option.text}
-              </span>
-            </label>
-          ))}
+          {options.map((option) => {
+            const isEmpty = !option.text || option.text.startsWith('(Option');
+            return (
+              <label 
+                key={option.key}
+                className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
+                  isEmpty ? 'opacity-50 cursor-not-allowed' : '',
+                  selectedAnswer === option.key
+                    ? "border-primary-200 bg-primary-50"
+                    : "border-gray-200 hover:bg-gray-50"
+                }`}
+                data-testid={`option-${option.key}`}
+              >
+                <input 
+                  type="radio" 
+                  name={`question-${question.id}`}
+                  value={option.key}
+                  checked={selectedAnswer === option.key}
+                  onChange={() => !isEmpty && onAnswerSelect(option.key)}
+                  disabled={isEmpty}
+                  className="sr-only"
+                />
+                <div className={`flex items-center justify-center w-5 h-5 border-2 rounded-full mr-4 ${
+                  selectedAnswer === option.key
+                    ? "border-primary-500"
+                    : isEmpty ? "border-gray-200" : "border-gray-300"
+                }`}>
+                  {selectedAnswer === option.key && (
+                    <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
+                  )}
+                </div>
+                <span className={`text-slate-700 ${selectedAnswer === option.key ? 'font-medium' : ''} ${isEmpty ? 'text-slate-400 italic' : ''}`}>
+                  {isEmpty ? `Option ${option.key.toUpperCase()}` : option.text}
+                </span>
+              </label>
+            );
+          })}
         </div>
       </div>
 

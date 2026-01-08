@@ -4,8 +4,9 @@ import RoleBasedNavigation from "@/components/role-based-navigation";
 import AITutor from "@/components/ai-tutor";
 import PracticeScenario from "@/components/practice-scenario";
 import EnhancedLessonContent from "@/components/enhanced-lesson-content";
+import LessonPodcastPlayer from "@/components/lesson-podcast-player";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Bookmark, FileText, Video } from "lucide-react";
+import { ChevronLeft, ChevronRight, Bookmark, FileText, Video, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
 import type { Lesson } from "@shared/schema";
 
@@ -222,6 +223,12 @@ export default function LessonDetail() {
           
           <div className="flex">
             <div className="flex-1 p-6">
+              <LessonPodcastPlayer
+                podcastUrl={(lesson as any).podcastUrl || null}
+                podcastDuration={(lesson as any).podcastDuration || undefined}
+                lessonTitle={lesson.title}
+              />
+              
               <EnhancedLessonContent 
                 content={lesson.content || "No content available."}
                 trackSlug={(lesson as any).trackSlug || 'ndt-inspection'}

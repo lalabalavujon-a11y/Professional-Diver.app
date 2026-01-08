@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
@@ -26,6 +27,34 @@ interface EnhancedLessonContentProps {
   content: string;
   trackSlug: string;
   lessonTitle: string;
+}
+
+/**
+ * Transform AI Tutor references in markdown to show first name only
+ * Pattern: **AI Tutor: Dr. Michael Rodriguez - Diving Physics Specialist**
+ * Becomes: **AI Tutor: Michael**
+ */
+function transformAITutorNames(content: string): string {
+  // Match patterns like:
+  // **AI Tutor: Dr. Michael Rodriguez - ...**
+  // **AI Tutor: Michael Rodriguez - ...**
+  // **AI Tutor: Dr. Michael - ...**
+  // And extract first name only
+  const patterns = [
+    /\*\*AI Tutor:\s*Dr\.\s+([A-Za-z]+)\s+[A-Za-z]+\s*-\s*[^*]+\*\*/g,
+    /\*\*AI Tutor:\s*([A-Za-z]+)\s+[A-Za-z]+\s*-\s*[^*]+\*\*/g,
+    /\*\*AI Tutor:\s*Dr\.\s+([A-Za-z]+)\s*-\s*[^*]+\*\*/g,
+  ];
+
+  let transformed = content;
+  
+  for (const pattern of patterns) {
+    transformed = transformed.replace(pattern, (match, firstName) => {
+      return `**AI Tutor: ${firstName}**`;
+    });
+  }
+
+  return transformed;
 }
 
 // Rich media content for each track
@@ -488,6 +517,21 @@ export default function EnhancedLessonContent({ content, trackSlug, lessonTitle 
   const [activeTab, setActiveTab] = useState("content");
   const richMedia = RICH_MEDIA_CONTENT[trackSlug as keyof typeof RICH_MEDIA_CONTENT] || RICH_MEDIA_CONTENT["ndt-inspection"];
 
+  // Fetch track progress for real-time progress bar
+  const { data: trackProgress, isLoading: progressLoading } = useQuery({
+    queryKey: ["/api/tracks", trackSlug, "progress"],
+    queryFn: async () => {
+      const response = await fetch(`/api/tracks/${trackSlug}/progress`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!trackSlug,
+  });
+
+  // Calculate progress percentage
+  const progressPercentage = trackProgress?.completionPercentage || 0;
+  const progressDisplay = progressLoading ? '...' : `${Math.round(progressPercentage)}%`;
+
   return (
     <div className="space-y-6">
       {/* Enhanced Content Tabs */}
@@ -525,7 +569,7 @@ export default function EnhancedLessonContent({ content, trackSlug, lessonTitle 
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm, remarkBreaks]}
                 >
-                  {content || "No content available."}
+                  {transformAITutorNames(content || "No content available.")}
                 </ReactMarkdown>
               </div>
             </CardContent>
@@ -640,12 +684,12 @@ export default function EnhancedLessonContent({ content, trackSlug, lessonTitle 
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-blue-900">85%</div>
+              <div className="text-2xl font-bold text-blue-900">{progressDisplay}</div>
               <div className="text-sm text-blue-700">Complete</div>
             </div>
           </div>
           <div className="mt-3 bg-blue-200 rounded-full h-2">
-            <div className="bg-blue-600 h-2 rounded-full" style={{ width: '85%' }}></div>
+            <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${Math.min(Math.max(progressPercentage, 0), 100)}%` }}></div>
           </div>
         </CardContent>
       </Card>

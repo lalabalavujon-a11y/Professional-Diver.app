@@ -35,10 +35,10 @@ async function addHyperbaricLessons() {
         order: 1,
         content: `# Hyperbaric Chamber Operations & Safety
 
-**AI Tutor: Dr. Michael Rodriguez - Hyperbaric Medicine Specialist**
+**AI Tutor: Michael - Hyperbaric Medicine Specialist**
 *Expert in Hyperbaric Medicine with 15+ years in chamber operations, treatment protocols, and emergency procedures*
 
-Welcome to professional hyperbaric chamber operations training! I'm Dr. Michael Rodriguez, your specialized AI tutor for hyperbaric medicine and chamber operations. Let's master the essential techniques and safety protocols required for commercial hyperbaric operations.
+Welcome to professional hyperbaric chamber operations training! I'm Michael, your specialized AI tutor for hyperbaric medicine and chamber operations. Let's master the essential techniques and safety protocols required for commercial hyperbaric operations.
 
 ## Learning Objectives
 - Master fundamental hyperbaric chamber operation principles

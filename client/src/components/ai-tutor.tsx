@@ -11,7 +11,7 @@ const AI_TUTORS = {
     name: "Sarah",
     specialty: "NDT - a highly trained AI expert in the field of Non-Destructive Testing ready for real time Tutoring",
     avatar: "👩‍🔬",
-    background: "20+ years in underwater inspection, PhD in Materials Engineering",
+    background: "Underwater inspection specialist with expertise in materials and corrosion assessment",
     traits: ["Detail-oriented", "Technical expert", "Patient teacher"],
     responses: {
       greeting: "Hello! I'm Sarah, your AI tutor for underwater inspection and NDT. I've spent over 20 years perfecting underwater inspection techniques. What would you like to explore today?",
@@ -51,7 +51,7 @@ const AI_TUTORS = {
     name: "Mike",
     specialty: "DMT - a highly trained AI expert in the field of Dive Medicine ready for real time Tutoring",
     avatar: "👨‍⚕️",
-    background: "Emergency medicine physician, hyperbaric specialist",
+    background: "Diving medicine and hyperbaric operations specialist",
     traits: ["Emergency-focused", "Clear communicator", "Life-saving expertise"],
     responses: {
       greeting: "I'm Mike, your medical AI tutor. As an emergency physician specializing in diving medicine, I'm here to help you master life-saving techniques. Ready to learn?",
@@ -71,7 +71,7 @@ const AI_TUTORS = {
     name: "David",
     specialty: "Commercial Dive Supervisor Training - a highly trained AI expert in the field of Commercial Diving Operations ready for real time Tutoring",
     avatar: "👨‍✈️",
-    background: "30 years commercial diving, former Navy dive supervisor",
+    background: "Commercial dive supervision and operations specialist",
     traits: ["Leadership-focused", "Safety-first", "Decision maker"],
     responses: {
       greeting: "David here! I've supervised thousands of commercial dives. Leadership underwater requires split-second decisions and absolute safety focus. Let's build your command skills.",
@@ -91,7 +91,7 @@ const AI_TUTORS = {
     name: "Jennifer",
     specialty: "Assistant Life Support Technician - a highly trained AI expert in the field of Air Diving Life Support ready for real time Tutoring",
     avatar: "👩‍⚕️",
-    background: "Life support systems specialist, 15+ years commercial diving",
+    background: "Life support systems specialist",
     traits: ["Systems-focused", "Safety expert", "Technical precision"],
     responses: {
       greeting: "I'm Jennifer, your life support AI tutor. I specialize in keeping divers alive through proper air systems management. Ready to master life support systems?",
