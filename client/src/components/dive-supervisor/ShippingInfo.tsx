@@ -162,7 +162,11 @@ export default function ShippingInfo({
       vesselType: info.vesselType || "",
       eta: info.eta ? format(new Date(info.eta), "yyyy-MM-dd'T'HH:mm") : "",
       etd: info.etd ? format(new Date(info.etd), "yyyy-MM-dd'T'HH:mm") : "",
-      contact: info.contact || { name: "", phone: "", email: "" },
+      contact: {
+        name: info.contact?.name ?? "",
+        phone: info.contact?.phone ?? "",
+        email: info.contact?.email ?? "",
+      },
       notes: info.notes || "",
     });
     setIsDialogOpen(true);
