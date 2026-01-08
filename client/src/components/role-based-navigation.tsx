@@ -147,6 +147,7 @@ export default function RoleBasedNavigation() {
   // Filter admin nav items based on feature permissions
   const adminNavItems = allAdminNavItems.filter((item) => {
     // SUPER_ADMIN always sees all admin features (unless in preview mode)
+    // This check must come first and bypass all permission checks
     if (isSuperAdmin && !isInPreviewMode) {
       return true;
     }
@@ -166,10 +167,14 @@ export default function RoleBasedNavigation() {
     // Normal mode - check user's actual permissions
     // If permission check fails or returns false, fall back to role check for admins
     const hasPermission = hasFeature(item.featureId);
+    
+    // Fallback: If user is admin/super admin and permission check fails, show all features
+    // This handles cases where permissions API fails or returns wrong format
     if (!hasPermission && (isAdmin || isSuperAdmin)) {
       // For admins, if permission system isn't working, show all features
       return true;
     }
+    
     return hasPermission;
   });
 
@@ -584,7 +589,7 @@ export default function RoleBasedNavigation() {
         )}
         {/* Header - Fixed position to stay at top, CSS handles positioning */}
         <header 
-          className="fixed top-0 right-0 z-50 flex min-h-20 shrink-0 items-center gap-3 md:gap-4 border-b bg-background/95 backdrop-blur-sm px-3 sm:px-4 py-2" 
+          className="sticky top-0 z-50 flex h-20 shrink-0 items-center gap-3 md:gap-4 border-b bg-background/95 backdrop-blur-sm px-3 sm:px-4 py-2" 
           data-testid="navigation-header"
         >
           <SidebarTrigger className="-ml-1 h-9 w-9 md:h-10 md:w-10 flex-shrink-0" />

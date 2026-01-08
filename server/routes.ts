@@ -2238,40 +2238,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user from user management service
       const user = userManagement.getSpecialUser(email);
       
+      // Determine the role to use
+      const roleToUse = previewRole || user?.role || 'USER';
+      
+      // SUPER_ADMIN always gets all features enabled
+      if (roleToUse === 'SUPER_ADMIN') {
+        const { getAllFeatures } = await import("./feature-registry");
+        const allFeatures = getAllFeatures();
+        const allPermissions: Record<string, boolean> = {};
+        
+        // Enable all features for SUPER_ADMIN
+        allFeatures.forEach(feature => {
+          allPermissions[feature.id] = true;
+        });
+        
+        return res.json(allPermissions);
+      }
+      
       // If user not found in special users, return default USER permissions
       if (!user) {
         try {
           const defaultPermissions = await resolveUserPermissions(email, 'USER');
+          // Ensure we return flat permissions object
           return res.json(defaultPermissions);
         } catch (error) {
           console.error("Error resolving default permissions:", error);
-          // Return minimal default permissions if resolution fails
-          return res.json({
-            userId: email,
-            role: 'USER',
-            permissions: {}
-          });
+          // Return empty permissions object if resolution fails
+          return res.json({});
         }
       }
 
-      // Use preview role if provided, otherwise use user's actual role
-      const roleToUse = previewRole || user.role || 'USER';
       const userId = user.id || email;
 
       // Resolve permissions for the role
       const permissions = await resolveUserPermissions(userId, roleToUse);
 
+      // Ensure we return flat permissions object (not nested)
       res.json(permissions);
     } catch (error: any) {
       console.error("Error fetching user permissions:", error);
       console.error("Error stack:", error.stack);
-      // Return default permissions instead of 500 error
-      res.json({
-        userId: req.query.email as string || 'unknown',
-        role: 'USER',
-        permissions: {},
-        error: error.message
-      });
+      // Return empty permissions object instead of nested structure
+      res.json({});
     }
   });
 
