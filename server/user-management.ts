@@ -34,56 +34,60 @@ export class UserManagementService {
       }
     ];
 
-    // Lifetime access users for testing and marketing
-    const lifetimeUsers = [
+    // Partner Admin (AFFILIATE) users
+    const partnerAdmins = [
       {
-        id: 'lifetime-1',
+        id: 'partner-admin-1',
         email: 'freddierusseljoseph@yahoo.com',
         name: 'Freddie Russell Joseph',
-        role: 'LIFETIME',
+        role: 'AFFILIATE',
         subscriptionType: 'LIFETIME',
         subscriptionStatus: 'ACTIVE',
         specialAccess: true,
-        purpose: 'Testing and Marketing',
+        purpose: 'Partner Admin',
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
-        id: 'lifetime-2',
+        id: 'partner-admin-2',
         email: 'deesuks@gmail.com', 
         name: 'Dilo Suka',
-        role: 'LIFETIME',
+        role: 'AFFILIATE',
         subscriptionType: 'LIFETIME',
         subscriptionStatus: 'ACTIVE',
         specialAccess: true,
-        purpose: 'Testing and Marketing',
+        purpose: 'Partner Admin',
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
-        id: 'lifetime-3',
+        id: 'partner-admin-3',
         email: 'steve44hall@yahoo.co.uk',
         name: 'Steve Hall',
-        role: 'LIFETIME',
+        role: 'AFFILIATE',
         subscriptionType: 'LIFETIME',
         subscriptionStatus: 'ACTIVE',
         specialAccess: true,
-        purpose: 'Testing and Marketing',
+        purpose: 'Partner Admin',
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
-        id: 'lifetime-4',
+        id: 'partner-admin-4',
         email: 'mike@ascotwood.com',
         name: 'Mike Scarpellini',
-        role: 'LIFETIME',
+        role: 'AFFILIATE',
         subscriptionType: 'LIFETIME',
         subscriptionStatus: 'ACTIVE',
         specialAccess: true,
-        purpose: 'Testing and Marketing',
+        purpose: 'Partner Admin',
         createdAt: new Date(),
         updatedAt: new Date(),
       },
+    ];
+
+    // Lifetime access users for testing and marketing
+    const lifetimeUsers = [
       {
         id: 'lifetime-5',
         email: 'eroni2519@gmail.com', // Eroni Cirikidaveta
@@ -100,12 +104,13 @@ export class UserManagementService {
     ];
 
     // Store all special users
-    [...superAdmins, ...lifetimeUsers].forEach(user => {
+    [...superAdmins, ...partnerAdmins, ...lifetimeUsers].forEach(user => {
       this.specialUsers.set(user.email, user);
     });
 
     console.log('Initialized special users:', {
       superAdmins: superAdmins.length,
+      partnerAdmins: partnerAdmins.length,
       lifetimeUsers: lifetimeUsers.length,
       total: this.specialUsers.size
     });

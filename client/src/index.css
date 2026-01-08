@@ -182,11 +182,6 @@
   --sidebar-width: 16rem;
   --sidebar-width-icon: 3rem;
   --header-height: 5rem;
-  
-  /* Ensure content areas account for header */
-  [data-sidebar-content="true"] {
-    padding-top: var(--header-height, 5rem) !important;
-  }
   --max-width-xs: 20rem;
   --max-width-sm: 24rem;
   --max-width-md: 28rem;
@@ -439,6 +434,7 @@ header[data-testid="navigation-header"] {
     }
   }
 }
+
 /* Ensure content areas account for fixed header */
 [data-sidebar-content="true"] {
   padding-top: var(--header-height, 5rem) !important;
