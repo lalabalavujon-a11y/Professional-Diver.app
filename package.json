@@ -15,7 +15,7 @@
     "dev:web": "vite --host 127.0.0.1 --port 3000 --strictPort",
     "dev:all": "npm-run-all -p dev:api dev:web",
     "build": "vite build",
-    "start": "npm run db:push || echo '⚠️ db:push failed, continuing anyway...' ; cross-env NODE_ENV=production HOST=0.0.0.0 tsx server/index.ts",
+    "start": "cross-env NODE_ENV=production HOST=0.0.0.0 tsx server/index.ts",
     "check": "tsc",
     "db:push": "timeout 120 bash -c 'printf \"\\n\" | CI=true drizzle-kit push --force' || echo '⚠️ db:push timed out or failed'",
     "debug:start": "eslint . --ext .js,.jsx,.ts,.tsx",
