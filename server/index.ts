@@ -109,7 +109,7 @@ async function main() {
   app.use('/api/ai-tutor', aiTutorRouter);
   console.log('🤖 AI Tutor routes mounted at /api/ai-tutor');
   
-  const server = await registerRoutes(app);
+  const httpServer = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -120,11 +120,14 @@ async function main() {
   });
 
   // VITE COMPLETELY REMOVED - PURE EXPRESS API SERVER ONLY
+  // Use the server returned from registerRoutes instead of creating a new one
   const port = Number(process.env.PORT) || 5000;
   const host =
     process.env.HOST ||
     (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
-  const serverInstance = app.listen(port, host, () => {
+  
+  // Start the server that was returned from registerRoutes
+  httpServer.listen(port, host, () => {
     console.log(`[express] serving on http://${host}:${port}`);
   });
 }
