@@ -15,7 +15,7 @@
     "dev:web": "vite --host 127.0.0.1 --port 3000 --strictPort",
     "dev:all": "npm-run-all -p dev:api dev:web",
     "build": "vite build",
-    "start": "cross-env NODE_ENV=production HOST=0.0.0.0 tsx server/index.ts",
+    "start": "npm run db:push && cross-env NODE_ENV=production HOST=0.0.0.0 tsx server/index.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "debug:start": "eslint . --ext .js,.jsx,.ts,.tsx",
