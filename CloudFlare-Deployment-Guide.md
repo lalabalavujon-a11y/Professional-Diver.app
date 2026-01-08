@@ -46,7 +46,8 @@ This guide covers the deployment setup for the Professional Diver Training Platf
 4. **Get Railway Deployment URL:**
    - After deployment, Railway provides a public URL
    - Format: `https://your-service-name.up.railway.app`
-   - Note this URL for DNS configuration
+   - **Current Production URL**: `https://professional-diverapp-production.up.railway.app`
+   - Note this URL for DNS configuration and Cloudflare Pages environment variables
 
 ## Step 2: CloudFlare Domain Configuration
 
@@ -201,7 +202,18 @@ This guide covers the deployment setup for the Professional Diver Training Platf
     # Add all other required service keys
     ```
 
-15. **CloudFlare Workers Environment Variables (if using Workers):**
+15. **CloudFlare Pages Environment Variables (REQUIRED for Frontend):**
+    ```env
+    VITE_API_URL=https://professional-diverapp-production.up.railway.app
+    ```
+    - **Critical**: This tells the frontend where to find the Railway backend API
+    - Go to Cloudflare Pages → Your Project → Settings → Environment Variables
+    - Add `VITE_API_URL` with value: `https://professional-diverapp-production.up.railway.app`
+    - Set for both Production and Preview environments
+    - After adding, trigger a new deployment for changes to take effect
+    - **Note**: Without this, login and all API calls will fail on Cloudflare Pages
+
+16. **CloudFlare Workers Environment Variables (if using Workers):**
     - Configure in CloudFlare Workers dashboard
     - Add secrets for API keys if needed
     - Set environment-specific variables
