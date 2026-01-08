@@ -7,11 +7,29 @@ import { initializeFeatureManagement } from "./feature-initialization";
 
 const app = express();
 
-// CORS headers for development
+// CORS headers - allow requests from Cloudflare Pages and local development
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'https://professional-diver-app.pages.dev',
+    'https://professionaldiver.app',
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3001',
+    'http://localhost:3001',
+  ];
+  
+  // Allow requests from allowed origins or any origin in development
+  if (origin && (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development')) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV === 'development') {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
