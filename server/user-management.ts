@@ -34,7 +34,8 @@ export class UserManagementService {
       }
     ];
 
-    // Partner Admin (AFFILIATE) users
+    // Partner Admin (AFFILIATE) users - Managed by Super Admin
+    // These users have affiliate/partner capabilities and access to CRM features
     const partnerAdmins = [
       {
         id: 'partner-admin-1',
@@ -86,7 +87,8 @@ export class UserManagementService {
       },
     ];
 
-    // Lifetime access users for testing and marketing
+    // Lifetime access users - Managed by Super Admin
+    // These users have lifetime access with full platform features
     const lifetimeUsers = [
       {
         id: 'lifetime-5',
@@ -103,8 +105,27 @@ export class UserManagementService {
       }
     ];
 
+    // Enterprise users - Managed by Super Admin
+    // Enterprise users have access to operations and CRM features
+    // Add Enterprise users here or through Super Admin interface
+    const enterpriseUsers: any[] = [
+      // Example:
+      // {
+      //   id: 'enterprise-1',
+      //   email: 'enterprise@example.com',
+      //   name: 'Enterprise User',
+      //   role: 'ENTERPRISE',
+      //   subscriptionType: 'ANNUAL',
+      //   subscriptionStatus: 'ACTIVE',
+      //   specialAccess: true,
+      //   purpose: 'Enterprise Account',
+      //   createdAt: new Date(),
+      //   updatedAt: new Date(),
+      // }
+    ];
+
     // Store all special users
-    [...superAdmins, ...partnerAdmins, ...lifetimeUsers].forEach(user => {
+    [...superAdmins, ...partnerAdmins, ...lifetimeUsers, ...enterpriseUsers].forEach(user => {
       this.specialUsers.set(user.email, user);
     });
 
@@ -112,6 +133,7 @@ export class UserManagementService {
       superAdmins: superAdmins.length,
       partnerAdmins: partnerAdmins.length,
       lifetimeUsers: lifetimeUsers.length,
+      enterpriseUsers: enterpriseUsers.length,
       total: this.specialUsers.size
     });
   }
@@ -132,10 +154,22 @@ export class UserManagementService {
       .filter(user => user.role === 'SUPER_ADMIN');
   }
 
+  // Get all partner admins (AFFILIATE)
+  getPartnerAdmins() {
+    return Array.from(this.specialUsers.values())
+      .filter(user => user.role === 'AFFILIATE');
+  }
+
   // Get all lifetime users
   getLifetimeUsers() {
     return Array.from(this.specialUsers.values())
       .filter(user => user.role === 'LIFETIME');
+  }
+
+  // Get all enterprise users
+  getEnterpriseUsers() {
+    return Array.from(this.specialUsers.values())
+      .filter(user => user.role === 'ENTERPRISE');
   }
 
   // Update Eroni's email when provided

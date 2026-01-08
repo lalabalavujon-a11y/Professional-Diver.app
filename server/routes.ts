@@ -2152,61 +2152,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Base user data
       let baseUser: any;
       
-      // SUPER ADMIN ACCOUNT - DO NOT CHANGE
-      // Jon Lalabalavu - lalabalavu.jon@gmail.com
-      if (email === 'lalabalavu.jon@gmail.com') {
+      // Check if user is in special users (Super Admin, Partner Admin, Lifetime, Enterprise)
+      // All special users are managed by Super Admin and controlled through userManagement
+      const specialUser = userManagement.getSpecialUser(email);
+      
+      if (specialUser) {
+        // User is a special user (Super Admin, Partner Admin, Lifetime, or Enterprise)
         baseUser = {
-          id: 'super-admin-1',
-          name: storedProfile.name || 'Jon Lalabalavu',
-          email: 'lalabalavu.jon@gmail.com',
-          role: 'SUPER_ADMIN', // Fixed: Changed from 'ADMIN' to 'SUPER_ADMIN'
-          subscriptionType: 'LIFETIME',
-          subscriptionDate: new Date('2024-01-01').toISOString(),
-          trialExpiresAt: null,
-          createdAt: storedProfile.createdAt || new Date('2024-01-01').toISOString(),
-        };
-      }
-      // Secondary Super Admin account
-      else if (email === 'sephdee@hotmail.com') {
-        baseUser = {
-          id: 'super-admin-2',
-          name: storedProfile.name || 'Jon Lalabalavu',
-          email: 'sephdee@hotmail.com',
-          role: 'SUPER_ADMIN',
-          subscriptionType: 'LIFETIME',
-          subscriptionDate: new Date('2024-01-01').toISOString(),
-          trialExpiresAt: null,
-          createdAt: storedProfile.createdAt || new Date('2024-01-01').toISOString(),
-        };
-      }
-      // Partner Admin (AFFILIATE) users
-      else if (['freddierusseljoseph@yahoo.com', 'deesuks@gmail.com', 'steve44hall@yahoo.co.uk', 'mike@ascotwood.com'].includes(email)) {
-        const user = userManagement.getSpecialUser(email);
-        baseUser = {
-          id: user?.id || 'partner-admin',
-          name: storedProfile.name || user?.name || 'Partner Admin',
+          id: specialUser.id,
+          name: storedProfile.name || specialUser.name,
           email: email,
-          role: 'AFFILIATE',
-          subscriptionType: 'LIFETIME',
+          role: specialUser.role, // SUPER_ADMIN, AFFILIATE, LIFETIME, or ENTERPRISE
+          subscriptionType: specialUser.subscriptionType || 'LIFETIME',
           subscriptionDate: new Date('2024-01-01').toISOString(),
           trialExpiresAt: null,
-          createdAt: storedProfile.createdAt || new Date('2024-01-01').toISOString(),
+          createdAt: storedProfile.createdAt || specialUser.createdAt?.toISOString() || new Date('2024-01-01').toISOString(),
         };
       }
-      // Lifetime access users
-      else if (['eroni2519@gmail.com', 'jone.cirikidaveta@gmail.com', 'jone7898@gmail.com', 'samueltabuya35@gmail.com', 'jone.viti@gmail.com'].includes(email)) {
-        baseUser = {
-          id: 'lifetime-user',
-          name: storedProfile.name || 'Lifetime Member',
-          email: email,
-          role: 'LIFETIME',
-          subscriptionType: 'LIFETIME',
-          subscriptionDate: new Date('2024-01-01').toISOString(),
-          trialExpiresAt: null,
-          createdAt: storedProfile.createdAt || new Date('2024-01-01').toISOString(),
-        };
-      }
-      // Default trial user
+      // Default trial user (not in special users)
       else {
         baseUser = {
           id: 'trial-user',
