@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -115,9 +115,12 @@ export default function UserManagementContainer() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to fetch user permissions");
       }
-      return response.json();
+      const data = await response.json();
+      console.log("Fetched users from API:", data.users); // Debug log
+      return data;
     },
     onSuccess: (data) => {
+      console.log("Users loaded successfully:", data.users); // Debug log
       setLocalUsers(data.users);
       setHasUserChanges({});
     },
@@ -320,9 +323,84 @@ export default function UserManagementContainer() {
     return roleMap[role] || role;
   };
 
+  // Convert display role name to enum value
+  const getRoleEnumFromDisplay = (displayRole: string): string => {
+    const roleMap: Record<string, string> = {
+      "Partner Admin": "AFFILIATE",
+      "Enterprise User": "ENTERPRISE",
+      "User": "USER",
+      "Admin": "ADMIN",
+      "Super Admin": "SUPER_ADMIN",
+      "Lifetime": "LIFETIME",
+    };
+    return roleMap[displayRole] || displayRole;
+  };
+
+  // Get role defaults for a specific role
+  const [userRoleDefaultsCache, setUserRoleDefaultsCache] = useState<Record<string, RoleDefault[]>>({});
+
+  // Fetch role defaults for a user's role
+  const fetchRoleDefaultsForUser = async (userRole: string) => {
+    const roleEnum = getRoleEnumFromDisplay(userRole);
+    if (userRoleDefaultsCache[roleEnum]) {
+      return userRoleDefaultsCache[roleEnum];
+    }
+
+    try {
+      const email = getCurrentUserEmail();
+      const response = await fetch(`/api/admin/role-defaults?email=${encodeURIComponent(email)}&role=${roleEnum}`);
+      if (!response.ok) {
+        return [];
+      }
+      const data = await response.json();
+      const defaults = data.defaults || [];
+      setUserRoleDefaultsCache(prev => ({ ...prev, [roleEnum]: defaults }));
+      return defaults;
+    } catch (error) {
+      console.error("Error fetching role defaults:", error);
+      return [];
+    }
+  };
+
+  // Pre-fetch role defaults for all unique user roles when users are loaded
+  useEffect(() => {
+    if (users && users.length > 0) {
+      const uniqueRoles = [...new Set(users.map(u => u.role))];
+      uniqueRoles.forEach(role => {
+        const roleEnum = getRoleEnumFromDisplay(role);
+        
+        // Only fetch if not already cached
+        if (!userRoleDefaultsCache[roleEnum]) {
+          const email = getCurrentUserEmail();
+          fetch(`/api/admin/role-defaults?email=${encodeURIComponent(email)}&role=${roleEnum}`)
+            .then(response => {
+              if (response.ok) {
+                return response.json();
+              }
+              return { defaults: [] };
+            })
+            .then(data => {
+              const defaults = data.defaults || [];
+              setUserRoleDefaultsCache(prev => {
+                // Only update if still not cached (avoid race conditions)
+                if (!prev[roleEnum]) {
+                  return { ...prev, [roleEnum]: defaults };
+                }
+                return prev;
+              });
+            })
+            .catch(error => {
+              console.error(`Error fetching role defaults for ${roleEnum}:`, error);
+            });
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users]);
+
   // Check if user has override for a feature (different from role default)
-  const hasOverride = (user: UserWithPermissions, featureId: string, roleDefaults: RoleDefault[]): boolean => {
-    const roleDefault = roleDefaults.find((d) => d.featureId === featureId);
+  const hasOverride = (user: UserWithPermissions, featureId: string, userRoleDefaults: RoleDefault[]): boolean => {
+    const roleDefault = userRoleDefaults.find((d) => d.featureId === featureId);
     const userPerm = user.permissions[featureId];
     return roleDefault ? userPerm !== roleDefault.enabled : false;
   };
@@ -544,17 +622,9 @@ export default function UserManagementContainer() {
               ) : (
                 <div className="space-y-6">
                   {filteredUsers.map((user) => {
-                    // Get role defaults for this user's role
-                    const userRoleDefaults = roleDefaults.filter((d) => {
-                      // Match role - need to convert user.role back to enum value
-                      const roleMap: Record<string, string> = {
-                        "Partner Admin": "AFFILIATE",
-                        "Enterprise User": "ENTERPRISE",
-                        "User": "USER",
-                        "Admin": "ADMIN",
-                      };
-                      return true; // We'll filter in the component
-                    });
+                    // Get role defaults for this user's actual role
+                    const userRoleEnum = getRoleEnumFromDisplay(user.role);
+                    const userRoleDefaults = userRoleDefaultsCache[userRoleEnum] || [];
 
                     return (
                       <div
@@ -563,7 +633,7 @@ export default function UserManagementContainer() {
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-slate-900">{user.name}</h3>
+                            <h3 className="text-lg font-semibold text-slate-900">{user.name || 'Unknown User'}</h3>
                             <p className="text-sm text-slate-600 mt-1">{user.email}</p>
                             <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-primary-100 text-primary-700 rounded">
                               {user.role}
@@ -600,7 +670,7 @@ export default function UserManagementContainer() {
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {categoryFeatures.map((feature) => {
                                   const isEnabled = user.permissions[feature.id] ?? false;
-                                  const isOverridden = hasOverride(user, feature.id, roleDefaults);
+                                  const isOverridden = hasOverride(user, feature.id, userRoleDefaults);
                                   return (
                                     <div
                                       key={feature.id}

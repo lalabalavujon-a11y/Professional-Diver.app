@@ -1911,15 +1911,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const userId = user.id || user.email;
           const permissions = await featureService.resolveUserPermissions(userId, user.role);
           
+          // Map role enum to display name
+          const roleDisplayMap: Record<string, string> = {
+            "AFFILIATE": "Partner Admin",
+            "ENTERPRISE": "Enterprise User",
+            "LIFETIME": "Lifetime",
+            "USER": "User",
+            "ADMIN": "Admin",
+            "SUPER_ADMIN": "Super Admin",
+          };
+          
           return {
             id: userId,
-            name: user.name,
+            name: user.name || 'Unknown User',
             email: user.email,
-            role: user.role === "AFFILIATE" 
-              ? "Partner Admin" 
-              : user.role === "ENTERPRISE" 
-              ? "Enterprise User" 
-              : "Partner Admin",
+            role: roleDisplayMap[user.role] || user.role,
             permissions,
           };
         })
