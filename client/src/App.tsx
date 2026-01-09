@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -41,6 +42,31 @@ import AdminSrs from "@/pages/admin-srs";
 import SupportTickets from "@/pages/support-tickets";
 
 function Router() {
+  const [location] = useLocation();
+  
+  // Aggressively scroll to top on route change and initial load
+  useEffect(() => {
+    // Multiple methods to ensure scroll to top
+    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    
+    // Also try after a microtask to catch any layout shifts
+    Promise.resolve().then(() => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    });
+  }, [location]);
+  
+  // Also scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+  
   return (
     <Switch>
       <Route path="/" component={EnterpriseHome} />

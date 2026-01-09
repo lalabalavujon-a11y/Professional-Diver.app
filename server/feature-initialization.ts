@@ -8,7 +8,7 @@
 import { db } from "./db";
 import { featureDefinitions, roleFeatureDefaults, globalFeatureFlags } from "@shared/schema";
 import { featureDefinitions as featureDefinitionsSQLite, roleFeatureDefaults as roleFeatureDefaultsSQLite, globalFeatureFlags as globalFeatureFlagsSQLite } from "@shared/schema-sqlite";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { FEATURE_REGISTRY, getAllFeatures } from "./feature-registry";
 
 const isSQLiteDev = () => process.env.NODE_ENV === "development";
@@ -68,53 +68,8 @@ export async function ensureFeatureTables(): Promise<void> {
         FOREIGN KEY (feature_id) REFERENCES feature_definitions(id) ON DELETE CASCADE
       );
     `);
-  } else {
-    // PostgreSQL - create global_feature_flags table if it doesn't exist
-    const isPostgres = !!(process.env.DATABASE_URL && process.env.NODE_ENV !== 'development');
-    
-    if (isPostgres) {
-      try {
-        // Check if table exists first
-        const tableCheck = await db.execute(sql`
-          SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = 'global_feature_flags'
-          )
-        `);
-        
-        const tableExists = (tableCheck as any)?.[0]?.exists || false;
-        
-        if (!tableExists) {
-          // Create global_feature_flags table for PostgreSQL
-          await db.execute(sql`
-            CREATE TABLE global_feature_flags (
-              id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-              feature_id VARCHAR NOT NULL UNIQUE,
-              enabled BOOLEAN NOT NULL DEFAULT true,
-              description TEXT,
-              updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-              updated_by VARCHAR,
-              CONSTRAINT fk_global_feature_flags_feature_id 
-                FOREIGN KEY (feature_id) REFERENCES feature_definitions(id) ON DELETE CASCADE
-            )
-          `);
-          console.log("✓ PostgreSQL global_feature_flags table created");
-        } else {
-          console.log("✓ PostgreSQL global_feature_flags table already exists");
-        }
-      } catch (error: any) {
-        // Table might already exist, or there's a constraint issue
-        if (error?.code !== '42P07' && error?.code !== '23505') { 
-          // 42P07 = relation already exists, 23505 = unique constraint violation
-          console.error("⚠️ Error creating global_feature_flags table:", error?.message || error);
-        } else {
-          console.log("✓ PostgreSQL global_feature_flags table already exists");
-        }
-      }
-    }
   }
-  // PostgreSQL tables are created via migrations (or above for global_feature_flags)
+  // PostgreSQL tables are created via migrations
 }
 
 /**

@@ -158,13 +158,9 @@ export function useAutoGPSSync(options: AutoGPSSyncOptions = {}) {
 
   // Update GPS position with retry logic
   const updatePositionWithRetry = useCallback(async (retryAttempt: number = 0): Promise<void> => {
-    // Only check isSyncing for initial attempts (not retries)
-    if (retryAttempt === 0 && (isGettingGPS || isSyncing)) return;
-
-    // For retries, we're already in a sync cycle, so just update state
-    if (retryAttempt > 0) {
-      setIsSyncing(true);
-    } else {
+    // Only check isSyncing for initial attempts (not retries - retries are part of the same sync cycle)
+    if (retryAttempt === 0) {
+      if (isGettingGPS || isSyncing) return;
       setIsSyncing(true);
     }
 
