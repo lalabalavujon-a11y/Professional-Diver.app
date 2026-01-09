@@ -403,7 +403,7 @@ export default function UserManagementContainer() {
 
   // Handle reset role defaults
   const handleResetRoleDefaults = () => {
-    if (roleDefaultsData) {
+    if (roleDefaultsData?.defaults) {
       setLocalRoleDefaults(roleDefaultsData.defaults);
       setHasRoleChanges(false);
     }
