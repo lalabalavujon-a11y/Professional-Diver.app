@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Save, RefreshCw, Settings, Search } from "lucide-react";
+import { Users, Save, RefreshCw, Settings, Search, Shield, Globe } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 
@@ -66,6 +67,9 @@ export default function UserManagementContainer() {
   const [localUsers, setLocalUsers] = useState<UserWithPermissions[] | null>(null);
   const [hasRoleChanges, setHasRoleChanges] = useState(false);
   const [hasUserChanges, setHasUserChanges] = useState<Record<string, boolean>>({});
+  const [roleChangeDialog, setRoleChangeDialog] = useState<{ open: boolean; user: UserWithPermissions | null; newRole: string | null }>({ open: false, user: null, newRole: null });
+  const [globalFlags, setGlobalFlags] = useState<Record<string, any>>({});
+  const [hasGlobalChanges, setHasGlobalChanges] = useState(false);
 
   // Get current user email for API calls
   const getCurrentUserEmail = () => {
@@ -105,12 +109,12 @@ export default function UserManagementContainer() {
     enabled: !!selectedRole,
   });
 
-  // Fetch user permissions
+  // Fetch user permissions (with option to include all users for role management)
   const { data: usersData, isLoading: loadingUsers, error: usersError } = useQuery<UserPermissionsResponse>({
     queryKey: ["/api/admin/user-permissions"],
     queryFn: async () => {
       const email = getCurrentUserEmail();
-      const response = await fetch(`/api/admin/user-permissions?email=${encodeURIComponent(email)}`);
+      const response = await fetch(`/api/admin/user-permissions?email=${encodeURIComponent(email)}&includeAllUsers=true`);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to fetch user permissions");
@@ -125,6 +129,28 @@ export default function UserManagementContainer() {
       setHasUserChanges({});
     },
     retry: 1,
+  });
+
+  // Fetch global feature flags
+  const { data: globalFeaturesData, isLoading: loadingGlobalFeatures } = useQuery<{ flags: any[] }>({
+    queryKey: ["/api/admin/global-features"],
+    queryFn: async () => {
+      const email = getCurrentUserEmail();
+      const response = await fetch(`/api/admin/global-features?email=${encodeURIComponent(email)}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch global features");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      const flagsMap: Record<string, any> = {};
+      data.flags.forEach((flag: any) => {
+        flagsMap[flag.featureId] = flag;
+      });
+      setGlobalFlags(flagsMap);
+      setHasGlobalChanges(false);
+    },
   });
 
   // Save role defaults mutation
@@ -221,6 +247,104 @@ export default function UserManagementContainer() {
     },
   });
 
+  // Update user role mutation
+  const updateUserRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const email = getCurrentUserEmail();
+      const response = await fetch(`/api/admin/users/${userId}/role?email=${encodeURIComponent(email)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update user role");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/user-permissions"] });
+      setRoleChangeDialog({ open: false, user: null, newRole: null });
+      toast({
+        title: "Success",
+        description: "User role updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update role: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update global feature flag mutation
+  const updateGlobalFeatureMutation = useMutation({
+    mutationFn: async ({ featureId, enabled }: { featureId: string; enabled: boolean }) => {
+      const email = getCurrentUserEmail();
+      const response = await fetch(`/api/admin/global-features/${featureId}?email=${encodeURIComponent(email)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update global feature");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/global-features"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/current/permissions"] });
+      setHasGlobalChanges(false);
+      toast({
+        title: "Success",
+        description: "Global feature flag updated",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Bulk update global features mutation
+  const bulkUpdateGlobalFeaturesMutation = useMutation({
+    mutationFn: async (flags: { featureId: string; enabled: boolean }[]) => {
+      const email = getCurrentUserEmail();
+      const response = await fetch(`/api/admin/global-features?email=${encodeURIComponent(email)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ flags, updatedBy: email }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update global features");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/global-features"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/current/permissions"] });
+      setHasGlobalChanges(false);
+      toast({
+        title: "Success",
+        description: "Global features updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handle role default toggle
   const handleRoleDefaultToggle = (featureId: string, enabled: boolean) => {
     if (!localRoleDefaults) return;
@@ -279,6 +403,63 @@ export default function UserManagementContainer() {
   // Handle reset user
   const handleResetUser = (userId: string) => {
     resetUserMutation.mutate(userId);
+  };
+
+  // Handle role change
+  const handleRoleChange = (user: UserWithPermissions, newRole: string) => {
+    setRoleChangeDialog({ open: true, user, newRole });
+  };
+
+  // Confirm role change
+  const handleConfirmRoleChange = () => {
+    if (roleChangeDialog.user && roleChangeDialog.newRole) {
+      updateUserRoleMutation.mutate({
+        userId: roleChangeDialog.user.id,
+        role: roleChangeDialog.newRole,
+      });
+    }
+  };
+
+  // Handle global feature toggle
+  const handleGlobalFeatureToggle = (featureId: string, enabled: boolean) => {
+    const updated = { ...globalFlags };
+    if (updated[featureId]) {
+      updated[featureId] = { ...updated[featureId], enabled };
+    }
+    setGlobalFlags(updated);
+    setHasGlobalChanges(true);
+  };
+
+  // Handle bulk global feature update
+  const handleBulkGlobalUpdate = (enabled: boolean, category?: string) => {
+    if (!globalFeaturesData?.flags) return;
+
+    const flagsToUpdate = category
+      ? globalFeaturesData.flags.filter((f: any) => f.category === category)
+      : globalFeaturesData.flags;
+
+    const updates = flagsToUpdate.map((flag: any) => ({
+      featureId: flag.featureId,
+      enabled,
+    }));
+
+    bulkUpdateGlobalFeaturesMutation.mutate(updates);
+  };
+
+  // Save global feature changes
+  const handleSaveGlobalFeatures = () => {
+    if (!globalFeaturesData?.flags) return;
+
+    const updates = Object.values(globalFlags)
+      .filter((flag: any) => flag.enabled !== undefined)
+      .map((flag: any) => ({
+        featureId: flag.featureId,
+        enabled: flag.enabled,
+      }));
+
+    if (updates.length > 0) {
+      bulkUpdateGlobalFeaturesMutation.mutate(updates);
+    }
   };
 
   const features = featuresData?.features || [];
@@ -422,7 +603,7 @@ export default function UserManagementContainer() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="role-defaults" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="role-defaults">
               <Settings className="w-4 h-4 mr-2" />
               Role Defaults
@@ -430,6 +611,14 @@ export default function UserManagementContainer() {
             <TabsTrigger value="user-overrides">
               <Users className="w-4 h-4 mr-2" />
               User Overrides
+            </TabsTrigger>
+            <TabsTrigger value="role-management">
+              <Shield className="w-4 h-4 mr-2" />
+              Role Management
+            </TabsTrigger>
+            <TabsTrigger value="global-features">
+              <Globe className="w-4 h-4 mr-2" />
+              Global Features
             </TabsTrigger>
           </TabsList>
 
@@ -718,7 +907,304 @@ export default function UserManagementContainer() {
               )}
             </div>
           </TabsContent>
+
+          {/* Role Management Tab */}
+          <TabsContent value="role-management" className="mt-6">
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Search Users
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Input
+                      placeholder="Search users by name or email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Filter by Role
+                  </label>
+                  <Select value={selectedRole} onValueChange={setSelectedRole}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Roles" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="USER">User</SelectItem>
+                      <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
+                      <SelectItem value="AFFILIATE">Partner Admin</SelectItem>
+                      <SelectItem value="LIFETIME">Lifetime</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {loadingUsers ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="w-6 h-6 animate-spin text-primary-600" />
+                  <span className="ml-2 text-slate-600">Loading users...</span>
+                </div>
+              ) : usersError ? (
+                <div className="text-center py-8 text-red-600">
+                  Error loading users: {usersError instanceof Error ? usersError.message : "Unknown error"}
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  No users found.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredUsers.map((user) => {
+                    const roleOptions = [
+                      { value: "USER", label: "User" },
+                      { value: "ENTERPRISE", label: "Enterprise" },
+                      { value: "AFFILIATE", label: "Partner Admin" },
+                      { value: "LIFETIME", label: "Lifetime" },
+                    ];
+
+                    return (
+                      <div
+                        key={user.id}
+                        className="border rounded-lg p-4 bg-white hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-slate-900">{user.name || 'Unknown User'}</h3>
+                            <p className="text-sm text-slate-600 mt-1">{user.email}</p>
+                            <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-primary-100 text-primary-700 rounded">
+                              Current: {user.role}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Select
+                              value={getRoleEnumFromDisplay(user.role)}
+                              onValueChange={(newRole) => handleRoleChange(user, newRole)}
+                            >
+                              <SelectTrigger className="w-48">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {roleOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Global Features Tab */}
+          <TabsContent value="global-features" className="mt-6">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Search Features
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Input
+                      placeholder="Search features..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkGlobalUpdate(true)}
+                    disabled={bulkUpdateGlobalFeaturesMutation.isPending}
+                  >
+                    Enable All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkGlobalUpdate(false)}
+                    disabled={bulkUpdateGlobalFeaturesMutation.isPending}
+                  >
+                    Disable All
+                  </Button>
+                </div>
+              </div>
+
+              {loadingGlobalFeatures ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="w-6 h-6 animate-spin text-primary-600" />
+                  <span className="ml-2 text-slate-600">Loading global features...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-6">
+                    {Object.entries(filteredFeaturesByCategory).map(([category, categoryFeatures]) => (
+                      <div key={category} className="border rounded-lg p-6 bg-slate-50">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-slate-900">{category}</h3>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleBulkGlobalUpdate(true, category)}
+                              disabled={bulkUpdateGlobalFeaturesMutation.isPending}
+                            >
+                              Enable Category
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleBulkGlobalUpdate(false, category)}
+                              disabled={bulkUpdateGlobalFeaturesMutation.isPending}
+                            >
+                              Disable Category
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {categoryFeatures.map((feature) => {
+                            const flag = globalFlags[feature.id];
+                            const isEnabled = flag?.enabled ?? true;
+                            const updatedAt = flag?.updatedAt;
+                            const updatedBy = flag?.updatedBy;
+
+                            return (
+                              <div
+                                key={feature.id}
+                                className={`flex items-center justify-between p-3 rounded-lg border ${
+                                  isEnabled
+                                    ? "bg-white border-green-200"
+                                    : "bg-red-50 border-red-200"
+                                }`}
+                              >
+                                <div className="flex-1 mr-3">
+                                  <div className="flex items-center gap-2">
+                                    <label
+                                      htmlFor={`global-${feature.id}`}
+                                      className="text-sm font-medium text-slate-900 cursor-pointer"
+                                    >
+                                      {feature.name}
+                                    </label>
+                                    {!isEnabled && (
+                                      <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded">
+                                        Disabled
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-slate-600 mt-1">{feature.description}</p>
+                                  {updatedAt && (
+                                    <p className="text-xs text-slate-500 mt-1">
+                                      Updated: {new Date(updatedAt).toLocaleDateString()}
+                                      {updatedBy && ` by ${updatedBy}`}
+                                    </p>
+                                  )}
+                                </div>
+                                <Switch
+                                  id={`global-${feature.id}`}
+                                  checked={isEnabled}
+                                  onCheckedChange={(checked) => {
+                                    handleGlobalFeatureToggle(feature.id, checked);
+                                    updateGlobalFeatureMutation.mutate({ featureId: feature.id, enabled: checked });
+                                  }}
+                                  disabled={updateGlobalFeatureMutation.isPending}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {hasGlobalChanges && (
+                    <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        You have unsaved changes to global features.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            if (globalFeaturesData) {
+                              const flagsMap: Record<string, any> = {};
+                              globalFeaturesData.flags.forEach((flag: any) => {
+                                flagsMap[flag.featureId] = flag;
+                              });
+                              setGlobalFlags(flagsMap);
+                              setHasGlobalChanges(false);
+                            }
+                          }}
+                          disabled={bulkUpdateGlobalFeaturesMutation.isPending}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Reset
+                        </Button>
+                        <Button
+                          onClick={handleSaveGlobalFeatures}
+                          disabled={bulkUpdateGlobalFeaturesMutation.isPending}
+                          className="bg-primary-500 hover:bg-primary-600"
+                        >
+                          <Save className="w-4 h-4 mr-2" />
+                          {bulkUpdateGlobalFeaturesMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
+
+        {/* Role Change Confirmation Dialog */}
+        <Dialog open={roleChangeDialog.open} onOpenChange={(open) => setRoleChangeDialog({ open, user: null, newRole: null })}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Role Change</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to change {roleChangeDialog.user?.name}'s role from{" "}
+                <strong>{roleChangeDialog.user?.role}</strong> to{" "}
+                <strong>
+                  {roleChangeDialog.newRole === "USER" ? "User" :
+                   roleChangeDialog.newRole === "ENTERPRISE" ? "Enterprise" :
+                   roleChangeDialog.newRole === "AFFILIATE" ? "Partner Admin" :
+                   roleChangeDialog.newRole === "LIFETIME" ? "Lifetime" : roleChangeDialog.newRole}
+                </strong>?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setRoleChangeDialog({ open: false, user: null, newRole: null })}
+                disabled={updateUserRoleMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmRoleChange}
+                disabled={updateUserRoleMutation.isPending}
+                className="bg-primary-500 hover:bg-primary-600"
+              >
+                {updateUserRoleMutation.isPending ? "Updating..." : "Confirm"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
