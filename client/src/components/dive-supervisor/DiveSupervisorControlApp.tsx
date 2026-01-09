@@ -217,12 +217,24 @@ export default function DiveSupervisorControlApp() {
       }
     };
     
+    // Check immediately on mount and when location changes
     checkUrlParams();
+    
+    // Also check periodically in case URL changes without location change (from sidebar navigation)
+    const interval = setInterval(() => {
+      const params = new URLSearchParams(window.location.search);
+      const containerParam = params.get('container');
+      setActiveContainer(prev => {
+        const newContainer = containerParam || null;
+        return prev !== newContainer ? newContainer : prev;
+      });
+    }, 50);
     
     // Listen to popstate for browser back/forward
     window.addEventListener('popstate', checkUrlParams);
     
     return () => {
+      clearInterval(interval);
       window.removeEventListener('popstate', checkUrlParams);
     };
   }, [location]);

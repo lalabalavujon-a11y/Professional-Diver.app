@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { LayoutDashboard, Mail, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
 
 export default function SignIn() {
@@ -18,6 +18,7 @@ export default function SignIn() {
   const [isCredentials, setIsCredentials] = useState(true);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   // Load remembered credentials on component mount
@@ -69,8 +70,13 @@ export default function SignIn() {
         title: "Welcome back!",
         description: "You have been signed in successfully.",
       });
-      // Redirect to dashboard
-      window.location.href = '/dashboard';
+      // Redirect to dashboard using router (preserves scroll-to-top)
+      // Force scroll to top before navigation
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      // Use router navigation instead of window.location.href
+      setLocation('/dashboard');
     },
     onError: (error: any) => {
       console.error("Sign in error:", error);

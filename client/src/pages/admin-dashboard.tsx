@@ -22,8 +22,8 @@ import {
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
-import type { Invite } from "@shared/schema";
+import { Link, useLocation } from "wouter";
+import type { Invite, Track } from "@shared/schema";
 
 type DashboardStats = {
   activeUsers: number;

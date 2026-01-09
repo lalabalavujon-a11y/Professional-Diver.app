@@ -608,7 +608,7 @@ export default function RoleBasedNavigation() {
         )}
         {/* Header - Fixed position to stay at top */}
         <header 
-          className="sticky top-0 z-50 flex h-20 shrink-0 items-center gap-3 md:gap-4 border-b bg-background/95 backdrop-blur-sm px-3 sm:px-4 py-2" 
+          className="fixed top-0 z-50 flex h-20 shrink-0 items-center gap-3 md:gap-4 border-b bg-background/95 backdrop-blur-sm px-3 sm:px-4 py-2" 
           data-testid="navigation-header"
         >
           <SidebarTrigger className="-ml-1 h-9 w-9 md:h-10 md:w-10 flex-shrink-0" />

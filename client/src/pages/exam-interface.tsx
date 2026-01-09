@@ -338,7 +338,7 @@ export default function ExamInterface() {
   return (
     <>
       <RoleBasedNavigation />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50 pt-20" data-sidebar-content="true">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Exam Header */}
         <div className="mb-6">
