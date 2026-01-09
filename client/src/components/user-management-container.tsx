@@ -149,15 +149,18 @@ export default function UserManagementContainer() {
       }
       return response.json();
     },
-    onSuccess: (data) => {
+  });
+
+  useEffect(() => {
+    if (globalFeaturesData?.flags) {
       const flagsMap: Record<string, any> = {};
-      data.flags.forEach((flag: any) => {
+      globalFeaturesData.flags.forEach((flag: any) => {
         flagsMap[flag.featureId] = flag;
       });
       setGlobalFlags(flagsMap);
       setHasGlobalChanges(false);
-    },
-  });
+    }
+  }, [globalFeaturesData]);
 
   // Save role defaults mutation
   const saveRoleDefaultsMutation = useMutation({
