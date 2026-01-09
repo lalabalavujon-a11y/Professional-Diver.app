@@ -1992,8 +1992,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get detailed flag info from database (for updatedAt/updatedBy)
       const isSQLiteDev = process.env.NODE_ENV === "development";
-      const { globalFeatureFlags as globalFeatureFlagsPg } = await import("@shared/schema");
-      const { globalFeatureFlags as globalFeatureFlagsSQLite } = await import("@shared/schema-sqlite");
+      const schemaModule = await import("@shared/schema");
+      const schemaSQLiteModule = await import("@shared/schema-sqlite");
+      const { globalFeatureFlags: globalFeatureFlagsPg } = schemaModule;
+      const { globalFeatureFlags: globalFeatureFlagsSQLite } = schemaSQLiteModule;
       
       const dbFlags = isSQLiteDev
         ? await db.select().from(globalFeatureFlagsSQLite)
