@@ -6,8 +6,8 @@
  */
 
 import { db } from "./db";
-import { featureDefinitions, roleFeatureDefaults } from "@shared/schema";
-import { featureDefinitions as featureDefinitionsSQLite, roleFeatureDefaults as roleFeatureDefaultsSQLite } from "@shared/schema-sqlite";
+import { featureDefinitions, roleFeatureDefaults, globalFeatureFlags } from "@shared/schema";
+import { featureDefinitions as featureDefinitionsSQLite, roleFeatureDefaults as roleFeatureDefaultsSQLite, globalFeatureFlags as globalFeatureFlagsSQLite } from "@shared/schema-sqlite";
 import { eq, and } from "drizzle-orm";
 import { FEATURE_REGISTRY, getAllFeatures } from "./feature-registry";
 
@@ -54,6 +54,18 @@ export async function ensureFeatureTables(): Promise<void> {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (feature_id) REFERENCES feature_definitions(id) ON DELETE CASCADE,
         UNIQUE(user_id, feature_id)
+      );
+    `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS global_feature_flags (
+        id text PRIMARY KEY NOT NULL,
+        feature_id text NOT NULL UNIQUE,
+        enabled integer NOT NULL DEFAULT 1,
+        description text,
+        updated_at integer NOT NULL,
+        updated_by text,
+        FOREIGN KEY (feature_id) REFERENCES feature_definitions(id) ON DELETE CASCADE
       );
     `);
   }
@@ -267,6 +279,21 @@ export async function initializeDefaultRolePermissions(): Promise<void> {
 }
 
 /**
+ * Initialize global feature flags
+ * Creates default entries for all features with enabled: true
+ */
+export async function initializeGlobalFeatureFlags(): Promise<void> {
+  try {
+    const { initializeGlobalFeatureFlags: initGlobalFlags } = await import("./feature-service");
+    await initGlobalFlags();
+    console.log("✓ Global feature flags initialized");
+  } catch (error: any) {
+    console.error("⚠️ Warning: Global feature flags initialization failed:", error?.message || error);
+    // Don't throw - allow server to continue
+  }
+}
+
+/**
  * Initialize all feature management tables and data
  */
 export async function initializeFeatureManagement(): Promise<void> {
@@ -281,6 +308,9 @@ export async function initializeFeatureManagement(): Promise<void> {
     
     await initializeDefaultRolePermissions();
     console.log("✓ Default role permissions initialized");
+    
+    await initializeGlobalFeatureFlags();
+    console.log("✓ Global feature flags initialized");
     
     console.log("✅ Feature management system initialized successfully");
   } catch (error: any) {

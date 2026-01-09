@@ -1249,6 +1249,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync Partner Admins to CRM (Super Admin only)
+  app.post("/api/admin/sync-partners-to-crm", async (req, res) => {
+    try {
+      const userEmail = req.query.email as string;
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      // Get all Partner Admins
+      const partnerAdmins = userManagement.getPartnerAdmins();
+      
+      if (partnerAdmins.length === 0) {
+        return res.json({
+          success: true,
+          synced: 0,
+          syncedClients: [],
+          errors: [],
+          message: "No Partner Admins to sync",
+        });
+      }
+
+      // Get all existing clients from CRM
+      const existingClients = await tempStorage.getAllClients();
+      const existingClientEmails = new Set(existingClients.map((c: any) => c.email?.toLowerCase()));
+
+      const syncedClients: any[] = [];
+      const errors: any[] = [];
+
+      // Sync each Partner Admin
+      for (const partnerAdmin of partnerAdmins) {
+        try {
+          const emailLower = partnerAdmin.email?.toLowerCase();
+          
+          // Check if client already exists
+          if (existingClientEmails.has(emailLower)) {
+            // Client exists - skip or update (optional: update existing)
+            errors.push({
+              email: partnerAdmin.email,
+              error: "Client already exists in CRM",
+              action: "skipped",
+            });
+            continue;
+          }
+
+          // Create client in CRM
+          const clientData = {
+            name: partnerAdmin.name,
+            email: partnerAdmin.email,
+            subscriptionType: 'LIFETIME',
+            status: 'ACTIVE',
+            notes: "Partner Admin - Managed by Super Admin",
+            partnerStatus: 'PARTNER_ADMIN',
+            monthlyRevenue: 0, // Lifetime access
+          };
+
+          const client = await crmAdapter.createClient(clientData);
+          syncedClients.push({
+            id: client.id,
+            name: client.name,
+            email: client.email,
+            subscriptionType: client.subscriptionType,
+            status: client.status,
+          });
+        } catch (error: any) {
+          errors.push({
+            email: partnerAdmin.email,
+            error: error.message || "Failed to sync to CRM",
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        synced: syncedClients.length,
+        syncedClients,
+        errors: errors.length > 0 ? errors : undefined,
+        message: `Synced ${syncedClients.length} Partner Admin(s) to CRM`,
+      });
+    } catch (error: any) {
+      console.error("Error syncing Partner Admins to CRM:", error);
+      res.status(500).json({ error: error.message || "Failed to sync Partner Admins to CRM" });
+    }
+  });
+
   app.get("/api/clients/stats", async (req, res) => {
     try {
       const stats = await tempStorage.getClientStats();
@@ -1881,6 +1970,253 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get global feature flags
+  app.get("/api/admin/global-features", async (req, res) => {
+    try {
+      const userEmail = req.query.email as string;
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      const { getAllFeatures } = await import("./feature-registry");
+      const allFeatures = getAllFeatures();
+      
+      // Get global flags from database using feature service
+      const { getGlobalFeatureFlags } = featureService;
+      const globalFlags = await getGlobalFeatureFlags();
+      
+      // Get detailed flag info from database (for updatedAt/updatedBy)
+      const isSQLiteDev = process.env.NODE_ENV === "development";
+      const { globalFeatureFlags as globalFeatureFlagsPg } = await import("@shared/schema");
+      const { globalFeatureFlags as globalFeatureFlagsSQLite } = await import("@shared/schema-sqlite");
+      
+      const dbFlags = isSQLiteDev
+        ? await db.select().from(globalFeatureFlagsSQLite)
+        : await db.select().from(globalFeatureFlagsPg);
+
+      // Build map of featureId -> flag data (for metadata like updatedAt/updatedBy)
+      const flagMetadataMap = new Map(dbFlags.map(f => [f.featureId, f]));
+
+      // Build response with feature metadata
+      const flagsWithMetadata = allFeatures.map(feature => {
+        const flagData = flagMetadataMap.get(feature.id);
+        const updatedAt = flagData?.updatedAt 
+          ? (flagData.updatedAt instanceof Date ? flagData.updatedAt.toISOString() : new Date(flagData.updatedAt as number).toISOString())
+          : null;
+        
+        return {
+          featureId: feature.id,
+          name: feature.name,
+          description: feature.description,
+          category: feature.category,
+          enabled: globalFlags[feature.id] ?? true,
+          updatedAt,
+          updatedBy: flagData?.updatedBy || null,
+        };
+      });
+
+      res.json({ flags: flagsWithMetadata });
+    } catch (error) {
+      console.error("Global features API error:", error);
+      res.status(500).json({ error: "Failed to fetch global feature flags" });
+    }
+  });
+
+  // Update single global feature flag
+  app.put("/api/admin/global-features/:featureId", async (req, res) => {
+    try {
+      const userEmail = req.query.email as string;
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      const { featureId } = req.params;
+      const { enabled } = req.body;
+
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: "enabled must be a boolean" });
+      }
+
+      const { updateGlobalFeatureFlag } = featureService;
+      await updateGlobalFeatureFlag(featureId, enabled, userEmail);
+
+      res.json({ success: true, featureId, enabled, updatedBy: userEmail });
+    } catch (error) {
+      console.error("Global feature update error:", error);
+      res.status(500).json({ error: "Failed to update global feature flag" });
+    }
+  });
+
+  // Bulk update global feature flags
+  app.put("/api/admin/global-features", async (req, res) => {
+    try {
+      const userEmail = req.query.email as string;
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      const { flags, updatedBy } = req.body;
+
+      if (!Array.isArray(flags)) {
+        return res.status(400).json({ error: "flags must be an array" });
+      }
+
+      const { updateGlobalFeatureFlag } = featureService;
+      const updateBy = updatedBy || userEmail;
+      const results: any[] = [];
+      const errors: any[] = [];
+
+      // Update each flag
+      for (const flag of flags) {
+        try {
+          if (typeof flag.featureId !== 'string' || typeof flag.enabled !== 'boolean') {
+            errors.push({ featureId: flag.featureId, error: "Invalid flag data" });
+            continue;
+          }
+          await updateGlobalFeatureFlag(flag.featureId, flag.enabled, updateBy);
+          results.push({ featureId: flag.featureId, enabled: flag.enabled });
+        } catch (error: any) {
+          errors.push({ featureId: flag.featureId, error: error.message });
+        }
+      }
+
+      res.json({
+        success: true,
+        updated: results.length,
+        flags: results,
+        errors: errors.length > 0 ? errors : undefined,
+      });
+    } catch (error) {
+      console.error("Bulk global features update error:", error);
+      res.status(500).json({ error: "Failed to update global feature flags" });
+    }
+  });
+
+  // Update user role (Super Admin only)
+  app.put("/api/admin/users/:userId/role", async (req, res) => {
+    try {
+      const userEmail = req.query.email as string;
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      const { userId } = req.params;
+      const { role } = req.body;
+
+      if (!role) {
+        return res.status(400).json({ error: "Role is required" });
+      }
+
+      // Validate role enum
+      const validRoles = ['USER', 'ENTERPRISE', 'AFFILIATE', 'LIFETIME'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ error: `Invalid role. Must be one of: ${validRoles.join(', ')}` });
+      }
+
+      // Find user by userId or email
+      const targetUser = userManagement.getSpecialUser(userId) || 
+                        Array.from(userManagement.getAllSpecialUsers()).find((u: any) => u.id === userId);
+
+      if (!targetUser) {
+        // User not in special users - try to update database
+        // Check if user exists in database
+        const isSQLiteDev = process.env.NODE_ENV === "development";
+        const { users: usersPg } = await import("@shared/schema");
+        const { users: usersSQLite } = await import("@shared/schema-sqlite");
+        
+        try {
+          const dbUser = isSQLiteDev
+            ? await db.select().from(usersSQLite).where(eq(usersSQLite.email, userId)).limit(1)
+            : await db.select().from(usersPg).where(eq(usersPg.email, userId)).limit(1);
+
+          if (dbUser.length > 0) {
+            // Update database user
+            if (isSQLiteDev) {
+              await db.update(usersSQLite)
+                .set({ role: role as any, updatedAt: new Date() })
+                .where(eq(usersSQLite.email, userId));
+            } else {
+              await db.update(usersPg)
+                .set({ role: role as any, updatedAt: new Date() })
+                .where(eq(usersPg.email, userId));
+            }
+
+            return res.json({
+              success: true,
+              userId,
+              email: userId,
+              role,
+              message: "Role updated in database",
+            });
+          }
+        } catch (error: any) {
+          console.error("Error updating database user role:", error);
+          return res.status(500).json({ error: "Failed to update user role in database" });
+        }
+
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Validate role change
+      if (!userManagement.canChangeRole(targetUser.email, role)) {
+        return res.status(400).json({ error: `Cannot change role to ${role} for this user` });
+      }
+
+      // Update in userManagement service
+      const updatedUser = await userManagement.updateUserRole(targetUser.email, role);
+
+      // Also update database if user exists there
+      const isSQLiteDev = process.env.NODE_ENV === "development";
+      const { users: usersPg } = await import("@shared/schema");
+      const { users: usersSQLite } = await import("@shared/schema-sqlite");
+
+      try {
+        if (isSQLiteDev) {
+          await db.update(usersSQLite)
+            .set({ role: role as any, updatedAt: new Date() })
+            .where(eq(usersSQLite.email, targetUser.email));
+        } else {
+          await db.update(usersPg)
+            .set({ role: role as any, updatedAt: new Date() })
+            .where(eq(usersPg.email, targetUser.email));
+        }
+      } catch (error: any) {
+        // Database update failed but userManagement updated - log warning
+        console.warn(`Role updated in userManagement but database update failed for ${targetUser.email}:`, error);
+      }
+
+      return res.json({
+        success: true,
+        user: updatedUser,
+        role,
+        message: "Role updated successfully",
+      });
+    } catch (error: any) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ error: error.message || "Failed to update user role" });
+    }
+  });
+
   // Get user permissions - returns Partner Admins, Enterprise Users with merged permissions
   // Only accessible to SUPER_ADMIN
   app.get("/api/admin/user-permissions", async (req, res) => {
@@ -1896,13 +2232,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Access denied. SUPER_ADMIN role required." });
       }
 
-      // Get managed users (Partner Admins, Enterprise Users)
+      // Check if we should include all users (for role management)
+      const includeAllUsers = req.query.includeAllUsers === 'true';
+
+      // Get managed users (Partner Admins, Enterprise Users, and optionally all users)
       const allSpecialUsers = userManagement.getAllSpecialUsers();
-      const managedUsers = allSpecialUsers.filter((user: any) => 
+      let managedUsers: any[] = allSpecialUsers.filter((user: any) => 
         user.role === "AFFILIATE" || 
         user.role === "ENTERPRISE" || 
         (user.role === "LIFETIME" && user.email !== 'lalabalavu.jon@gmail.com' && user.email !== 'sephdee@hotmail.com')
       );
+
+      // If includeAllUsers is true, also fetch regular users from database
+      if (includeAllUsers) {
+        try {
+          const isSQLiteDev = process.env.NODE_ENV === "development";
+          const { users: usersPg } = await import("@shared/schema");
+          const { users: usersSQLite } = await import("@shared/schema-sqlite");
+
+          const dbUsers = isSQLiteDev
+            ? await db.select().from(usersSQLite).limit(100) // Limit to prevent huge responses
+            : await db.select().from(usersPg).limit(100);
+
+          // Filter out users already in special users
+          const specialUserEmails = new Set(allSpecialUsers.map((u: any) => u.email));
+          const regularUsers = dbUsers
+            .filter(dbUser => !specialUserEmails.has(dbUser.email))
+            .map(dbUser => ({
+              id: dbUser.id,
+              email: dbUser.email,
+              name: dbUser.name || 'Unknown User',
+              role: dbUser.role,
+              subscriptionType: dbUser.subscriptionType,
+              subscriptionStatus: dbUser.subscriptionStatus || 'ACTIVE',
+              createdAt: dbUser.createdAt,
+              updatedAt: dbUser.updatedAt,
+            }));
+
+          // Merge regular users with managed users
+          managedUsers = [...managedUsers, ...regularUsers];
+        } catch (error: any) {
+          console.error("Error fetching all users for role management:", error);
+          // Continue with just special users if database query fails
+        }
+      }
 
       // Resolve permissions for each user
       const usersWithPermissions = await Promise.all(
@@ -2253,7 +2626,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userId = user.id || email;
 
-      // Resolve permissions for the role
+      // Resolve permissions for the role (includes global flag checks)
+      // Global flags are already checked inside resolveUserPermissions
+      // SUPER_ADMIN is exempt from global flags
       const permissions = await resolveUserPermissions(userId, roleToUse);
 
       // Ensure we return flat permissions object (not nested)
