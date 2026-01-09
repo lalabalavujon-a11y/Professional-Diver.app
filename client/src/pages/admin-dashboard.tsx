@@ -291,6 +291,75 @@ export default function AdminDashboard() {
           </div>
         </PageSection>
 
+        {/* CRM Management - Only visible to SUPER_ADMIN */}
+        {isSuperAdmin && (
+          <PageSection
+            title="CRM - Client Management"
+            description="Manage your Partners & Clients"
+            actions={
+              <>
+                <Link href="/crm">
+                  <Button variant="outline" size="sm">
+                    <Eye className="w-4 h-4 mr-2" />
+                    Open CRM
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => syncPartnersMutation.mutate()}
+                  disabled={syncPartnersMutation.isPending}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${syncPartnersMutation.isPending ? 'animate-spin' : ''}`} />
+                  Sync Partners to CRM
+                </Button>
+              </>
+            }
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="border rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-slate-700">Partner Admins</h3>
+                  <Building2 className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-slate-900">{partnerAdmins.length}</span>
+                  <Badge variant="secondary">{partnerAdmins.length} Active</Badge>
+                </div>
+                {partnerAdmins.length > 0 && (
+                  <div className="mt-3 text-xs text-slate-600">
+                    {partnerAdmins.slice(0, 3).map((p: any) => p.name || p.email).join(", ")}
+                    {partnerAdmins.length > 3 && ` +${partnerAdmins.length - 3} more`}
+                  </div>
+                )}
+              </div>
+
+              <div className="border rounded-lg p-4 bg-gradient-to-br from-purple-50 to-pink-50">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-slate-700">Enterprise Users</h3>
+                  <Users className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-slate-900">{enterpriseUsers.length}</span>
+                  <Badge variant="secondary">{enterpriseUsers.length} Active</Badge>
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-4 bg-gradient-to-br from-green-50 to-emerald-50">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-slate-700">All Clients</h3>
+                  <Eye className="w-5 h-5 text-green-600" />
+                </div>
+                <Link href="/crm">
+                  <Button variant="ghost" size="sm" className="w-full mt-2">
+                    View CRM Dashboard
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </PageSection>
+        )}
+
         {/* User Management Container (Access Control) - SUPER_ADMIN only */}
         {canAccessUserManagement && (
           <PageSection className="mt-6">
