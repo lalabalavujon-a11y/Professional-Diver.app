@@ -472,8 +472,8 @@ export default function UserManagementContainer() {
   };
 
   const features = featuresData?.features || [];
-  const roleDefaults = localRoleDefaults || roleDefaultsData?.defaults || [];
-  const users = localUsers || usersData?.users || [];
+  const roleDefaults = localRoleDefaults || (roleDefaultsData?.defaults ?? []);
+  const users = localUsers || (usersData?.users ?? []);
 
   // Group features by category
   const featuresByCategory = features.reduce((acc, feature) => {
