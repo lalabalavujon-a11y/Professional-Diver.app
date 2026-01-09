@@ -555,7 +555,7 @@ export default function UserManagementContainer() {
   // Pre-fetch role defaults for all unique user roles when users are loaded
   useEffect(() => {
     if (users && users.length > 0) {
-      const uniqueRoles = [...new Set(users.map(u => u.role))];
+      const uniqueRoles = Array.from(new Set(users.map(u => u.role)));
       uniqueRoles.forEach(role => {
         const roleEnum = getRoleEnumFromDisplay(role);
         
