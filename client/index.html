@@ -18,38 +18,66 @@
           history.scrollRestoration = 'manual';
         }
         
-        // Force scroll to top immediately
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
+        // Lock scroll position immediately
+        let scrollLocked = true;
+        let scrollLockTimeout;
         
-        // Watch for any scroll changes and force back to top
-        let scrollCheckInterval = setInterval(function() {
-          if (window.scrollY > 0 || document.documentElement.scrollTop > 0 || document.body.scrollTop > 0) {
-            window.scrollTo(0, 0);
-            document.documentElement.scrollTop = 0;
-            document.body.scrollTop = 0;
-          }
-        }, 10);
-        
-        // Stop checking after 5 seconds (React should have loaded by then)
-        setTimeout(function() {
-          clearInterval(scrollCheckInterval);
-        }, 5000);
-        
-        // Also prevent any scroll on load
-        window.addEventListener('load', function() {
+        function lockScroll() {
           window.scrollTo(0, 0);
           document.documentElement.scrollTop = 0;
           document.body.scrollTop = 0;
+        }
+        
+        // Force scroll to top immediately and repeatedly
+        lockScroll();
+        
+        // Prevent any scroll events from moving the page
+        function preventScroll(e) {
+          if (scrollLocked) {
+            e.preventDefault();
+            e.stopPropagation();
+            lockScroll();
+            return false;
+          }
+        }
+        
+        // Add scroll prevention listeners
+        window.addEventListener('scroll', preventScroll, { passive: false, capture: true });
+        window.addEventListener('wheel', preventScroll, { passive: false, capture: true });
+        window.addEventListener('touchmove', preventScroll, { passive: false, capture: true });
+        
+        // Aggressively check and reset scroll position
+        let scrollCheckInterval = setInterval(function() {
+          if (window.scrollY > 0 || document.documentElement.scrollTop > 0 || document.body.scrollTop > 0) {
+            lockScroll();
+          }
+        }, 5); // Check every 5ms
+        
+        // Unlock scroll after React has fully loaded (3 seconds should be enough)
+        scrollLockTimeout = setTimeout(function() {
+          scrollLocked = false;
           clearInterval(scrollCheckInterval);
+          window.removeEventListener('scroll', preventScroll, { capture: true });
+          window.removeEventListener('wheel', preventScroll, { capture: true });
+          window.removeEventListener('touchmove', preventScroll, { capture: true });
+          // Final scroll to top
+          lockScroll();
+        }, 3000);
+        
+        // Also unlock on load
+        window.addEventListener('load', function() {
+          clearTimeout(scrollLockTimeout);
+          clearInterval(scrollCheckInterval);
+          scrollLocked = false;
+          window.removeEventListener('scroll', preventScroll, { capture: true });
+          window.removeEventListener('wheel', preventScroll, { capture: true });
+          window.removeEventListener('touchmove', preventScroll, { capture: true });
+          lockScroll();
         }, { once: true });
         
         // Prevent scroll on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', function() {
-          window.scrollTo(0, 0);
-          document.documentElement.scrollTop = 0;
-          document.body.scrollTop = 0;
+          lockScroll();
         }, { once: true });
       })();
     </script>
