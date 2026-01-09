@@ -31,4 +31,18 @@ if (typeof window !== 'undefined') {
   }
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Unlock scrolling after React renders
+const root = document.getElementById("root");
+if (root) {
+  createRoot(root).render(<App />);
+  
+  // Unlock body scroll after React has rendered
+  setTimeout(() => {
+    document.body.style.overflow = '';
+    document.body.style.overflowX = 'hidden';
+    // Final scroll to top
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, 100);
+}
