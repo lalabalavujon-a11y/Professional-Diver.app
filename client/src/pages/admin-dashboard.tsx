@@ -62,6 +62,16 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/stats"],
   });
 
+  // Fetch tracks for Content Management (admin: get all tracks including unpublished)
+  const { data: tracks, isLoading: tracksLoading } = useQuery<Track[]>({
+    queryKey: ["/api/tracks", "?all=true"],
+    queryFn: async () => {
+      const response = await fetch("/api/tracks?all=true");
+      if (!response.ok) throw new Error("Failed to fetch tracks");
+      return response.json();
+    },
+  });
+
   // Fetch user permissions to get Partner Admins and Enterprise Users
   const { data: userPermissionsData } = useQuery<{ users: any[] }>({
     queryKey: ["/api/admin/user-permissions"],
@@ -116,10 +126,43 @@ export default function AdminDashboard() {
     },
   });
 
+  // Publish track mutation
+  const publishTrackMutation = useMutation({
+    mutationFn: async ({ trackId, isPublished }: { trackId: string; isPublished: boolean }) => {
+      // Try to update track via API - endpoint may need to be created
+      const response = await fetch(`/api/tracks/${trackId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublished }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update track. API endpoint may need to be created.");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tracks"] });
+      toast({
+        title: "Success",
+        description: "Track status updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update track status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const [location, navigate] = useLocation();
+
   return (
     <>
       <RoleBasedNavigation />
-      <div className="min-h-screen bg-background pt-20" data-sidebar-content="true">
+      <div className="min-h-screen bg-background" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Trial User Management */}
         <div className="mb-6">
@@ -252,43 +295,84 @@ export default function AdminDashboard() {
         <PageSection
           title="Content Management"
           actions={
-            <Button variant="ghost" size="sm" data-testid="button-manage-all">
-              Manage All
-            </Button>
+            <Link href="/markdown-editor">
+              <Button variant="ghost" size="sm" data-testid="button-manage-all">
+                Manage All
+              </Button>
+            </Link>
           }
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <div className="border rounded-lg p-4 hover:shadow-md transition-shadow" data-testid="content-card-physiology">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-foreground">Physiology Basics</h4>
-                <Badge variant="default" className="bg-success-100 text-success-800">
-                  Published
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">5 lessons, 3 quizzes</p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">Edit</Button>
-                <Button variant="ghost" size="sm">
-                  <Eye className="w-4 h-4 mr-2" />
-                  Preview
-                </Button>
-              </div>
+          {tracksLoading ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              {[1, 2].map((i) => (
+                <div key={i} className="border rounded-lg p-4 animate-pulse">
+                  <div className="h-6 bg-gray-200 rounded w-1/2 mb-3"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
+                  <div className="flex gap-2">
+                    <div className="h-8 bg-gray-200 rounded w-16"></div>
+                    <div className="h-8 bg-gray-200 rounded w-20"></div>
+                  </div>
+                </div>
+              ))}
             </div>
-            
-            <div className="border rounded-lg p-4 hover:shadow-md transition-shadow" data-testid="content-card-decompression">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-foreground">Decompression Theory</h4>
-                <Badge variant="secondary" className="bg-warning-100 text-warning-800">
-                  Draft
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">7 lessons, 5 quizzes</p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">Edit</Button>
-                <Button variant="default" size="sm">Publish</Button>
-              </div>
+          ) : !tracks || tracks.length === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="No tracks found"
+              description="Create your first track to get started with content management"
+              action={{
+                label: "Create Track",
+                onClick: () => navigate("/markdown-editor"),
+              }}
+            />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              {tracks.slice(0, 4).map((track) => (
+                <div key={track.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow" data-testid={`content-card-${track.slug}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-foreground">{track.title}</h4>
+                    <Badge 
+                      variant={track.isPublished ? "default" : "secondary"} 
+                      className={track.isPublished ? "bg-success-100 text-success-800" : "bg-warning-100 text-warning-800"}
+                    >
+                      {track.isPublished ? "Published" : "Draft"}
+                    </Badge>
+                  </div>
+                  {track.summary && (
+                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{track.summary}</p>
+                  )}
+                  <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground">
+                    <span className="capitalize">{track.difficulty || "beginner"}</span>
+                    {track.estimatedHours && track.estimatedHours > 0 && (
+                      <span>{track.estimatedHours} hours</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Link href={`/tracks/${track.slug}`}>
+                      <Button variant="outline" size="sm">Edit</Button>
+                    </Link>
+                    {track.isPublished ? (
+                      <Link href={`/tracks/${track.slug}`}>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="w-4 h-4 mr-2" />
+                          Preview
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => publishTrackMutation.mutate({ trackId: track.id, isPublished: true })}
+                        disabled={publishTrackMutation.isPending}
+                      >
+                        {publishTrackMutation.isPending ? "Publishing..." : "Publish"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </PageSection>
 
         {/* CRM Management - Only visible to SUPER_ADMIN */}

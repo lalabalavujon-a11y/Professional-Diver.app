@@ -206,15 +206,46 @@ export default function DiveSupervisorControlApp() {
 
   // Handle URL parameters for direct container navigation
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const containerParam = params.get('container');
-    if (containerParam) {
-      setActiveContainer(containerParam);
-    }
+    const checkUrlParams = () => {
+      const params = new URLSearchParams(window.location.search);
+      const containerParam = params.get('container');
+      if (containerParam) {
+        setActiveContainer(containerParam);
+      } else {
+        // If no container param, ensure we're showing the grid
+        setActiveContainer(null);
+      }
+    };
+    
+    checkUrlParams();
+    
+    // Listen to popstate for browser back/forward
+    window.addEventListener('popstate', checkUrlParams);
+    
+    return () => {
+      window.removeEventListener('popstate', checkUrlParams);
+    };
   }, [location]);
 
   const handleContainerClick = (containerId: string) => {
-    setActiveContainer(activeContainer === containerId ? null : containerId);
+    const newActiveContainer = activeContainer === containerId ? null : containerId;
+    setActiveContainer(newActiveContainer);
+    
+    // Update URL with container parameter for direct navigation
+    if (newActiveContainer) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('container', newActiveContainer);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.pushState({}, '', newUrl);
+    } else {
+      // Remove container param when closing
+      const params = new URLSearchParams(window.location.search);
+      params.delete('container');
+      const newUrl = params.toString() 
+        ? `${window.location.pathname}?${params.toString()}`
+        : window.location.pathname;
+      window.history.pushState({}, '', newUrl);
+    }
   };
 
   const activeContainerConfig = activeContainer 
@@ -223,76 +254,39 @@ export default function DiveSupervisorControlApp() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center space-x-3">
-            <Shield className="w-8 h-8 text-blue-600" />
-            <div>
-              <CardTitle>Dive Supervisor Control</CardTitle>
-              <CardDescription>
-                Comprehensive dive operation management, crew coordination, and safety oversight tools
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-
-      {/* Container Grid - 3 columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {supervisorContainers.map((container) => {
-          const Icon = container.icon;
-          const isActive = activeContainer === container.id;
-          
-          return (
-            <CollapsibleContainer
-              key={container.id}
-              title={container.title}
-              description={container.description}
-              icon={
-                <div className={`p-2 rounded-lg bg-white ${container.color}`}>
-                  <Icon className="w-6 h-6" />
-                </div>
-              }
-              className={`transition-all ${isActive ? 'ring-2 ring-blue-500 shadow-lg' : ''}`}
-              headerClassName={`${container.bgColor} pb-3`}
-              defaultCollapsed={true}
-            >
-              <Button
-                className="w-full"
-                onClick={() => handleContainerClick(container.id)}
-                variant={isActive ? "default" : "outline"}
-              >
-                {isActive ? "Close" : "Open"} {container.title}
-              </Button>
-            </CollapsibleContainer>
-          );
-        })}
-      </div>
-
-      {/* Active Container Content */}
-      {activeContainerConfig && activeContainer && (
-        <div className="mt-6 space-y-4">
+      {activeContainer ? (
+        /* Active Container Content - Replaces grid */
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               {(() => {
-                const Icon = activeContainerConfig.icon;
-                return <Icon className={`w-5 h-5 ${activeContainerConfig.color}`} />;
+                const Icon = activeContainerConfig?.icon;
+                return Icon ? <Icon className={`w-5 h-5 ${activeContainerConfig.color}`} /> : null;
               })()}
               <h2 className="text-2xl font-bold">
-                {activeContainerConfig.title}
+                {activeContainerConfig?.title || activeContainer}
               </h2>
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setActiveContainer(null)}
+              onClick={() => {
+                setActiveContainer(null);
+                // Update URL to remove container parameter
+                const params = new URLSearchParams(window.location.search);
+                params.delete('container');
+                const newUrl = params.toString() 
+                  ? `${window.location.pathname}?${params.toString()}`
+                  : window.location.pathname;
+                window.history.pushState({}, '', newUrl);
+              }}
             >
-              Close
+              ← Back to Dive Supervisor Control
             </Button>
           </div>
           <div>
             {(() => {
+              if (!activeContainerConfig) return null;
               const Component = activeContainerConfig.component;
               if (activeContainer === 'team' || activeContainer === 'whiteboard') {
                 return <Component />;
@@ -321,6 +315,55 @@ export default function DiveSupervisorControlApp() {
             })()}
           </div>
         </div>
+      ) : (
+        /* Grid of Container Cards */
+        <>
+          {/* Header */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <Shield className="w-8 h-8 text-blue-600" />
+                <div>
+                  <CardTitle>Dive Supervisor Control</CardTitle>
+                  <CardDescription>
+                    Comprehensive dive operation management, crew coordination, and safety oversight tools
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* Container Grid - 3 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {supervisorContainers.map((container) => {
+              const Icon = container.icon;
+              
+              return (
+                <CollapsibleContainer
+                  key={container.id}
+                  title={container.title}
+                  description={container.description}
+                  icon={
+                    <div className={`p-2 rounded-lg bg-white ${container.color}`}>
+                      <Icon className="w-6 h-6" />
+                    </div>
+                  }
+                  className="transition-all"
+                  headerClassName={`${container.bgColor} pb-3`}
+                  defaultCollapsed={true}
+                >
+                  <Button
+                    className="w-full"
+                    onClick={() => handleContainerClick(container.id)}
+                    variant="outline"
+                  >
+                    Open {container.title}
+                  </Button>
+                </CollapsibleContainer>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

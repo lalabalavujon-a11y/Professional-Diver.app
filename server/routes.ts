@@ -412,8 +412,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tracks routes
   app.get("/api/tracks", async (req, res) => {
     try {
-      const tracks = await tempStorage.getAllTracks();
-      res.json(tracks);
+      // Check if admin wants all tracks (including unpublished)
+      const includeAll = req.query.all === 'true';
+      
+      if (includeAll) {
+        // For admin: return all tracks
+        const { db } = await import('./db.js');
+        const { tracks, aiTutors } = await import('@shared/schema-sqlite');
+        const allTracks = await db.select({
+          id: tracks.id,
+          title: tracks.title,
+          slug: tracks.slug,
+          summary: tracks.summary,
+          isPublished: tracks.isPublished,
+          difficulty: tracks.difficulty,
+          estimatedHours: tracks.estimatedHours,
+          createdAt: tracks.createdAt,
+        }).from(tracks)
+          .leftJoin(aiTutors, eq(tracks.aiTutorId, aiTutors.id))
+          .orderBy(tracks.title);
+        
+        // Convert SQLite boolean to proper boolean
+        const formattedTracks = allTracks.map(track => ({
+          ...track,
+          isPublished: track.isPublished === 1 || track.isPublished === true
+        }));
+        
+        res.json(formattedTracks);
+      } else {
+        // For regular users: return only published tracks
+        const tracks = await tempStorage.getAllTracks();
+        res.json(tracks);
+      }
     } catch (error) {
       console.error('Tracks API error:', error);
       res.status(500).json({ error: "Failed to fetch tracks" });
@@ -458,6 +488,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Track lessons API error:', error);
       res.status(500).json({ error: "Failed to fetch track lessons" });
+    }
+  });
+
+  // Update track (for publication status)
+  app.patch("/api/tracks/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isPublished } = req.body;
+      
+      const { db } = await import('./db.js');
+      const { tracks } = await import('@shared/schema-sqlite');
+      
+      // Update track
+      const [updated] = await db.update(tracks)
+        .set({ isPublished: isPublished === true ? 1 : 0 })
+        .where(eq(tracks.id, id))
+        .returning();
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Track not found" });
+      }
+      
+      res.json({
+        ...updated,
+        isPublished: updated.isPublished === 1 || updated.isPublished === true
+      });
+    } catch (error) {
+      console.error('Update track API error:', error);
+      res.status(500).json({ error: "Failed to update track" });
     }
   });
 
@@ -2527,22 +2586,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Email is required" });
       }
 
+      // Normalize email (lowercase, trim)
+      const normalizedEmail = email.toLowerCase().trim();
+
       // Get stored profile data
-      const storedProfile = userProfileStore.get(email) || {};
+      const storedProfile = userProfileStore.get(normalizedEmail) || {};
       
       // Base user data
       let baseUser: any;
       
       // Check if user is in special users (Super Admin, Partner Admin, Lifetime, Enterprise)
       // All special users are managed by Super Admin and controlled through userManagement
-      const specialUser = userManagement.getSpecialUser(email);
+      const specialUser = userManagement.getSpecialUser(normalizedEmail);
+      
+      // Debug logging
+      console.log(`[GET /api/users/current] Email: ${normalizedEmail}, Special user found: ${!!specialUser}, Role: ${specialUser?.role || 'NONE'}`);
       
       if (specialUser) {
         // User is a special user (Super Admin, Partner Admin, Lifetime, or Enterprise)
         baseUser = {
           id: specialUser.id,
           name: storedProfile.name || specialUser.name,
-          email: email,
+          email: normalizedEmail,
           role: specialUser.role, // SUPER_ADMIN, AFFILIATE, LIFETIME, or ENTERPRISE
           subscriptionType: specialUser.subscriptionType || 'LIFETIME',
           subscriptionDate: new Date('2024-01-01').toISOString(),
@@ -2552,10 +2617,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       // Default trial user (not in special users)
       else {
+        console.log(`[GET /api/users/current] User ${normalizedEmail} not found in special users, returning USER role`);
         baseUser = {
           id: 'trial-user',
           name: storedProfile.name || 'Trial User',
-          email: email,
+          email: normalizedEmail,
           role: 'USER',
           subscriptionType: 'TRIAL',
           subscriptionDate: null,
