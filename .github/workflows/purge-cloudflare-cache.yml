@@ -21,13 +21,56 @@ jobs:
         run: |
           echo "🧹 Purging Cloudflare cache for professionaldiver.app..."
           
+          # Check if API token is set
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            echo "❌ Error: CLOUDFLARE_API_TOKEN secret is not set in GitHub Secrets"
+            echo "📝 To fix: Go to Settings → Secrets and variables → Actions → New repository secret"
+            echo "   Name: CLOUDFLARE_API_TOKEN"
+            echo "   Value: Your Cloudflare API token with Zone.Cache Purge permissions"
+            exit 1
+          fi
+          
           # Get Zone ID for the domain
-          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=professionaldiver.app" \
+          echo "🔍 Looking up Zone ID for professionaldiver.app..."
+          ZONE_RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=professionaldiver.app" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
+            -H "Content-Type: application/json")
+          
+          # Check if API call was successful
+          API_SUCCESS=$(echo "$ZONE_RESPONSE" | jq -r '.success // false')
+          if [ "$API_SUCCESS" != "true" ]; then
+            echo "❌ Error: Cloudflare API call failed"
+            echo "Response: $ZONE_RESPONSE"
+            echo ""
+            echo "Possible issues:"
+            echo "1. CLOUDFLARE_API_TOKEN is invalid or expired"
+            echo "2. API token doesn't have Zone.Read permissions"
+            echo "3. Check Cloudflare dashboard → My Profile → API Tokens"
+            exit 1
+          fi
+          
+          # Extract Zone ID
+          ZONE_ID=$(echo "$ZONE_RESPONSE" | jq -r '.result[0].id // empty')
           
           if [ "$ZONE_ID" = "null" ] || [ -z "$ZONE_ID" ]; then
             echo "❌ Error: Could not find Zone ID for professionaldiver.app"
+            echo ""
+            echo "Available zones in account:"
+            ALL_ZONES=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones" \
+              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+              -H "Content-Type: application/json" | jq -r '.result[]?.name // empty')
+            if [ -n "$ALL_ZONES" ]; then
+              echo "$ALL_ZONES" | while read -r zone; do
+                echo "  - $zone"
+              done
+            else
+              echo "  (No zones found or API token doesn't have access)"
+            fi
+            echo ""
+            echo "Possible fixes:"
+            echo "1. Verify domain 'professionaldiver.app' is added to Cloudflare"
+            echo "2. Check domain spelling (case-sensitive)"
+            echo "3. Verify API token has access to the correct Cloudflare account"
             exit 1
           fi
           
