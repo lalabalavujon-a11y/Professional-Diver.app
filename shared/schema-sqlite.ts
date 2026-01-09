@@ -444,6 +444,15 @@ export const userFeatureOverrides = sqliteTable("user_feature_overrides", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
+export const globalFeatureFlags = sqliteTable("global_feature_flags", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  featureId: text("feature_id").notNull().unique().references(() => featureDefinitions.id, { onDelete: "cascade" }),
+  enabled: integer("enabled", { mode: "boolean" }).default(true).notNull(),
+  description: text("description"),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedBy: text("updated_by"), // email of Super Admin who made change
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   accounts: many(accounts),
@@ -918,3 +927,4 @@ export type InsertExternalCalendarEvent = z.infer<typeof insertExternalCalendarE
 export type FeatureDefinition = typeof featureDefinitions.$inferSelect;
 export type RoleFeatureDefault = typeof roleFeatureDefaults.$inferSelect;
 export type UserFeatureOverride = typeof userFeatureOverrides.$inferSelect;
+export type GlobalFeatureFlag = typeof globalFeatureFlags.$inferSelect;

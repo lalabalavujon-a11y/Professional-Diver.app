@@ -521,9 +521,22 @@ export const userFeatureOverrides = pgTable("user_feature_overrides", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const featureDefinitionsRelations = relations(featureDefinitions, ({ many }) => ({
+export const globalFeatureFlags = pgTable("global_feature_flags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  featureId: varchar("feature_id").notNull().unique().references(() => featureDefinitions.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").default(true).notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: varchar("updated_by"), // email of Super Admin who made change
+});
+
+export const featureDefinitionsRelations = relations(featureDefinitions, ({ many, one }) => ({
   roleDefaults: many(roleFeatureDefaults),
   userOverrides: many(userFeatureOverrides),
+  globalFlag: one(globalFeatureFlags, {
+    fields: [featureDefinitions.id],
+    references: [globalFeatureFlags.featureId],
+  }),
 }));
 
 export const roleFeatureDefaultsRelations = relations(roleFeatureDefaults, ({ one }) => ({
@@ -1057,6 +1070,11 @@ export const insertUserFeatureOverrideSchema = createInsertSchema(userFeatureOve
   updatedAt: true,
 });
 
+export const insertGlobalFeatureFlagSchema = createInsertSchema(globalFeatureFlags).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -1133,3 +1151,5 @@ export type RoleFeatureDefault = typeof roleFeatureDefaults.$inferSelect;
 export type InsertRoleFeatureDefault = z.infer<typeof insertRoleFeatureDefaultSchema>;
 export type UserFeatureOverride = typeof userFeatureOverrides.$inferSelect;
 export type InsertUserFeatureOverride = z.infer<typeof insertUserFeatureOverrideSchema>;
+export type GlobalFeatureFlag = typeof globalFeatureFlags.$inferSelect;
+export type InsertGlobalFeatureFlag = z.infer<typeof insertGlobalFeatureFlagSchema>;

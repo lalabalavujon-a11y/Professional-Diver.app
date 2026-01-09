@@ -225,6 +225,69 @@ export class UserManagementService {
         return a.name.localeCompare(b.name);
       });
   }
+
+  /**
+   * Check if a role change is allowed
+   * Prevents downgrading Super Admins and creating new Super Admins
+   */
+  canChangeRole(email: string, newRole: string): boolean {
+    // Cannot assign SUPER_ADMIN role (can only be set in code)
+    if (newRole === 'SUPER_ADMIN') {
+      return false;
+    }
+
+    // Check if user exists
+    const user = this.getSpecialUser(email);
+    if (!user) {
+      // User not in special users - allow role change (will update database)
+      return true;
+    }
+
+    // Cannot downgrade SUPER_ADMIN
+    if (user.role === 'SUPER_ADMIN') {
+      return false;
+    }
+
+    // Validate role enum
+    const validRoles = ['USER', 'ENTERPRISE', 'AFFILIATE', 'LIFETIME'];
+    if (!validRoles.includes(newRole)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Update user role
+   * Updates role in specialUsers map
+   * Note: Database update should be handled separately by the API endpoint
+   */
+  async updateUserRole(email: string, newRole: string): Promise<any | null> {
+    // Validate role change
+    if (!this.canChangeRole(email, newRole)) {
+      throw new Error(`Cannot change role to ${newRole} for user ${email}`);
+    }
+
+    // Get user
+    const user = this.getSpecialUser(email);
+    if (!user) {
+      // User not in special users - return null (database will be updated by API)
+      return null;
+    }
+
+    // Update role
+    const oldRole = user.role;
+    user.role = newRole;
+    user.updatedAt = new Date();
+
+    // Log role change for audit trail
+    console.log(`[UserManagement] Role changed: ${email} from ${oldRole} to ${newRole}`);
+
+    // Update in map
+    this.specialUsers.set(email, user);
+
+    return user;
+  }
 }
 
 export const userManagement = new UserManagementService();
