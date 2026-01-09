@@ -17,7 +17,11 @@ import {
   Shield,
   Mail,
   Download,
+  Building2,
+  RefreshCw,
 } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import type { Invite } from "@shared/schema";
 
@@ -36,6 +40,9 @@ interface User {
 }
 
 export default function AdminDashboard() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   // Get current user to check role
   const { data: currentUser } = useQuery<User>({
     queryKey: ["/api/users/current"],
@@ -55,6 +62,18 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/stats"],
   });
 
+  // Fetch user permissions to get Partner Admins and Enterprise Users
+  const { data: userPermissionsData } = useQuery<{ users: any[] }>({
+    queryKey: ["/api/admin/user-permissions"],
+    queryFn: async () => {
+      const email = localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com';
+      const response = await fetch(`/api/admin/user-permissions?email=${encodeURIComponent(email)}`);
+      if (!response.ok) throw new Error('Failed to fetch user permissions');
+      return response.json();
+    },
+    enabled: currentUser?.role === 'SUPER_ADMIN',
+  });
+
   // Only SUPER_ADMIN can access User Management (Access Control)
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
   
@@ -63,6 +82,39 @@ export default function AdminDashboard() {
   const canAccessUserManagement = isSuperAdmin && hasFeature("admin_dashboard");
 
   const pendingInvites = invites?.filter((invite: any) => !invite.usedAt).length || 0;
+
+  // Partner Admins and Enterprise Users counts
+  const partnerAdmins = userPermissionsData?.users?.filter((u: any) => u.role === "Partner Admin" || u.role === "AFFILIATE") || [];
+  const enterpriseUsers = userPermissionsData?.users?.filter((u: any) => u.role === "Enterprise User" || u.role === "ENTERPRISE") || [];
+
+  // Sync Partners to CRM mutation
+  const syncPartnersMutation = useMutation({
+    mutationFn: async () => {
+      const email = localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com';
+      const response = await fetch(`/api/admin/sync-partners-to-crm?email=${encodeURIComponent(email)}`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to sync partners");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      toast({
+        title: "Success",
+        description: data.message || `Synced ${data.synced || 0} Partner Admin(s) to CRM`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sync partners to CRM",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <>
