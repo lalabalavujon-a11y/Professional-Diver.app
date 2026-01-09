@@ -102,12 +102,15 @@ export default function UserManagementContainer() {
       }
       return response.json();
     },
-    onSuccess: (data) => {
-      setLocalRoleDefaults(data.defaults);
-      setHasRoleChanges(false);
-    },
     enabled: !!selectedRole,
   });
+
+  useEffect(() => {
+    if (roleDefaultsData?.defaults) {
+      setLocalRoleDefaults(roleDefaultsData.defaults);
+      setHasRoleChanges(false);
+    }
+  }, [roleDefaultsData]);
 
   // Fetch user permissions (with option to include all users for role management)
   const { data: usersData, isLoading: loadingUsers, error: usersError } = useQuery<UserPermissionsResponse>({
@@ -123,13 +126,16 @@ export default function UserManagementContainer() {
       console.log("Fetched users from API:", data.users); // Debug log
       return data;
     },
-    onSuccess: (data) => {
-      console.log("Users loaded successfully:", data.users); // Debug log
-      setLocalUsers(data.users);
-      setHasUserChanges({});
-    },
     retry: 1,
   });
+
+  useEffect(() => {
+    if (usersData?.users) {
+      console.log("Users loaded successfully:", usersData.users); // Debug log
+      setLocalUsers(usersData.users);
+      setHasUserChanges({});
+    }
+  }, [usersData]);
 
   // Fetch global feature flags
   const { data: globalFeaturesData, isLoading: loadingGlobalFeatures } = useQuery<{ flags: any[] }>({
