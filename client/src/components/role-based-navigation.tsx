@@ -78,10 +78,12 @@ export default function RoleBasedNavigation() {
   const { data: currentUser } = useQuery<User>({
     queryKey: ["/api/users/current"],
     queryFn: async () => {
-      const email = localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com';
-      const response = await fetch(`/api/users/current?email=${email}`);
+      const email = (localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com').toLowerCase().trim();
+      const response = await fetch(`/api/users/current?email=${encodeURIComponent(email)}`);
       if (!response.ok) throw new Error('Failed to fetch user');
-      return response.json();
+      const userData = await response.json();
+      console.log('[RoleBasedNavigation] Current user:', { email, role: userData.role, name: userData.name });
+      return userData;
     }
   });
 
@@ -109,9 +111,28 @@ export default function RoleBasedNavigation() {
   // Determine user role and permissions
   // In preview mode, use the preview role instead of actual role
   const effectiveRole = isInPreviewMode && previewRoleFromUrl ? previewRoleFromUrl : currentUser?.role;
-  const isAdmin = effectiveRole === 'ADMIN' || effectiveRole === 'SUPER_ADMIN';
-  const isSuperAdmin = effectiveRole === 'SUPER_ADMIN';
+  
+  // Check email directly as fallback for SUPER_ADMIN detection
+  const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
+  const isKnownSuperAdmin = userEmail === 'lalabalavu.jon@gmail.com' || userEmail === 'sephdee@hotmail.com';
+  
+  const isAdmin = effectiveRole === 'ADMIN' || effectiveRole === 'SUPER_ADMIN' || (isKnownSuperAdmin && !currentUser);
+  const isSuperAdmin = effectiveRole === 'SUPER_ADMIN' || (isKnownSuperAdmin && !currentUser);
   const isPaidUser = currentUser?.subscriptionType !== 'TRIAL' && currentUser?.subscriptionType !== undefined;
+  
+  // Debug logging
+  useEffect(() => {
+    if (currentUser) {
+      console.log('[RoleBasedNavigation] User state:', {
+        email: userEmail,
+        role: currentUser.role,
+        effectiveRole,
+        isAdmin,
+        isSuperAdmin,
+        isKnownSuperAdmin
+      });
+    }
+  }, [currentUser, effectiveRole, isAdmin, isSuperAdmin, isKnownSuperAdmin, userEmail]);
 
   // Check if current location is in admin section
   const isAdminSection = ["/admin", "/markdown-editor", "/operations", "/crm", "/analytics"].some(path => 

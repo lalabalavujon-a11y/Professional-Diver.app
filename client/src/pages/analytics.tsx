@@ -138,7 +138,7 @@ export default function Analytics() {
     return (
       <>
         <RoleBasedNavigation />
-        <div className="min-h-screen bg-background pt-20" data-sidebar-content="true">
+        <div className="min-h-screen bg-background" data-sidebar-content="true">
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="space-y-6">
               <SkeletonCard lines={2} />
@@ -162,7 +162,7 @@ export default function Analytics() {
     return (
       <>
         <RoleBasedNavigation />
-        <div className="min-h-screen bg-background pt-20" data-sidebar-content="true">
+        <div className="min-h-screen bg-background" data-sidebar-content="true">
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <ErrorState
               title="Unable to load analytics"

@@ -124,9 +124,9 @@ export class UserManagementService {
       // }
     ];
 
-    // Store all special users
+    // Store all special users (normalize emails to lowercase for consistent lookup)
     [...superAdmins, ...partnerAdmins, ...lifetimeUsers, ...enterpriseUsers].forEach(user => {
-      this.specialUsers.set(user.email, user);
+      this.specialUsers.set(user.email.toLowerCase().trim(), user);
     });
 
     console.log('Initialized special users:', {
@@ -143,9 +143,21 @@ export class UserManagementService {
     return this.specialUsers.has(email);
   }
 
-  // Get user details by email
+  // Get user details by email (case-insensitive lookup)
   getSpecialUser(email: string) {
-    return this.specialUsers.get(email);
+    const normalizedEmail = email.toLowerCase().trim();
+    // Try exact match first
+    let user = this.specialUsers.get(normalizedEmail);
+    if (user) return user;
+    
+    // Try case-insensitive lookup
+    for (const [key, value] of this.specialUsers.entries()) {
+      if (key.toLowerCase().trim() === normalizedEmail) {
+        return value;
+      }
+    }
+    
+    return undefined;
   }
 
   // Get all super admins

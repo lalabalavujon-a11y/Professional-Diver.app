@@ -35,6 +35,9 @@ export function useAutoGPSSync(options: AutoGPSSyncOptions = {}) {
   const watchIdRef = useRef<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedPositionRef = useRef<{ lat: number; lon: number } | null>(null);
+  const retryCountRef = useRef<number>(0);
+  const errorShownThisSessionRef = useRef<boolean>(false);
+  const MAX_RETRIES = 3;
 
   // Calculate distance between two coordinates (Haversine formula)
   const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -153,18 +156,27 @@ export function useAutoGPSSync(options: AutoGPSSyncOptions = {}) {
     }
   }, [autoSave, findNearestLocation, calculateDistance, queryClient]);
 
-  // Update GPS position
-  const updatePosition = useCallback(async () => {
-    if (isGettingGPS || isSyncing) return;
+  // Update GPS position with retry logic
+  const updatePositionWithRetry = useCallback(async (retryAttempt: number = 0): Promise<void> => {
+    // Only check isSyncing for initial attempts (not retries)
+    if (retryAttempt === 0 && (isGettingGPS || isSyncing)) return;
+
+    // For retries, we're already in a sync cycle, so just update state
+    if (retryAttempt > 0) {
+      setIsSyncing(true);
+    } else {
+      setIsSyncing(true);
+    }
 
     try {
-      setIsSyncing(true);
       const position = await getCurrentPosition({
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 30000, // Accept cached position up to 30 seconds old
       });
 
+      // Success: reset retry count and clear error flag
+      retryCountRef.current = 0;
       setCurrentPosition(position);
       
       if (onLocationUpdate) {
@@ -172,20 +184,49 @@ export function useAutoGPSSync(options: AutoGPSSyncOptions = {}) {
       }
 
       await saveGPSPosition(position);
+      setIsSyncing(false);
     } catch (error: any) {
       console.error('Error updating GPS position:', error);
-      // Don't show toast for permission errors (user might have denied)
-      if (!error.message?.includes('permission') && !error.message?.includes('denied')) {
-        toast({
-          title: 'GPS Update Failed',
-          description: error.message || 'Could not update location',
-          variant: 'destructive',
-        });
+      
+      // Don't retry or show errors for permission denials (user explicitly denied)
+      if (error.message?.includes('permission') || error.message?.includes('denied')) {
+        setIsSyncing(false);
+        return; // Silent fail for permission errors
       }
-    } finally {
-      setIsSyncing(false);
+
+      // Retry with exponential backoff
+      if (retryAttempt < MAX_RETRIES) {
+        const delay = Math.pow(2, retryAttempt) * 1000; // 1s, 2s, 4s
+        retryCountRef.current = retryAttempt + 1;
+        // Keep isSyncing true during retry delay, then try again
+        setTimeout(async () => {
+          try {
+            await updatePositionWithRetry(retryAttempt + 1);
+          } catch {
+            // If retry also fails, isSyncing will be handled in the catch block
+            setIsSyncing(false);
+          }
+        }, delay);
+        // Don't set isSyncing to false here - wait for retry to complete
+      } else {
+        // All retries exhausted - show error only once per session
+        setIsSyncing(false);
+        if (!errorShownThisSessionRef.current) {
+          errorShownThisSessionRef.current = true;
+          toast({
+            title: 'GPS Update Failed',
+            description: 'Location services are unavailable. Please check your device settings or network connection.',
+            variant: 'destructive',
+          });
+        }
+      }
     }
   }, [isGettingGPS, isSyncing, getCurrentPosition, onLocationUpdate, saveGPSPosition, toast]);
+
+  // Update GPS position (wrapper for backward compatibility)
+  const updatePosition = useCallback(async () => {
+    await updatePositionWithRetry(0);
+  }, [updatePositionWithRetry]);
 
   // Start watching GPS position
   useEffect(() => {
@@ -233,6 +274,8 @@ export function useAutoGPSSync(options: AutoGPSSyncOptions = {}) {
         },
         (error) => {
           console.error('GPS watch error:', error);
+          // Don't show errors for watchPosition - it's passive monitoring
+          // The interval-based updatePosition will handle retries and error display
         },
         {
           enableHighAccuracy: true,
@@ -250,7 +293,7 @@ export function useAutoGPSSync(options: AutoGPSSyncOptions = {}) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
     };
-  }, [enabled, updateInterval, updatePosition, onLocationUpdate, saveGPSPosition]);
+  }, [enabled, updateInterval, updatePositionWithRetry, onLocationUpdate, saveGPSPosition]);
 
   return {
     currentPosition,

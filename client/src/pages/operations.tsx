@@ -515,30 +515,15 @@ export default function Operations() {
       return;
     }
     setSelectedApp(appId);
+    // Update URL with app parameter for direct navigation
+    const newUrl = `${window.location.pathname}?app=${appId}`;
+    window.history.pushState({}, '', newUrl);
   };
 
-  // Scroll to app content when an app is selected
+  // Reset scroll position when returning to grid view
   useEffect(() => {
-    if (selectedApp && appContentRef.current && scrollableContainerRef.current) {
-      // Small delay to ensure the content is rendered
-      const timer = setTimeout(() => {
-        const container = scrollableContainerRef.current;
-        const target = appContentRef.current;
-        if (container && target) {
-          const containerRect = container.getBoundingClientRect();
-          const targetRect = target.getBoundingClientRect();
-          const scrollTop = container.scrollTop;
-          const targetTop = targetRect.top - containerRect.top + scrollTop;
-          
-          container.scrollTo({
-            top: targetTop - 20, // 20px offset from top
-            behavior: 'smooth'
-          });
-        }
-      }, 150);
-      
-      // Cleanup function to clear timeout if component unmounts or selectedApp changes
-      return () => clearTimeout(timer);
+    if (!selectedApp && scrollableContainerRef.current) {
+      scrollableContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [selectedApp]);
 
@@ -568,47 +553,81 @@ export default function Operations() {
   return (
     <>
       <RoleBasedNavigation />
-      <div className="min-h-screen bg-background pt-20" data-sidebar-content="true">
+      <div className="min-h-screen bg-background" data-sidebar-content="true">
         <div className="flex h-[calc(100vh-5rem)] overflow-hidden">
           {/* Main Content Area */}
           <ResizablePanelGroup direction="horizontal" className="w-full h-full">
             <ResizablePanel defaultSize={75} minSize={50} className="overflow-auto">
               <main ref={scrollableContainerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 h-full overflow-auto" id="main-content" role="main" aria-label="Operations Center">
-        <PageHeader
-          title="Operations Center"
-          description="Professional operational management applications for diving professionals"
-          icon={Wrench}
-          actions={
-            hasOperationsAccess && (
-              <Badge variant="secondary" className="bg-success-100 text-success-800">
-                <CheckCircle className="w-4 h-4 mr-1" />
-                Operations Access Enabled
-              </Badge>
-            )
-          }
-        />
-
-        {/* Main Content Area - Shows selected app or Calendar */}
-        {selectedApp === "calendar" ? (
-          <PageSection title="Operations Calendar">
-            <OperationsCalendarWidget timezone={preferences?.timezone || 'UTC'} />
-          </PageSection>
-        ) : selectedApp ? (
-          <PageSection
-            title={operationalApps.find(app => app.id === selectedApp)?.title || selectedApp}
-            className="space-y-6"
-          >
+        {/* Main Content Area - Shows grid of cards or selected app */}
+        {selectedApp ? (
+          <div className="space-y-4">
+            <Button 
+              onClick={() => {
+                setSelectedApp(null);
+                // Update URL to remove app parameter
+                const newUrl = window.location.pathname;
+                window.history.pushState({}, '', newUrl);
+              }}
+              variant="outline"
+              className="mb-4"
+            >
+              ← Back to Operations Centre
+            </Button>
             <div ref={appContentRef}>
-              {renderAppContent(selectedApp)}
+              {selectedApp === "calendar" ? (
+                <PageSection title="Operations Calendar">
+                  <OperationsCalendarWidget timezone={preferences?.timezone || 'UTC'} />
+                </PageSection>
+              ) : (
+                <PageSection
+                  title={operationalApps.find(app => app.id === selectedApp)?.title || selectedApp}
+                  className="space-y-6"
+                >
+                  {renderAppContent(selectedApp)}
+                </PageSection>
+              )}
             </div>
-          </PageSection>
+          </div>
         ) : (
-          <EmptyState
-            icon={Wrench}
-            title="Welcome to Operations Center"
-            description="Select an operation from the sidebar to get started with dive operations management, equipment tracking, and specialized operational tools."
-            className="py-12"
-          />
+          <div className="space-y-6">
+            <PageHeader
+              title="Operations Centre"
+              description="Professional operational management applications for diving professionals"
+              icon={Wrench}
+              actions={
+                hasOperationsAccess && (
+                  <Badge variant="secondary" className="bg-success-100 text-success-800">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Operations Access Enabled
+                  </Badge>
+                )
+              }
+            />
+            
+            {/* Grid of Operational App Cards */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={orderedApps.map(app => app.id)}
+                strategy={rectSortingStrategy}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {orderedApps.map((app) => (
+                    <SortableItem
+                      key={app.id}
+                      app={app}
+                      hasOperationsAccess={hasOperationsAccess}
+                      onAppClick={handleAppAccess}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
         )}
 
         {/* Subscription Modal */}

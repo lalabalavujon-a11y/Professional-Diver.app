@@ -344,21 +344,15 @@ header[data-testid="navigation-header"] {
 
 /* Content with data-sidebar-content attribute - properly spaced for sidebar and header */
 [data-sidebar-content="true"] {
-  margin-left: var(--sidebar-width);
-  padding-top: 4rem; /* Header height - h-16 = 4rem */
-  transition: margin-left 0.2s ease-linear;
+  margin-left: var(--sidebar-width, 16rem);
+  padding-top: var(--header-height, 5rem);
+  transition: margin-left 0.2s ease-linear, padding-top 0.2s ease-linear;
 }
 
-@media (max-width: 768px) {
-  [data-sidebar-content="true"] {
-    padding-top: 3.5rem; /* Header height on mobile - h-14 = 3.5rem */
-  }
-}
-
-/* Mobile: Remove sidebar margin */
 @media (max-width: 768px) {
   [data-sidebar-content="true"] {
     margin-left: 0 !important;
+    padding-top: 3.5rem; /* Header height on mobile - h-14 = 3.5rem */
   }
 }
 
@@ -433,9 +427,4 @@ header[data-testid="navigation-header"] {
       outline-offset: 2px;
     }
   }
-}
-
-/* Ensure content areas account for fixed header */
-[data-sidebar-content="true"] {
-  padding-top: var(--header-height, 5rem) !important;
 }
