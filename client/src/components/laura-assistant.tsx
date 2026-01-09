@@ -9,17 +9,17 @@ export default function LauraAssistant() {
 
   return (
     <>
-      {/* Fixed position diving helmet chat bubble */}
+      {/* Fixed position modern pill-shaped chat bubble */}
       <div className="fixed bottom-6 right-6 z-50">
         <Button
           onClick={() => setIsOpen(true)}
-          className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden group"
+          className="h-14 px-6 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group flex items-center gap-2.5 text-white font-medium"
           data-testid="button-laura-chat-bubble"
           title="Chat with Laura - Your Platform Oracle"
         >
           {/* KM37 Diving Helmet SVG */}
           <svg 
-            className="w-9 h-9 text-white transition-transform group-hover:scale-110" 
+            className="w-6 h-6 text-white transition-transform group-hover:scale-110 flex-shrink-0" 
             fill="currentColor" 
             viewBox="0 0 100 100"
           >
@@ -47,12 +47,15 @@ export default function LauraAssistant() {
             <rect x="72" y="38" width="8" height="4" rx="2" fill="currentColor"/>
           </svg>
           
+          {/* Chat text label */}
+          <span className="text-base font-semibold whitespace-nowrap">Chat</span>
+          
           {/* Pulse animation */}
           <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-20"></div>
         </Button>
         
         {/* Laura availability indicator */}
-        <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+        <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center shadow-md">
           <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
         </div>
       </div>
