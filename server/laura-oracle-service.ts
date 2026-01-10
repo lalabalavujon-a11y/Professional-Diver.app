@@ -219,6 +219,7 @@ FRONTEND ROUTES (Key Pages):
 - /analytics - Platform analytics
 - /crm - CRM dashboard (client management)
 - /support, /support-tickets - Support ticket system
+- /support-documents - Platform Support Documents (comprehensive knowledge base and documentation)
 - /affiliate - Affiliate dashboard
 - /profile-settings - User profile settings
 - /learning-path - AI-generated learning path
@@ -463,7 +464,25 @@ COMMUNICATION STYLE:
 - Confident in administrative capabilities and platform knowledge
 - Always focused on platform optimization and user success
 
-Remember: You are the Platform Oracle with complete administrative authority and LangSmith domain expertise. You have comprehensive knowledge of every aspect of this platform and can expertly handle any support ticket or platform query.`;
+SUPPORT DOCUMENTS PAGE:
+The platform includes a comprehensive Support Documents page at /support-documents that serves as a centralized knowledge base covering:
+- Getting Started guides (account setup, first login, profile setup)
+- Learning Features (training tracks, lessons, quizzes, exams, progress tracking, SRS, learning paths)
+- AI Features (Laura Oracle, AI tutors, Diver Well consultant)
+- Platform Features (operations calendar, navigation widgets, medical facilities, equipment management, CRM)
+- Account & Billing (subscription types, trial management, role-based access)
+- Admin Features (user management, content management, analytics, invites)
+- Support & Help (creating tickets, troubleshooting, contact information)
+- Technical Information (API endpoints, mobile apps, browser requirements, data privacy)
+
+When users ask questions that could be answered by the Support Documents:
+- Encourage them to check the Support Documents page at /support-documents first for comprehensive documentation
+- Reference specific sections that might be helpful (e.g., "Check the 'Getting Started' section in Support Documents for account setup guides")
+- Provide direct links to relevant documentation sections when answering queries
+- Use the Support Documents as a resource to provide accurate, detailed information about platform features
+- Mention that the Support Documents page includes search functionality and embedded chat with Laura for contextual help
+
+Remember: You are the Platform Oracle with complete administrative authority and LangSmith domain expertise. You have comprehensive knowledge of every aspect of this platform and can expertly handle any support ticket or platform query. The Support Documents page (/support-documents) is a valuable resource for users, and you should encourage its use while still providing direct assistance.`;
 }
 
 const LAURA_ORACLE_CONFIG: LauraOracleConfig = {
@@ -1617,6 +1636,119 @@ ${userInfoSection}${recentActivity}${relatedTicketsSection}${responseInstruction
    */
   getOracleInfo(): LauraOracleConfig {
     return this.config;
+  }
+
+  /**
+   * Generate documentation section content using Laura's knowledge
+   */
+  async generateDocumentationContent(
+    sectionTitle: string,
+    category: string,
+    context: string,
+    existingContent?: string
+  ): Promise<string> {
+    try {
+      const prompt = existingContent
+        ? `Update the following documentation section based on the provided context:
+
+Section Title: ${sectionTitle}
+Category: ${category}
+
+Current Content:
+${existingContent}
+
+Context/Changes:
+${context}
+
+Please update the content to reflect the changes while:
+1. Maintaining the existing format and style
+2. Keeping all relevant information
+3. Adding new information clearly
+4. Maintaining professional tone
+5. Including relevant keywords for searchability
+
+Return the updated content only, without additional explanation.`
+        : `Generate comprehensive documentation content for a new section:
+
+Section Title: ${sectionTitle}
+Category: ${category}
+
+Context:
+${context}
+
+Please generate professional, clear documentation content that:
+1. Follows the existing documentation style (professional, clear, helpful)
+2. Includes relevant keywords for searchability
+3. Is comprehensive and helpful for users
+4. Includes subsections if appropriate (use clear headings)
+5. Includes related links where relevant (format: { label: "Link Text", href: "/path" })
+6. Uses bullet points and numbered lists for clarity
+7. Maintains consistent formatting
+
+Return the content in markdown format, ready for display.`;
+
+      const response = await this.chatWithOracle(
+        prompt,
+        `doc-generation-${Date.now()}`,
+        {
+          context: 'documentation_generation',
+          section: sectionTitle.toLowerCase().replace(/\s+/g, '-'),
+          category,
+        }
+      );
+
+      return response.response;
+    } catch (error) {
+      console.error('❌ Error generating documentation content:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate documentation subsections for a section
+   */
+  async generateDocumentationSubsections(
+    sectionTitle: string,
+    mainContent: string,
+    topics: string[]
+  ): Promise<Array<{ title: string; content: string }>> {
+    try {
+      const prompt = `Generate subsections for the documentation section "${sectionTitle}".
+
+Main Content:
+${mainContent}
+
+Topics to cover in subsections:
+${topics.join(', ')}
+
+For each topic, generate:
+1. A clear subsection title
+2. Comprehensive content explaining that topic
+
+Return the subsections in a structured format. Each subsection should be clear and helpful.`;
+
+      const response = await this.chatWithOracle(
+        prompt,
+        `doc-subsections-${Date.now()}`,
+        {
+          context: 'documentation_subsections',
+          section: sectionTitle.toLowerCase().replace(/\s+/g, '-'),
+        }
+      );
+
+      // Parse response into subsections (simplified - in production, use structured output)
+      // For now, return as a single subsection that can be parsed
+      // In a full implementation, use OpenAI's structured output or parse markdown headings
+      return [
+        {
+          title: 'Details',
+          content: response.response,
+        },
+      ];
+    } catch (error) {
+      console.error('❌ Error generating documentation subsections:', error);
+      return [];
+    }
   }
 }
 

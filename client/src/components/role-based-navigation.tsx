@@ -22,7 +22,8 @@ import {
   HeartPulse,
   Calendar,
   AlertTriangle,
-  Keyboard
+  Keyboard,
+  Compass
 } from "lucide-react";
 import { operationalApps } from "@/pages/operations";
 import { supervisorContainers } from "@/components/dive-supervisor/DiveSupervisorControlApp";
@@ -151,7 +152,7 @@ export default function RoleBasedNavigation() {
   const isAffiliate = location === "/affiliate" || location.startsWith("/affiliate");
 
   // Check if current location is support related
-  const isSupport = ["/chat/laura", "/privacy", "/terms"].some(path => 
+  const isSupport = ["/chat/laura", "/privacy", "/terms", "/support-documents"].some(path => 
     location === path || location.startsWith(path)
   );
 
@@ -437,6 +438,8 @@ export default function RoleBasedNavigation() {
                                 case "med-ops":
                                 case "dmt-med-ops":
                                   return <HeartPulse className="w-4 h-4" />;
+                                case "operational-widgets":
+                                  return <Compass className="w-4 h-4" />;
                                 default:
                                   return <Wrench className="w-4 h-4" />;
                               }
@@ -521,6 +524,12 @@ export default function RoleBasedNavigation() {
                         <Link href="/chat/laura" data-testid="link-support-laura" className="w-full flex items-center space-x-2">
                           <MessageSquare className="w-4 h-4" />
                           <span>Chat with Laura</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/support-documents" data-testid="link-support-documents" className="w-full flex items-center space-x-2">
+                          <BookOpen className="w-4 h-4" />
+                          <span>Support Documents</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>

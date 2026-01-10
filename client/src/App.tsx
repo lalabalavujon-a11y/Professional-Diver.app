@@ -14,6 +14,7 @@ import Quiz from "@/pages/quiz";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminInvites from "@/pages/admin-invites";
 import AdminLessonEditor from "@/pages/admin-lesson-editor";
+import AdminBulkUpload from "@/pages/admin-bulk-upload";
 import Analytics from "@/pages/analytics";
 import CRMDashboard from "@/pages/crm-dashboard";
 import EnterpriseHome from "@/pages/enterprise-home";
@@ -40,31 +41,75 @@ import ExamInterface from "@/pages/exam-interface";
 import SrsReview from "@/pages/srs-review";
 import AdminSrs from "@/pages/admin-srs";
 import SupportTickets from "@/pages/support-tickets";
+import SupportDocuments from "@/pages/support-documents";
 
 function Router() {
   const [location] = useLocation();
   
   // Aggressively scroll to top on route change and initial load
   useEffect(() => {
-    // Multiple methods to ensure scroll to top
-    window.scrollTo(0, 0);
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    // Force scroll to top immediately
+    const forceScrollTop = () => {
+      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      // Also try setting scroll position on window object
+      if (window.scrollY !== undefined) {
+        try {
+          (window as any).scrollY = 0;
+        } catch {}
+      }
+      if (window.pageYOffset !== undefined) {
+        try {
+          (window as any).pageYOffset = 0;
+        } catch {}
+      }
+    };
+    
+    // Immediate scroll
+    forceScrollTop();
     
     // Also try after a microtask to catch any layout shifts
     Promise.resolve().then(() => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
+      forceScrollTop();
     });
+    
+    // Also try after a short delay to catch any async rendering
+    const timeoutId = setTimeout(() => {
+      forceScrollTop();
+    }, 0);
+    
+    // Also try after a longer delay to catch any late layout shifts
+    const timeoutId2 = setTimeout(() => {
+      forceScrollTop();
+    }, 100);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(timeoutId2);
+    };
   }, [location]);
   
   // Also scroll to top on mount
   useEffect(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    const forceScrollTop = () => {
+      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    
+    forceScrollTop();
+    
+    // Try again after a brief delay
+    const timeoutId = setTimeout(forceScrollTop, 0);
+    const timeoutId2 = setTimeout(forceScrollTop, 100);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(timeoutId2);
+    };
   }, []);
   
   return (
@@ -85,6 +130,7 @@ function Router() {
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/invites" component={AdminInvites} />
       <Route path="/admin/lessons/:id" component={AdminLessonEditor} />
+      <Route path="/admin/bulk-upload" component={AdminBulkUpload} />
       <Route path="/admin/srs" component={AdminSrs} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/crm" component={CRMDashboard} />
@@ -92,6 +138,7 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/support" component={SupportTickets} />
       <Route path="/support-tickets" component={SupportTickets} />
+      <Route path="/support-documents" component={SupportDocuments} />
       <Route path="/affiliate" component={AffiliateDashboard} />
       <Route path="/markdown-editor" component={MarkdownEditor} />
       <Route path="/invite/:token" component={Invite} />
