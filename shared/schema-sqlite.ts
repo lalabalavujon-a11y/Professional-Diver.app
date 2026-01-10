@@ -95,6 +95,7 @@ export const lessons = sqliteTable("lessons", {
   podcastUrl: text("podcast_url"), // Podcast audio file URL
   podcastDuration: integer("podcast_duration"), // Duration in seconds
   notebookLmUrl: text("notebook_lm_url"), // Notebook LM integration URL
+  pdfUrl: text("pdf_url"), // PDF content file URL
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
@@ -451,6 +452,46 @@ export const globalFeatureFlags = sqliteTable("global_feature_flags", {
   description: text("description"),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
   updatedBy: text("updated_by"), // email of Super Admin who made change
+});
+
+export const documentationSections = sqliteTable("documentation_sections", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  sectionId: text("section_id").notNull().unique(), // matches existing section IDs like 'platform-overview'
+  category: text("category").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  subsections: text("subsections").default("[]"), // JSON array of subsections
+  relatedLinks: text("related_links").default("[]"), // JSON array of links
+  keywords: text("keywords").default("[]"), // JSON array of strings
+  version: integer("version").default(1).notNull(),
+  lastUpdated: integer("last_updated", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedBy: text("updated_by").default("laura"), // 'laura' | 'admin' | 'system'
+  changeType: text("change_type"), // 'content' | 'feature' | 'api' | 'schema' | 'ai'
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const documentationChanges = sqliteTable("documentation_changes", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  sectionId: text("section_id").notNull(),
+  changeType: text("change_type").notNull(), // 'content' | 'feature' | 'api' | 'schema' | 'ai'
+  description: text("description"),
+  oldContent: text("old_content"),
+  newContent: text("new_content"),
+  detectedAt: integer("detected_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  processedAt: integer("processed_at", { mode: "timestamp" }),
+  status: text("status").default("pending"), // 'pending' | 'reviewed' | 'published' | 'rejected'
+  processedBy: text("processed_by"), // 'laura' | 'admin'
+  metadata: text("metadata").default("{}"), // JSON object with additional context
+});
+
+export const documentationVersions = sqliteTable("documentation_versions", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  sectionId: text("section_id").notNull(),
+  version: integer("version").notNull(),
+  content: text("content").notNull(), // Full content snapshot
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  createdBy: text("created_by").notNull(), // 'laura' | 'admin' | 'system'
 });
 
 // Relations
@@ -867,6 +908,22 @@ export const insertExternalCalendarEventSchema = createInsertSchema(externalCale
   syncedAt: true,
 });
 
+export const insertDocumentationSectionSchema = createInsertSchema(documentationSections).omit({
+  id: true,
+  createdAt: true,
+  lastUpdated: true,
+});
+
+export const insertDocumentationChangeSchema = createInsertSchema(documentationChanges).omit({
+  id: true,
+  detectedAt: true,
+});
+
+export const insertDocumentationVersionSchema = createInsertSchema(documentationVersions).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -928,3 +985,9 @@ export type FeatureDefinition = typeof featureDefinitions.$inferSelect;
 export type RoleFeatureDefault = typeof roleFeatureDefaults.$inferSelect;
 export type UserFeatureOverride = typeof userFeatureOverrides.$inferSelect;
 export type GlobalFeatureFlag = typeof globalFeatureFlags.$inferSelect;
+export type DocumentationSection = typeof documentationSections.$inferSelect;
+export type InsertDocumentationSection = z.infer<typeof insertDocumentationSectionSchema>;
+export type DocumentationChange = typeof documentationChanges.$inferSelect;
+export type InsertDocumentationChange = z.infer<typeof insertDocumentationChangeSchema>;
+export type DocumentationVersion = typeof documentationVersions.$inferSelect;
+export type InsertDocumentationVersion = z.infer<typeof insertDocumentationVersionSchema>;

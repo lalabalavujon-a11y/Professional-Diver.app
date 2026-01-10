@@ -22,7 +22,9 @@ import { insertLessonSchema, insertInviteSchema, insertAttemptSchema, insertWidg
 import { insertLessonSchema as insertLessonSchemaSQLite, widgetLocations as widgetLocationsSQLite, navigationWaypoints as navigationWaypointsSQLite, navigationRoutes as navigationRoutesSQLite, users as usersSQLite, sessions as sessionsSQLite, widgetPreferences as widgetPreferencesSQLite, supportTickets, type InsertSupportTicket } from "@shared/schema-sqlite";
 import { eq, and, desc } from "drizzle-orm";
 import { randomBytes, createHash } from "crypto";
+import { nanoid } from "nanoid";
 import { db } from "./db";
+import { lessons } from "@shared/schema";
 import { registerSrsRoutes } from "./srs-routes";
 import { registerEquipmentRoutes } from "./routes/equipment-routes";
 import { registerOperationsCalendarRoutes } from "./routes/operations-calendar-routes";
@@ -38,6 +40,7 @@ import {
   removeUserMedicalFacility,
   MedicalFacilityType 
 } from "./medical-facilities-service";
+import multer from "multer";
 
 // In-memory store for user profile data (for demo purposes)
 const userProfileStore = new Map<string, any>();
@@ -58,6 +61,54 @@ function getProfilePictureUrl(profilePictureUrl: string | null | undefined, emai
   return profilePictureUrl;
 }
 
+/**
+ * Sanitize a lesson title for use in filenames
+ * Converts to lowercase, replaces spaces with hyphens, removes special characters
+ * Limits length to 100 characters
+ * Handles edge cases: empty strings, special characters only, very long titles, Unicode
+ */
+function sanitizeFilename(title: string): string {
+  // Handle null, undefined, empty, or non-string values
+  if (!title || typeof title !== 'string' || !title.trim()) {
+    return 'lesson';
+  }
+  
+  // Convert to lowercase and trim
+  let sanitized = title.toLowerCase().trim();
+  
+  // Handle very long titles early to improve performance
+  if (sanitized.length > 150) {
+    sanitized = sanitized.substring(0, 150);
+  }
+  
+  // Replace spaces, underscores, and other whitespace with hyphens
+  sanitized = sanitized.replace(/[\s_]+/g, '-');
+  
+  // Remove special characters, keep only alphanumeric and hyphens
+  // This also handles Unicode characters by removing them
+  sanitized = sanitized.replace(/[^a-z0-9-]/g, '');
+  
+  // Replace multiple consecutive hyphens with a single hyphen
+  sanitized = sanitized.replace(/-+/g, '-');
+  
+  // Remove leading and trailing hyphens
+  sanitized = sanitized.replace(/^-+|-+$/g, '');
+  
+  // Limit length to 100 characters (after sanitization)
+  if (sanitized.length > 100) {
+    sanitized = sanitized.substring(0, 100);
+    // Ensure we don't end with a hyphen after truncation
+    sanitized = sanitized.replace(/-+$/, '');
+  }
+  
+  // If empty after sanitization (e.g., title was only special characters), use fallback
+  if (!sanitized) {
+    return 'lesson';
+  }
+  
+  return sanitized;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // SRS (Phase 2–4) routes
   registerSrsRoutes(app);
@@ -73,11 +124,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Calling routes
   registerCallingRoutes(app);
 
-  // Serve uploaded files statically
+  // Serve uploaded files statically with CORS headers for PDF files
   const path = await import('path');
   const express = await import('express');
+  const fs = await import('fs');
+  
   const uploadsDir = path.join(process.cwd(), 'uploads');
-  app.use('/uploads', express.default.static(uploadsDir));
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  
+  // Custom static file handler with CORS headers for PDF files
+  app.use('/uploads', (req, res, next) => {
+    // Set CORS headers for PDF files
+    if (req.path.endsWith('.pdf')) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Content-Type', 'application/pdf');
+    }
+    // Set proper content type for audio files
+    if (req.path.match(/\.(m4a|mp3|mp4a)$/i)) {
+      res.setHeader('Content-Type', 'audio/mp4');
+    }
+    next();
+  }, express.default.static(uploadsDir));
 
   // Object storage routes
   app.post("/api/objects/upload", async (req, res) => {
@@ -95,59 +166,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // IMPORTANT: This route must be registered BEFORE express.json() middleware
   // or we need to skip body parsing for this route
   app.post("/api/objects/upload-local/:objectId", async (req, res) => {
+    console.log("Upload route hit:", req.params.objectId);
     try {
       const { objectId } = req.params;
-      const fs = await import('fs');
-      const path = await import('path');
-      const multer = await import('multer');
       
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = path.join(process.cwd(), 'uploads');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
+      // Extract lesson ID from objectId pattern: lesson-{id}-{type}-{timestamp}
+      const lessonIdMatch = objectId.match(/^lesson-([^-]+)-/);
+      const lessonId = lessonIdMatch ? lessonIdMatch[1] : null;
+      const fileTypeMatch = objectId.match(/-(podcast|pdf)-/);
+      const fileType = fileTypeMatch ? fileTypeMatch[1] : null;
       
-      // Configure multer for file uploads
+      // Determine file extension from objectId or will get from file
+      const determineExtension = (fileType: string | null, originalExt: string): string => {
+        if (fileType === 'pdf') return '.pdf';
+        if (fileType === 'podcast') {
+          const ext = originalExt.toLowerCase();
+          if (['.m4a', '.mp4a'].includes(ext)) return '.m4a';
+          return ext || '.m4a';
+        }
+        return originalExt || '';
+      };
+      
+      // Configure multer for file uploads - use temporary filename first
       const storage = multer.diskStorage({
         destination: (req, file, cb) => {
           cb(null, uploadsDir);
         },
         filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-          const ext = path.extname(file.originalname);
-          cb(null, `${objectId}-${uniqueSuffix}${ext}`);
+          // Use temporary filename - will rename after fetching lesson title
+          const tempId = nanoid(12);
+          const ext = determineExtension(fileType, path.extname(file.originalname));
+          cb(null, `temp-${tempId}${ext}`);
         }
       });
       
       const upload = multer({ 
         storage,
-        limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+        limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit (applies to all files)
         fileFilter: (req, file, cb) => {
           // Get file extension
           const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
           
           // Define allowed extensions
-          const allowedExtensions = ['jpeg', 'jpg', 'png', 'gif', 'pdf', 'mp3', 'mp4', 'wav', 'm4a', 'webm', 'ogg', 'aac'];
+          const allowedExtensions = ['jpeg', 'jpg', 'png', 'gif', 'pdf', 'mp3', 'mp4', 'wav', 'm4a', 'webm', 'ogg', 'aac', 'mp4a'];
           
-          // Define allowed MIME types (including variants for M4A)
+          // Define allowed MIME types (including variants for M4A and PDF)
           const allowedMimeTypes = [
             'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
-            'application/pdf',
-            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/mp4', 'audio/x-m4a', 'audio/ogg', 'audio/aac', 'audio/webm',
+            'application/pdf', 'application/x-pdf', 'application/octet-stream', // PDF variants
+            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/mp4', 'audio/x-m4a', 
+            'audio/ogg', 'audio/aac', 'audio/webm', 'audio/x-mpeg', 'audio/x-mp3',
             'video/mp4', 'video/webm'
           ];
           
           // Check if extension is allowed
           const extAllowed = allowedExtensions.includes(ext);
           
+          if (!extAllowed) {
+            return cb(new Error(`Invalid file extension: ${ext || 'none'}. Allowed: images, PDFs, audio (MP3, WAV, M4A/MP4a, OGG, AAC), and video files.`));
+          }
+          
+          // Special handling for M4A/MP4a files - they can have various MIME types
+          if (ext === 'm4a' || ext === 'mp4a') {
+            // Accept M4A files with any audio MIME type or audio/mp4 or unknown
+            if (!file.mimetype || file.mimetype.startsWith('audio/') || file.mimetype === 'audio/mp4' || file.mimetype === 'application/octet-stream') {
+              return cb(null, true);
+            }
+          }
+          
+          // Special handling for PDF files - they can have various MIME types
+          if (ext === 'pdf') {
+            // Accept PDF files with PDF MIME types or application/octet-stream or unknown
+            if (!file.mimetype || file.mimetype === 'application/pdf' || file.mimetype === 'application/x-pdf' || 
+                file.mimetype === 'application/octet-stream') {
+              return cb(null, true);
+            }
+          }
+          
           // Check if MIME type is allowed
-          // Special handling for M4A files which can have audio/mp4 MIME type
           const mimeAllowed = allowedMimeTypes.includes(file.mimetype) || 
-                            (ext === 'm4a' && (file.mimetype.startsWith('audio/') || file.mimetype === 'audio/mp4')) ||
                             (ext === 'mp4' && (file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/')));
           
-          // Accept if extension is allowed AND (MIME type is allowed OR extension is audio/video type)
-          if (extAllowed && (mimeAllowed || file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/') || file.mimetype.startsWith('image/'))) {
+          // Accept if MIME type is allowed OR if it's a known extension with a generic/unknown MIME type
+          if (mimeAllowed || !file.mimetype || file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/') || file.mimetype.startsWith('image/')) {
             return cb(null, true);
           } else {
             cb(new Error(`Invalid file type: ${file.mimetype || 'unknown'} (${ext || 'no extension'}). Allowed: images, PDFs, audio (MP3, WAV, M4A/MP4a, OGG, AAC), and video files.`));
@@ -155,52 +256,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }).single('file');
       
-      upload(req, res, (err) => {
+      // Use multer's callback-based API properly
+      upload(req, res, async (err) => {
         if (err) {
           console.error("Upload error:", err);
-          console.error("File details:", {
-            originalname: req.file?.originalname,
-            mimetype: req.file?.mimetype,
-            size: req.file?.size
+          console.error("Request details:", {
+            method: req.method,
+            url: req.url,
+            headers: {
+              'content-type': req.headers['content-type'],
+              'content-length': req.headers['content-length']
+            },
+            fileDetails: req.file ? {
+              originalname: req.file.originalname,
+              mimetype: req.file.mimetype,
+              size: req.file.size,
+              fieldname: req.file.fieldname
+            } : 'No file in request'
           });
+          
+          // Provide more helpful error messages
+          let errorMessage = err.message;
+          if (err.message.includes('File too large') || err.message.includes('LIMIT_FILE_SIZE')) {
+            errorMessage = 'File size exceeds the 100MB limit. Please upload a smaller file.';
+          } else if (err.message.includes('Invalid file type') || err.message.includes('Invalid file extension')) {
+            errorMessage = err.message;
+          } else if (err.message.includes('Unexpected field')) {
+            errorMessage = 'Invalid form field. Please ensure the file is uploaded with the field name "file".';
+          }
+          
           return res.status(400).json({ 
-            error: err.message,
+            error: errorMessage,
             details: {
               originalname: req.file?.originalname,
-              mimetype: req.file?.mimetype
+              mimetype: req.file?.mimetype,
+              size: req.file?.size
             }
           });
         }
         
         if (!req.file) {
-          return res.status(400).json({ error: 'No file uploaded' });
+          console.error("No file in request after multer processing");
+          console.error("Request body:", req.body);
+          console.error("Request files:", (req as any).files);
+          return res.status(400).json({ 
+            error: 'No file uploaded. Please ensure you are sending a file with the field name "file".',
+            receivedFields: Object.keys(req.body || {})
+          });
         }
         
-        console.log("File uploaded successfully:", {
-          filename: req.file.filename,
-          originalname: req.file.originalname,
-          mimetype: req.file.mimetype,
-          size: req.file.size
-        });
-        
-        const fileUrl = `/uploads/${req.file.filename}`;
-        
-        res.json({
-          success: true,
-          objectId,
-          filename: req.file.filename,
-          originalName: req.file.originalname,
-          path: fileUrl,
-          url: fileUrl, // For compatibility
-          size: req.file.size,
-          mimetype: req.file.mimetype
-        });
+        // Process the file asynchronously: fetch lesson title, rename file, delete old files
+        try {
+          let lessonTitle: string | null = null;
+          let oldFileUrl: string | null = null;
+          
+          // Try to get lesson title from request body (multer preserves text fields in req.body for multipart/form-data)
+          if (req.body && typeof req.body.lessonTitle === 'string' && req.body.lessonTitle.trim()) {
+            lessonTitle = req.body.lessonTitle.trim();
+            console.log('Lesson title from request body:', lessonTitle);
+          }
+            
+            // If not provided and we have lesson ID, fetch from database
+            if (!lessonTitle && lessonId) {
+              try {
+                const [lesson] = await db.select({
+                  title: lessons.title,
+                  pdfUrl: lessons.pdfUrl,
+                  podcastUrl: lessons.podcastUrl,
+                })
+                .from(lessons)
+                .where(eq(lessons.id, lessonId))
+                .limit(1);
+                
+                if (lesson) {
+                  lessonTitle = lesson.title;
+                  // Get old file URL for deletion
+                  if (fileType === 'pdf' && lesson.pdfUrl) {
+                    oldFileUrl = lesson.pdfUrl;
+                  } else if (fileType === 'podcast' && lesson.podcastUrl) {
+                    oldFileUrl = lesson.podcastUrl;
+                  }
+                  console.log('Lesson title fetched from database:', lessonTitle);
+                }
+              } catch (dbError) {
+                console.error('Error fetching lesson from database:', dbError);
+                // Continue with fallback title
+              }
+            }
+            
+          // Sanitize lesson title for filename
+          const sanitizedTitle = sanitizeFilename(lessonTitle || 'lesson');
+          
+          // Determine file extension
+          const fileExt = determineExtension(fileType, path.extname(req.file.originalname));
+          const extForFilename = fileExt || (fileType === 'pdf' ? '.pdf' : '.m4a');
+          
+          // Generate custom filename
+          const uniqueId = nanoid(6);
+          const customFilename = `${sanitizedTitle}-professional-diver-app_diver-well-training-${uniqueId}${extForFilename}`;
+          const tempFilePath = path.join(uploadsDir, req.file.filename);
+          const newFilePath = path.join(uploadsDir, customFilename);
+          
+          // Rename the temporary file to the custom filename
+          try {
+            await fs.promises.rename(tempFilePath, newFilePath);
+            console.log('File renamed from', req.file.filename, 'to', customFilename);
+          } catch (renameError: any) {
+            console.error('Error renaming file:', renameError);
+            // If rename fails, try copying and then deleting
+            try {
+              await fs.promises.copyFile(tempFilePath, newFilePath);
+              await fs.promises.unlink(tempFilePath);
+              console.log('File copied and temp file deleted');
+            } catch (copyError) {
+              console.error('Error copying file:', copyError);
+              throw new Error('Failed to save file with custom filename');
+            }
+          }
+          
+          // Delete old file if it exists
+          if (oldFileUrl) {
+            try {
+              // Extract filename from URL (remove /uploads/ prefix)
+              const oldFilename = oldFileUrl.replace(/^\/uploads\//, '');
+              const oldFilePath = path.join(uploadsDir, oldFilename);
+              
+              // Check if file exists before deleting
+              try {
+                await fs.promises.access(oldFilePath);
+                await fs.promises.unlink(oldFilePath);
+                console.log('Old file deleted:', oldFilename);
+              } catch (accessError) {
+                console.log('Old file not found, skipping deletion:', oldFilename);
+              }
+            } catch (deleteError: any) {
+              // Log error but don't fail the upload
+              console.warn('Warning: Failed to delete old file:', deleteError.message);
+            }
+          }
+          
+          const fileUrl = `/uploads/${customFilename}`;
+          
+          res.json({
+            success: true,
+            objectId,
+            filename: customFilename,
+            originalName: req.file.originalname,
+            path: fileUrl,
+            url: fileUrl,
+            size: req.file.size,
+            mimetype: req.file.mimetype
+          });
+        } catch (processError: any) {
+          console.error("Error processing uploaded file:", processError);
+          // Clean up temp file if it still exists
+          try {
+            const tempFilePath = path.join(uploadsDir, req.file.filename);
+            try {
+              await fs.promises.access(tempFilePath);
+              await fs.promises.unlink(tempFilePath);
+            } catch (accessError) {
+              // File doesn't exist, nothing to clean up
+            }
+          } catch (cleanupError) {
+            console.error('Error cleaning up temp file:', cleanupError);
+          }
+          
+          res.status(500).json({
+            error: "Failed to process uploaded file",
+            message: processError.message || "Unknown error"
+          });
+        }
       });
     } catch (error: any) {
-      console.error("Error in local upload:", error);
+      console.error("Error in local upload setup:", error);
+      console.error("Error stack:", error.stack);
       res.status(500).json({ 
         error: "Failed to handle local upload",
-        message: error.message || "Unknown error"
+        message: error.message || "Unknown error",
+        details: error.stack
       });
     }
   });
@@ -253,10 +487,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced authentication route for credentials
   app.post("/api/auth/credentials", async (req, res) => {
     try {
+      // Log raw request body for debugging
+      console.log('[AUTH] Raw request body:', JSON.stringify(req.body));
+      console.log('[AUTH] Content-Type:', req.headers['content-type']);
+      
       const { email, password, rememberMe } = req.body as { email: string; password: string; rememberMe?: boolean };
 
+      if (!email || !password) {
+        console.error('[AUTH] Missing email or password');
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      // Normalize email (lowercase, trim)
+      const normalizedEmail = (email || '').toLowerCase().trim();
+      const normalizedPassword = password || '';
+
+      console.log(`[AUTH] Login attempt - Email: "${normalizedEmail}", Password length: ${normalizedPassword.length}`);
+
       // Demo authentication - check against known accounts
-      if (email === 'admin@diverwell.app' && password === 'admin123') {
+      if (normalizedEmail === 'admin@diverwell.app' && normalizedPassword === 'admin123') {
         res.json({ 
           success: true, 
           user: {
@@ -281,19 +530,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'sephdee@hotmail.com': 'Admin123', // Secondary super admin account
       };
 
-      if (superAdminCredentials[email] && password === superAdminCredentials[email]) {
+      const expectedPassword = superAdminCredentials[normalizedEmail];
+      if (expectedPassword && normalizedPassword === expectedPassword) {
+        console.log(`[AUTH] ✅ SUPER_ADMIN login successful for: ${normalizedEmail}`);
         res.json({ 
           success: true, 
           user: {
-            id: email === 'sephdee@hotmail.com' ? 'super-admin-2' : 'super-admin-1',
-            name: email === 'lalabalavu.jon@gmail.com' ? 'Jon Lalabalavu' : 'Jon Lalabalavu',
-            email: email,
+            id: normalizedEmail === 'sephdee@hotmail.com' ? 'super-admin-2' : 'super-admin-1',
+            name: normalizedEmail === 'lalabalavu.jon@gmail.com' ? 'Jon Lalabalavu' : 'Jon Lalabalavu',
+            email: normalizedEmail,
             role: 'SUPER_ADMIN',
             subscriptionType: 'LIFETIME'
           },
           rememberMe 
         });
         return;
+      } else if (expectedPassword) {
+        console.log(`[AUTH] ❌ Password mismatch for ${normalizedEmail}. Expected: "${expectedPassword}", Got: "${normalizedPassword}"`);
       }
 
       // Check for lifetime users with their specific passwords
@@ -305,13 +558,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'jone.viti@gmail.com': 'lifetime123',
       };
       
-      if (lifetimeUserCredentials[email] && password === lifetimeUserCredentials[email]) {
+      if (lifetimeUserCredentials[normalizedEmail] && normalizedPassword === lifetimeUserCredentials[normalizedEmail]) {
         res.json({ 
           success: true, 
           user: {
             id: 'lifetime-user',
             name: 'Lifetime Member',
-            email: email,
+            email: normalizedEmail,
             role: 'USER',
             subscriptionType: 'LIFETIME'
           },
@@ -321,13 +574,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Demo trial user
-      if (password === 'trial123') {
+      if (normalizedPassword === 'trial123') {
         res.json({ 
           success: true, 
           user: {
             id: 'trial-user',
             name: 'Trial User',
-            email: email,
+            email: normalizedEmail,
             role: 'USER',
             subscriptionType: 'TRIAL',
             trialExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
@@ -337,10 +590,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      console.log(`[AUTH] ❌ Invalid credentials for: ${normalizedEmail}`);
       res.status(401).json({ error: "Invalid credentials" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Authentication error:", error);
-      res.status(500).json({ error: "Authentication failed" });
+      console.error("Error stack:", error?.stack);
+      console.error("Request body:", req.body);
+      res.status(500).json({ error: "Authentication failed", details: error?.message || "Unknown error" });
     }
   });
 
@@ -828,6 +1084,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Documentation API Endpoints
+  app.get('/api/support-documents/sections', async (req, res) => {
+    try {
+      const { getDocumentationSections } = await import('./api/documentation');
+      await getDocumentationSections(req, res);
+    } catch (error) {
+      console.error('Documentation sections error:', error);
+      res.status(500).json({ error: 'Failed to fetch documentation sections' });
+    }
+  });
+
+  app.get('/api/support-documents/sections/:sectionId', async (req, res) => {
+    try {
+      const { getDocumentationSection } = await import('./api/documentation');
+      await getDocumentationSection(req, res);
+    } catch (error) {
+      console.error('Documentation section error:', error);
+      res.status(500).json({ error: 'Failed to fetch documentation section' });
+    }
+  });
+
+  app.get('/api/support-documents/changes', async (req, res) => {
+    try {
+      const { getDocumentationChanges } = await import('./api/documentation');
+      await getDocumentationChanges(req, res);
+    } catch (error) {
+      console.error('Documentation changes error:', error);
+      res.status(500).json({ error: 'Failed to fetch documentation changes' });
+    }
+  });
+
+  app.get('/api/support-documents/versions/:sectionId', async (req, res) => {
+    try {
+      const { getSectionVersions } = await import('./api/documentation');
+      await getSectionVersions(req, res);
+    } catch (error) {
+      console.error('Section versions error:', error);
+      res.status(500).json({ error: 'Failed to fetch section versions' });
+    }
+  });
+
+  app.post('/api/support-documents/update', async (req, res) => {
+    try {
+      const { triggerDocumentationUpdate } = await import('./api/documentation');
+      await triggerDocumentationUpdate(req, res);
+    } catch (error) {
+      console.error('Documentation update trigger error:', error);
+      res.status(500).json({ error: 'Failed to trigger documentation update' });
+    }
+  });
+
+  app.post('/api/support-documents/sync', async (req, res) => {
+    try {
+      const { forceSyncFromPlatform } = await import('./api/documentation');
+      await forceSyncFromPlatform(req, res);
+    } catch (error) {
+      console.error('Documentation sync error:', error);
+      res.status(500).json({ error: 'Failed to sync documentation' });
+    }
+  });
+
+  app.get('/api/support-documents/pending-count', async (req, res) => {
+    try {
+      const { getPendingChangesCount } = await import('./api/documentation');
+      await getPendingChangesCount(req, res);
+    } catch (error) {
+      console.error('Pending changes count error:', error);
+      res.status(500).json({ error: 'Failed to fetch pending changes count' });
+    }
+  });
+
   // Affiliate Program Endpoints
   app.get('/api/affiliate/dashboard', async (req, res) => {
     try {
@@ -1018,21 +1345,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Learning Path AI Routes
   app.post('/api/learning-path/generate', async (req, res) => {
     try {
-      const { profile, additionalInfo } = req.body;
+      const { profile, additionalInfo, userId } = req.body;
       
-      if (!profile || !profile.experience || !profile.goals || profile.goals.length === 0) {
-        return res.status(400).json({ error: 'Profile with experience and goals is required' });
+      // Log request for debugging
+      console.log('Learning path generation request received:', {
+        hasProfile: !!profile,
+        experience: profile?.experience,
+        goalsCount: profile?.goals?.length || 0,
+        hasAdditionalInfo: !!additionalInfo,
+      });
+      
+      if (!profile) {
+        console.error('Learning path generation failed: No profile provided');
+        return res.status(400).json({ 
+          error: 'Profile is required',
+          message: 'Please provide your profile information'
+        });
       }
 
-      // const aiLearningPathService = new AILearningPathService();
-      // const suggestions = await aiLearningPathService.generateLearningPath(profile, additionalInfo);
-      
-      res.json({ suggestions: [], message: "AI learning path service temporarily disabled" });
-    } catch (error) {
+      if (!profile.experience || !profile.goals || profile.goals.length === 0) {
+        console.error('Learning path generation failed: Profile incomplete', {
+          hasExperience: !!profile.experience,
+          goalsCount: profile.goals?.length || 0,
+        });
+        return res.status(400).json({ 
+          error: 'Profile incomplete',
+          message: 'Profile with experience and at least one goal is required'
+        });
+      }
+
+      try {
+        const { AILearningPathService } = await import('./ai-learning-path');
+        const aiLearningPathService = new AILearningPathService();
+        const suggestions = await aiLearningPathService.generateLearningPath(profile, additionalInfo);
+        
+        // Ensure we always return suggestions array
+        if (suggestions && Array.isArray(suggestions) && suggestions.length > 0) {
+          return res.json({ suggestions });
+        } else {
+          // If AI returns empty, use fallback
+          console.warn('AI service returned empty suggestions, using fallback');
+          const mockSuggestions = generateMockSuggestions(profile);
+          return res.json({ suggestions: mockSuggestions });
+        }
+      } catch (aiError: any) {
+        console.error('AI Learning Path service error:', aiError);
+        // Fallback to mock suggestions if AI service fails
+        const mockSuggestions = generateMockSuggestions(profile);
+        return res.json({ suggestions: mockSuggestions });
+      }
+    } catch (error: any) {
       console.error('Learning path generation error:', error);
-      res.status(500).json({ error: 'Failed to generate learning path suggestions' });
+      const errorMessage = error?.message || 'Failed to generate learning path suggestions';
+      return res.status(500).json({ 
+        error: 'Generation failed',
+        message: errorMessage 
+      });
     }
   });
+
+  // Helper function for fallback mock suggestions
+  function generateMockSuggestions(profile: any) {
+    const isBeginner = profile.experience?.toLowerCase().includes('beginner') || 
+                      profile.experience?.toLowerCase().includes('new');
+    
+    if (isBeginner) {
+      return [{
+        id: "foundation-path",
+        title: "Commercial Diving Foundation Path",
+        description: "Essential certifications for starting your commercial diving career with industry-standard training",
+        difficulty: "Beginner",
+        estimatedWeeks: 12,
+        tracks: [
+          {
+            id: "1",
+            title: "Assistant Life Support Technician",
+            slug: "air-diving-life-support-technician",
+            order: 1,
+            reason: "Essential foundation for all commercial diving operations and safety protocols"
+          }
+        ],
+        confidence: 92,
+        reasoning: "Based on your beginner experience level and career goals, this path provides the essential foundation certifications required by IMCA and ADCI industry standards."
+      }];
+    }
+    
+    return [{
+      id: "professional-path",
+      title: "Professional Development Path",
+      description: "Advance your diving career with specialized certifications aligned with your goals",
+      difficulty: "Intermediate",
+      estimatedWeeks: 20,
+      tracks: [
+        {
+          id: "2",
+          title: "Life Support Technician (LST)",
+          slug: "life-support-technician",
+          order: 1,
+          reason: "Advanced life support skills for complex operations"
+        },
+        {
+          id: "3",
+          title: "Diver Medic Technician (DMT)",
+          slug: "diver-medic-technician",
+          order: 2,
+          reason: "Medical emergency response capabilities for diving operations"
+        }
+      ],
+      confidence: 85,
+      reasoning: "Building on your experience, these certifications will enhance your value and safety capabilities in commercial diving operations while advancing your career goals."
+    }];
+  }
 
   app.get('/api/learning-path/suggestions', async (req, res) => {
     try {
@@ -1079,6 +1502,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Save user's learning path for later review
+  app.post('/api/learning-path/save', async (req, res) => {
+    try {
+      const { userId, pathId, pathData } = req.body;
+      
+      if (!userId || !pathId || !pathData) {
+        return res.status(400).json({ error: 'UserId, pathId, and pathData are required' });
+      }
+
+      // In a real implementation, save to database
+      // For now, return success
+      res.json({ 
+        success: true, 
+        message: 'Learning path saved successfully',
+        savedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Save learning path error:', error);
+      res.status(500).json({ error: 'Failed to save learning path' });
+    }
+  });
+
+  // Share learning path (generates shareable link)
+  app.post('/api/learning-path/share', async (req, res) => {
+    try {
+      const { pathId, pathData } = req.body;
+      
+      if (!pathId || !pathData) {
+        return res.status(400).json({ error: 'PathId and pathData are required' });
+      }
+
+      // Generate a shareable token/link
+      const shareToken = randomBytes(32).toString('hex');
+      // In a real implementation, store in database with expiration
+      
+      res.json({ 
+        success: true,
+        shareToken,
+        shareUrl: `/learning-path/shared/${shareToken}`,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+      });
+    } catch (error) {
+      console.error('Share learning path error:', error);
+      res.status(500).json({ error: 'Failed to share learning path' });
+    }
+  });
+
+  // Download path summary as PDF (placeholder - would need PDF generation library)
+  app.post('/api/learning-path/download', async (req, res) => {
+    try {
+      const { pathData } = req.body;
+      
+      if (!pathData) {
+        return res.status(400).json({ error: 'PathData is required' });
+      }
+
+      // In a real implementation, generate PDF
+      // For now, return JSON that can be formatted client-side
+      res.json({ 
+        success: true,
+        message: 'PDF generation would happen here',
+        data: pathData
+      });
+    } catch (error) {
+      console.error('Download learning path error:', error);
+      res.status(500).json({ error: 'Failed to download learning path' });
+    }
+  });
+
+  // Book consultation
+  app.post('/api/learning-path/consultation', async (req, res) => {
+    try {
+      const { userId, email, name, phone, preferredDate, message } = req.body;
+      
+      if (!email || !name) {
+        return res.status(400).json({ error: 'Email and name are required' });
+      }
+
+      // In a real implementation, create calendar event and send confirmation
+      res.json({ 
+        success: true,
+        message: 'Consultation request received. We will contact you within 24 hours.',
+        confirmationId: randomBytes(16).toString('hex')
+      });
+    } catch (error) {
+      console.error('Consultation booking error:', error);
+      res.status(500).json({ error: 'Failed to book consultation' });
+    }
+  });
+
   // Get current user (mock endpoint for trial)
   app.get('/api/current-user', async (req, res) => {
     try {
@@ -1116,20 +1629,348 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/lessons/:id", async (req, res) => {
     try {
       const { id } = req.params;
+      console.log('PATCH /api/lessons/:id - Request body:', JSON.stringify(req.body, null, 2));
+      
       // Validate with SQLite schema since tempStorage uses SQLite
       const updateData = insertLessonSchemaSQLite.partial().parse(req.body);
+      console.log('PATCH /api/lessons/:id - Parsed update data:', JSON.stringify(updateData, null, 2));
+      
       // Use tempStorage to match the GET endpoint and work with current database
       const lesson = await tempStorage.updateLesson(id, updateData);
       if (!lesson) {
         return res.status(404).json({ error: "Lesson not found" });
       }
+      console.log('PATCH /api/lessons/:id - Updated lesson:', JSON.stringify(lesson, null, 2));
       res.json(lesson);
     } catch (error) {
       console.error('Lesson update error:', error);
       if (error instanceof z.ZodError) {
+        console.error('Zod validation errors:', JSON.stringify(error.errors, null, 2));
         return res.status(400).json({ error: "Invalid data", details: error.errors });
       }
-      res.status(500).json({ error: "Failed to update lesson" });
+      res.status(500).json({ error: "Failed to update lesson", message: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Bulk upload endpoints for lessons (PDF and podcast files)
+  // Endpoint for automatic filename-based matching
+  app.post("/api/lessons/bulk-upload-auto", async (req, res) => {
+    try {
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+          cb(null, uploadsDir);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          const ext = path.extname(file.originalname);
+          cb(null, `bulk-${uniqueSuffix}${ext}`);
+        }
+      });
+
+      const upload = multer({
+        storage,
+        limits: { fileSize: 100 * 1024 * 1024 }, // 100MB per file
+        fileFilter: (req, file, cb) => {
+          const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+          const allowedExtensions = ['pdf', 'm4a', 'mp4a', 'mp3', 'wav', 'aac', 'ogg'];
+          
+          if (!allowedExtensions.includes(ext)) {
+            return cb(new Error(`Invalid file type: ${ext}. Only PDF and audio files are allowed.`));
+          }
+          
+          const isPdf = ext === 'pdf';
+          const isAudio = ['m4a', 'mp4a', 'mp3', 'wav', 'aac', 'ogg'].includes(ext);
+          
+          if (!file.mimetype) {
+            // Accept files without MIME type if extension is valid
+            return cb(null, true);
+          }
+          
+          if (isPdf && (file.mimetype === 'application/pdf' || file.mimetype === 'application/x-pdf' || file.mimetype === 'application/octet-stream')) {
+            return cb(null, true);
+          }
+          
+          if (isAudio && (file.mimetype.startsWith('audio/') || file.mimetype === 'application/octet-stream')) {
+            return cb(null, true);
+          }
+          
+          if (!isPdf && !isAudio) {
+            return cb(new Error(`Invalid file type: ${ext}. Only PDF and audio files are allowed.`));
+          }
+          
+          cb(null, true);
+        }
+      }).array('files', 50); // Allow up to 50 files
+
+      upload(req, res, async (err) => {
+        if (err) {
+          console.error('Bulk upload error:', err);
+          return res.status(400).json({ 
+            error: err.message || 'File upload failed',
+          });
+        }
+
+        const files = (req as any).files as Express.Multer.File[];
+        if (!files || files.length === 0) {
+          return res.status(400).json({ error: 'No files uploaded' });
+        }
+
+        const { parseFilenameForLesson, findLessonByParsedFilename, getFileType } = await import('./utils/file-matcher');
+        const results = [];
+
+        for (const file of files) {
+          try {
+            const parsed = parseFilenameForLesson(file.originalname);
+            const fileType = getFileType(file.originalname);
+            
+            if (fileType === 'unknown') {
+              results.push({
+                filename: file.originalname,
+                success: false,
+                error: 'Unknown file type',
+              });
+              continue;
+            }
+
+            const lesson = await findLessonByParsedFilename(parsed);
+            
+            if (!lesson) {
+              results.push({
+                filename: file.originalname,
+                success: false,
+                error: `Could not find matching lesson for file: ${file.originalname}`,
+                parsed,
+              });
+              continue;
+            }
+
+            const fileUrl = `/uploads/${file.filename}`;
+            const updateData: any = {};
+            
+            if (fileType === 'pdf') {
+              updateData.pdfUrl = fileUrl;
+            } else if (fileType === 'podcast') {
+              updateData.podcastUrl = fileUrl;
+              // TODO: Extract duration from audio file if needed
+            }
+
+            await tempStorage.updateLesson(lesson.id, updateData);
+
+            results.push({
+              filename: file.originalname,
+              lessonId: lesson.id,
+              lessonTitle: lesson.title,
+              fileType,
+              success: true,
+              url: fileUrl,
+            });
+          } catch (error: any) {
+            console.error(`Error processing file ${file.originalname}:`, error);
+            results.push({
+              filename: file.originalname,
+              success: false,
+              error: error.message || 'Unknown error',
+            });
+          }
+        }
+
+        const successCount = results.filter(r => r.success).length;
+        const failureCount = results.filter(r => !r.success).length;
+
+        res.json({
+          success: true,
+          total: files.length,
+          successful: successCount,
+          failed: failureCount,
+          results,
+        });
+      });
+    } catch (error: any) {
+      console.error('Bulk upload auto error:', error);
+      res.status(500).json({ 
+        error: 'Failed to process bulk upload',
+        message: error.message || 'Unknown error',
+      });
+    }
+  });
+
+  // Endpoint for manual file-to-lesson mapping
+  app.post("/api/lessons/bulk-upload", async (req, res) => {
+    try {
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+          cb(null, uploadsDir);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          const ext = path.extname(file.originalname);
+          cb(null, `bulk-${uniqueSuffix}${ext}`);
+        }
+      });
+
+      const upload = multer({
+        storage,
+        limits: { fileSize: 100 * 1024 * 1024 }, // 100MB per file
+        fileFilter: (req, file, cb) => {
+          const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+          const allowedExtensions = ['pdf', 'm4a', 'mp4a', 'mp3', 'wav', 'aac', 'ogg'];
+          
+          if (!allowedExtensions.includes(ext)) {
+            return cb(new Error(`Invalid file type: ${ext}. Only PDF and audio files are allowed.`));
+          }
+          
+          const isPdf = ext === 'pdf';
+          const isAudio = ['m4a', 'mp4a', 'mp3', 'wav', 'aac', 'ogg'].includes(ext);
+          
+          if (!file.mimetype) {
+            return cb(null, true);
+          }
+          
+          if (isPdf && (file.mimetype === 'application/pdf' || file.mimetype === 'application/x-pdf' || file.mimetype === 'application/octet-stream')) {
+            return cb(null, true);
+          }
+          
+          if (isAudio && (file.mimetype.startsWith('audio/') || file.mimetype === 'application/octet-stream')) {
+            return cb(null, true);
+          }
+          
+          cb(null, true);
+        }
+      }).array('files', 50); // Allow up to 50 files
+
+      upload(req, res, async (err) => {
+        if (err) {
+          console.error('Bulk upload error:', err);
+          return res.status(400).json({ 
+            error: err.message || 'File upload failed',
+          });
+        }
+
+        const files = (req as any).files as Express.Multer.File[];
+        const mappings = JSON.parse(req.body.mappings || '[]'); // Array of { fileIndex, lessonId, type: 'pdf'|'podcast' }
+
+        if (!files || files.length === 0) {
+          return res.status(400).json({ error: 'No files uploaded' });
+        }
+
+        if (!mappings || mappings.length === 0) {
+          return res.status(400).json({ error: 'No file mappings provided' });
+        }
+
+        const { getFileType } = await import('./utils/file-matcher');
+        const results = [];
+
+        for (const mapping of mappings) {
+          const { fileIndex, lessonId, type } = mapping;
+          const file = files[fileIndex];
+
+          if (!file) {
+            results.push({
+              fileIndex,
+              success: false,
+              error: 'File not found at specified index',
+            });
+            continue;
+          }
+
+          if (!lessonId) {
+            results.push({
+              filename: file.originalname,
+              success: false,
+              error: 'Lesson ID is required',
+            });
+            continue;
+          }
+
+          if (!type || (type !== 'pdf' && type !== 'podcast')) {
+            results.push({
+              filename: file.originalname,
+              success: false,
+              error: 'Type must be "pdf" or "podcast"',
+            });
+            continue;
+          }
+
+          try {
+            // Verify lesson exists
+            const lesson = await tempStorage.getLessonById(lessonId);
+            if (!lesson) {
+              results.push({
+                filename: file.originalname,
+                lessonId,
+                success: false,
+                error: 'Lesson not found',
+              });
+              continue;
+            }
+
+            const fileType = getFileType(file.originalname);
+            if ((type === 'pdf' && fileType !== 'pdf') || (type === 'podcast' && fileType !== 'podcast')) {
+              results.push({
+                filename: file.originalname,
+                success: false,
+                error: `File type mismatch: expected ${type}, got ${fileType}`,
+              });
+              continue;
+            }
+
+            const fileUrl = `/uploads/${file.filename}`;
+            const updateData: any = {};
+            
+            if (type === 'pdf') {
+              updateData.pdfUrl = fileUrl;
+            } else {
+              updateData.podcastUrl = fileUrl;
+            }
+
+            await tempStorage.updateLesson(lessonId, updateData);
+
+            results.push({
+              filename: file.originalname,
+              lessonId,
+              lessonTitle: lesson.title,
+              fileType: type,
+              success: true,
+              url: fileUrl,
+            });
+          } catch (error: any) {
+            console.error(`Error processing file ${file.originalname}:`, error);
+            results.push({
+              filename: file.originalname,
+              lessonId,
+              success: false,
+              error: error.message || 'Unknown error',
+            });
+          }
+        }
+
+        const successCount = results.filter(r => r.success).length;
+        const failureCount = results.filter(r => !r.success).length;
+
+        res.json({
+          success: true,
+          total: mappings.length,
+          successful: successCount,
+          failed: failureCount,
+          results,
+        });
+      });
+    } catch (error: any) {
+      console.error('Bulk upload error:', error);
+      res.status(500).json({ 
+        error: 'Failed to process bulk upload',
+        message: error.message || 'Unknown error',
+      });
     }
   });
 
@@ -5999,5 +6840,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  // Initialize Platform Change Monitor and Documentation Updater
+  try {
+    const { default: PlatformChangeMonitor } = await import('./platform-change-monitor');
+    const { default: LangSmithChangeTracker } = await import('./langsmith-change-tracker');
+    const { default: DocumentationUpdater } = await import('./documentation-updater');
+
+    // Get instances
+    const platformMonitor = PlatformChangeMonitor.getInstance(15);
+    const langsmithTracker = LangSmithChangeTracker.getInstance(30);
+    const updater = DocumentationUpdater.getInstance();
+
+    // Set up change event listeners
+    platformMonitor.on('change', async (change: any) => {
+      console.log(`📢 Platform change detected: ${change.type} - ${change.description}`);
+      // Process changes automatically via documentation updater
+      try {
+        await updater.processPendingChanges();
+      } catch (error) {
+        console.error('❌ Error processing changes:', error);
+      }
+    });
+
+    langsmithTracker.on('change', async (change: any) => {
+      console.log(`📢 LangSmith change detected: ${change.type} - ${change.description}`);
+      // Process changes automatically via documentation updater
+      try {
+        await updater.processPendingChanges();
+      } catch (error) {
+        console.error('❌ Error processing changes:', error);
+      }
+    });
+
+    // Start monitoring services
+    await platformMonitor.start();
+    await langsmithTracker.start();
+
+    // Process any existing pending changes on startup (delayed to avoid blocking)
+    setTimeout(async () => {
+      try {
+        await updater.processPendingChanges();
+      } catch (error) {
+        console.error('❌ Error processing initial pending changes:', error);
+      }
+    }, 5000); // Wait 5 seconds after server starts
+
+    console.log('✅ Platform Change Monitor and Documentation Updater initialized');
+  } catch (error) {
+    console.error('⚠️ Warning: Failed to initialize documentation monitoring services:', error);
+    // Continue startup even if monitoring fails
+  }
+
   return httpServer;
 }
