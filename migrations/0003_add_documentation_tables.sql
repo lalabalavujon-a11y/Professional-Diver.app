@@ -49,3 +49,5 @@ CREATE INDEX IF NOT EXISTS "idx_documentation_changes_status" ON "documentation_
 CREATE INDEX IF NOT EXISTS "idx_documentation_changes_section_id" ON "documentation_changes"("section_id");
 CREATE INDEX IF NOT EXISTS "idx_documentation_versions_section_id" ON "documentation_versions"("section_id");
 
+
+

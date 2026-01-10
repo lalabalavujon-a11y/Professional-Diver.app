@@ -146,17 +146,27 @@ export class UserManagementService {
   // Get user details by email (case-insensitive lookup)
   getSpecialUser(email: string) {
     const normalizedEmail = email.toLowerCase().trim();
+    
+    // Debug logging
+    console.log(`[UserManagement.getSpecialUser] Looking up: "${email}" -> normalized: "${normalizedEmail}"`);
+    console.log(`[UserManagement.getSpecialUser] Available keys:`, Array.from(this.specialUsers.keys()));
+    
     // Try exact match first
     let user = this.specialUsers.get(normalizedEmail);
-    if (user) return user;
+    if (user) {
+      console.log(`[UserManagement.getSpecialUser] ✅ Found user:`, { email: user.email, role: user.role });
+      return user;
+    }
     
-    // Try case-insensitive lookup
+    // Try case-insensitive lookup (shouldn't be needed since we normalize on store)
     for (const [key, value] of this.specialUsers.entries()) {
       if (key.toLowerCase().trim() === normalizedEmail) {
+        console.log(`[UserManagement.getSpecialUser] ✅ Found user (case-insensitive):`, { email: value.email, role: value.role });
         return value;
       }
     }
     
+    console.log(`[UserManagement.getSpecialUser] ❌ User not found`);
     return undefined;
   }
 

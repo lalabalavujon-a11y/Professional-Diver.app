@@ -83,3 +83,7 @@ export default function EquipmentPage() {
 
 
 
+
+
+
+

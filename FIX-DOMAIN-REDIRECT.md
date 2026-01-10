@@ -76,3 +76,7 @@ If you want to completely remove the old sales page:
 
 Page Rules run on Cloudflare's edge, but if the DNS record points directly to a Cloudflare Pages deployment, the request goes directly to that deployment and bypasses the Page Rule logic. That's why we need to change the DNS record instead.
 
+
+
+
+

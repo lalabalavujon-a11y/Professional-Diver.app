@@ -289,7 +289,7 @@ export function useAutoGPSSync(options: AutoGPSSyncOptions = {}) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
     };
-  }, [enabled, updateInterval, updatePositionWithRetry, onLocationUpdate, saveGPSPosition]);
+  }, [enabled, updateInterval, updatePosition, onLocationUpdate, saveGPSPosition]);
 
   return {
     currentPosition,

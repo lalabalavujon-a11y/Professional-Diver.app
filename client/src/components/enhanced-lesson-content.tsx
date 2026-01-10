@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PdfEbookViewer from "@/components/pdf-ebook-viewer";
 import { 
   FileText, 
   Video, 
@@ -20,41 +21,50 @@ import {
   MapPin,
   Clock,
   Users,
-  Award
+  Award,
+  Book
 } from "lucide-react";
 
 interface EnhancedLessonContentProps {
   content: string;
   trackSlug: string;
   lessonTitle: string;
+  pdfUrl?: string | null;
+  lessonId?: string;
 }
 
 /**
- * Transform AI Tutor references in markdown to show first name only
- * Pattern: **AI Tutor: Dr. Michael Rodriguez - Diving Physics Specialist**
- * Becomes: **AI Tutor: Michael**
+ * Transform AI Tutor references in markdown to show first name and subject matter expertise only
+ * Pattern: **AI Tutor: Dr. Michael Rodriguez - Diving Physics Specialist with 12+ years...**
+ * Becomes: **AI Tutor: Michael - Diving Physics Specialist**
+ * Removes: credentials (Dr., Prof., etc.), surnames, years of experience
  */
 function transformAITutorNames(content: string): string {
   // Match patterns like:
-  // **AI Tutor: Dr. Michael Rodriguez - ...**
-  // **AI Tutor: Michael Rodriguez - ...**
-  // **AI Tutor: Dr. Michael - ...**
-  // And extract first name only
-  const patterns = [
-    /\*\*AI Tutor:\s*Dr\.\s+([A-Za-z]+)\s+[A-Za-z]+\s*-\s*[^*]+\*\*/g,
-    /\*\*AI Tutor:\s*([A-Za-z]+)\s+[A-Za-z]+\s*-\s*[^*]+\*\*/g,
-    /\*\*AI Tutor:\s*Dr\.\s+([A-Za-z]+)\s*-\s*[^*]+\*\*/g,
-  ];
-
-  let transformed = content;
+  // **AI Tutor: Dr. Michael Rodriguez - Diving Physics Specialist with 12+ years...**
+  // **AI Tutor: Michael Rodriguez - Diving Physics Specialist**
+  // **AI Tutor: Dr. Michael - Diving Physics Specialist**
+  // Extract first name and subject matter expertise (remove credentials, years, etc.)
   
-  for (const pattern of patterns) {
-    transformed = transformed.replace(pattern, (match, firstName) => {
-      return `**AI Tutor: ${firstName}**`;
-    });
-  }
-
-  return transformed;
+  // Comprehensive pattern that matches AI Tutor references
+  // Captures: optional title, first name, optional last name, dash, expertise text
+  const pattern = /\*\*AI Tutor:\s*(?:Dr\.|Prof\.|Mr\.|Ms\.|Mrs\.)?\s*([A-Za-z]+)(?:\s+[A-Za-z]+)?\s*-\s*([^*]+?)\*\*/g;
+  
+  return content.replace(pattern, (match, firstName, expertise) => {
+    // Clean up expertise: remove "with X years", credentials, etc.
+    let cleanExpertise = expertise.trim();
+    
+    // Remove patterns like "with 12+ years", "with 20 years of experience", etc.
+    cleanExpertise = cleanExpertise.replace(/\s+with\s+\d+[+\-]?\s*(?:years?|yrs?)\s*(?:of\s+experience|in\s+the\s+field)?.*$/gi, '');
+    
+    // Remove patterns like "12+ years", "20 years experience", etc. at the end
+    cleanExpertise = cleanExpertise.replace(/\s+\d+[+\-]?\s*(?:years?|yrs?)\s*(?:of\s+experience|in\s+the\s+field)?.*$/gi, '');
+    
+    // Remove any trailing commas, periods, dashes, or whitespace
+    cleanExpertise = cleanExpertise.replace(/[,.\-\s]+$/, '').trim();
+    
+    return `**AI Tutor: ${firstName} - ${cleanExpertise}**`;
+  });
 }
 
 // Rich media content for each track
@@ -513,7 +523,7 @@ const RICH_MEDIA_CONTENT = {
   }
 };
 
-export default function EnhancedLessonContent({ content, trackSlug, lessonTitle }: EnhancedLessonContentProps) {
+export default function EnhancedLessonContent({ content, trackSlug, lessonTitle, pdfUrl, lessonId }: EnhancedLessonContentProps) {
   const [activeTab, setActiveTab] = useState("content");
   const richMedia = RICH_MEDIA_CONTENT[trackSlug as keyof typeof RICH_MEDIA_CONTENT] || RICH_MEDIA_CONTENT["ndt-inspection"];
 
@@ -536,7 +546,7 @@ export default function EnhancedLessonContent({ content, trackSlug, lessonTitle 
     <div className="space-y-6">
       {/* Enhanced Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="content" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Content
@@ -545,13 +555,9 @@ export default function EnhancedLessonContent({ content, trackSlug, lessonTitle 
             <Video className="w-4 h-4" />
             Videos
           </TabsTrigger>
-          <TabsTrigger value="documents" className="flex items-center gap-2">
-            <File className="w-4 h-4" />
-            Documents
-          </TabsTrigger>
-          <TabsTrigger value="interactive" className="flex items-center gap-2">
-            <Calculator className="w-4 h-4" />
-            Tools
+          <TabsTrigger value="reference" className="flex items-center gap-2">
+            <Book className="w-4 h-4" />
+            Reference Guide
           </TabsTrigger>
         </TabsList>
 
@@ -616,57 +622,22 @@ export default function EnhancedLessonContent({ content, trackSlug, lessonTitle 
           </div>
         </TabsContent>
 
-        {/* Documents Tab */}
-        <TabsContent value="documents" className="space-y-4">
-          <div className="grid gap-4">
-            {richMedia.documents.map((doc) => (
-              <Card key={doc.id} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-red-100 rounded-lg">
-                      <File className="w-6 h-6 text-red-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">{doc.title}</h3>
-                      <p className="text-sm text-gray-600">{doc.description}</p>
-                      <div className="flex items-center gap-4 mt-1">
-                        <Badge variant="outline">{doc.type}</Badge>
-                        <span className="text-xs text-gray-500">{doc.size}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Button variant="outline">
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Interactive Tools Tab */}
-        <TabsContent value="interactive" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            {richMedia.interactive.map((tool) => (
-              <Card key={tool.id} className="p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Calculator className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{tool.title}</h3>
-                    <Badge variant="outline">{tool.type}</Badge>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">{tool.description}</p>
-                <Button className="w-full">
-                  <Play className="w-4 h-4 mr-2" />
-                  Launch Tool
-                </Button>
-              </Card>
-            ))}
-          </div>
+        {/* Reference Guide Tab */}
+        <TabsContent value="reference" className="space-y-4">
+          {pdfUrl && lessonId ? (
+            <PdfEbookViewer 
+              pdfUrl={pdfUrl} 
+              lessonTitle={lessonTitle}
+              lessonId={lessonId}
+            />
+          ) : (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="p-8 text-center">
+                <Book className="w-12 h-12 text-blue-400 mx-auto mb-3" />
+                <p className="text-blue-700">No reference guide available for this lesson.</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 

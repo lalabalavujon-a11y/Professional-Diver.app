@@ -90,6 +90,7 @@ export const lessons = pgTable("lessons", {
   podcastUrl: text("podcast_url"), // Podcast audio file URL
   podcastDuration: integer("podcast_duration"), // Duration in seconds
   notebookLmUrl: text("notebook_lm_url"), // Notebook LM integration URL
+  pdfUrl: text("pdf_url"), // PDF content file URL
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -778,7 +778,7 @@ export default function SupportDocuments() {
                     );
                   })}
                 </div>
-              )}
+              ) : null}
 
               {/* Results count */}
               {searchQuery && (

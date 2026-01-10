@@ -14,3 +14,7 @@ sleep 2
 echo "Starting server..."
 npm run dev:api
 
+
+
+
+
