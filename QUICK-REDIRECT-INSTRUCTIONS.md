@@ -71,3 +71,7 @@ Wait 5-10 minutes for DNS to propagate, then `professionaldiver.app` will show t
 
 I recommend the **DNS Change** method - it's simpler and more direct!
 
+
+
+
+

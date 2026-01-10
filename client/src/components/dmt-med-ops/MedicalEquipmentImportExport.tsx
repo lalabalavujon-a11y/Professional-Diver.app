@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Download, Upload, FileText, FileSpreadsheet, AlertCircle } from "lucide-react";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { validateExcelFile, validateExcelData, sanitizeExcelData } from "@/utils/excel-validation";
 import type { MedicalEquipmentItem } from "./MedicalEquipmentInventory";
 
 interface MedicalEquipmentImportExportProps {
@@ -140,7 +141,7 @@ export default function MedicalEquipmentImportExport({
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!equipmentItems || equipmentItems.length === 0) {
       toast({
         title: "No Data",
@@ -152,24 +153,63 @@ export default function MedicalEquipmentImportExport({
 
     setIsExporting(true);
     try {
-      const data = equipmentItems.map((item) => ({
-        Name: item.name || "",
-        "Equipment Type": item.equipmentType || "",
-        "Serial Number": item.serialNumber || "",
-        Manufacturer: item.manufacturer || "",
-        Model: item.model || "",
-        Location: item.location || "",
-        Status: item.status || "",
-        Pressure: item.pressure || "",
-        Capacity: item.capacity || "",
-        "Expiry Date": item.expiryDate || "",
-        Notes: item.notes || "",
-      }));
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Medical Equipment");
 
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Medical Equipment");
-      XLSX.writeFile(workbook, `medical_equipment_export_${new Date().toISOString().split("T")[0]}.xlsx`);
+      // Add headers
+      worksheet.columns = [
+        { header: "Name", key: "name", width: 30 },
+        { header: "Equipment Type", key: "equipmentType", width: 20 },
+        { header: "Serial Number", key: "serialNumber", width: 20 },
+        { header: "Manufacturer", key: "manufacturer", width: 20 },
+        { header: "Model", key: "model", width: 20 },
+        { header: "Location", key: "location", width: 20 },
+        { header: "Status", key: "status", width: 15 },
+        { header: "Pressure", key: "pressure", width: 15 },
+        { header: "Capacity", key: "capacity", width: 15 },
+        { header: "Expiry Date", key: "expiryDate", width: 15 },
+        { header: "Notes", key: "notes", width: 40 },
+      ];
+
+      // Style header row
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE0E0E0" },
+      };
+
+      // Add data rows
+      equipmentItems.forEach((item) => {
+        worksheet.addRow({
+          name: item.name || "",
+          equipmentType: item.equipmentType || "",
+          serialNumber: item.serialNumber || "",
+          manufacturer: item.manufacturer || "",
+          model: item.model || "",
+          location: item.location || "",
+          status: item.status || "",
+          pressure: item.pressure || "",
+          capacity: item.capacity || "",
+          expiryDate: item.expiryDate || "",
+          notes: item.notes || "",
+        });
+      });
+
+      // Generate buffer and download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `medical_equipment_export_${new Date().toISOString().split("T")[0]}.xlsx`;
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast({
         title: "Success",
@@ -209,22 +249,51 @@ export default function MedicalEquipmentImportExport({
     return data;
   };
 
-  const parseExcel = (file: File): Promise<any[]> => {
+  const parseExcel = async (file: File): Promise<any[]> => {
+    // Validate file before processing
+    const fileValidation = validateExcelFile(file);
+    if (!fileValidation.valid) {
+      throw new Error(fileValidation.error);
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
-          resolve(jsonData);
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(data);
+          
+          const worksheet = workbook.worksheets[0];
+          if (!worksheet) {
+            throw new Error("Excel file has no worksheets");
+          }
+
+          const jsonData: any[] = [];
+          worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) return; // Skip header row
+            
+            const rowData: any = {};
+            row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+              const header = worksheet.getRow(1).getCell(colNumber).value?.toString() || "";
+              rowData[header] = cell.value?.toString() || "";
+            });
+            jsonData.push(rowData);
+          });
+
+          // Validate and sanitize parsed data
+          const dataValidation = validateExcelData(jsonData);
+          if (!dataValidation.valid) {
+            throw new Error(dataValidation.error);
+          }
+
+          const sanitized = sanitizeExcelData(jsonData);
+          resolve(sanitized);
         } catch (error) {
           reject(error);
         }
       };
-      reader.onerror = reject;
+      reader.onerror = () => reject(new Error("Failed to read file"));
       reader.readAsArrayBuffer(file);
     });
   };
@@ -379,6 +448,10 @@ export default function MedicalEquipmentImportExport({
     </Dialog>
   );
 }
+
+
+
+
 
 
 

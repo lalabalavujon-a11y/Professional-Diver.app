@@ -10,7 +10,6 @@ import { EmptyState } from "@/components/ui/empty-states";
 import { CollapsibleContainer } from "@/components/ui/collapsible-container";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import {
   DndContext,
   closestCenter,
@@ -50,7 +49,13 @@ import {
   Globe,
   Navigation,
   Waves,
-  GripVertical
+  GripVertical,
+  Compass,
+  Clock,
+  Cloud,
+  Moon,
+  Ship,
+  Anchor
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
@@ -58,7 +63,6 @@ import RoleBasedNavigation from "@/components/role-based-navigation";
 import { useUnitsPreference } from "@/hooks/use-units-preference";
 import { formatDepthFromString } from "@/lib/units-converter";
 import OperationsCalendarWidget from "@/components/widgets/operations-calendar-widget";
-import OperationsWidgetPanel from "@/components/operations-widget-panel";
 import EquipmentDashboard from "@/components/equipment/EquipmentDashboard";
 import EquipmentInventory from "@/components/equipment/EquipmentInventory";
 import EquipmentDetail from "@/components/equipment/EquipmentDetail";
@@ -68,6 +72,7 @@ import MedOpsApp from "@/components/med-ops/MedOpsApp";
 import DMTMedOpsApp from "@/components/dmt-med-ops/DMTMedOpsApp";
 import DiverWellOperationsApp from "@/components/operations/DiverWellOperationsApp";
 import DiveSupervisorControlApp from "@/components/dive-supervisor/DiveSupervisorControlApp";
+import OperationalWidgets from "@/components/operational-widgets";
 
 // Mock operational data - in real app this would come from backend
 const operationalData = {
@@ -246,6 +251,24 @@ export const operationalApps = [
       "Medical documentation management"
     ],
     userRole: "Diver Medic Technician"
+  },
+  {
+    id: "operational-widgets",
+    title: "Operational Widgets",
+    description: "Access operational widgets and tools - weather, tides, navigation, ports, and more",
+    icon: <Compass className="w-8 h-8 text-amber-600" />,
+    color: "amber",
+    features: [
+      "Weather conditions & forecasts",
+      "Tide predictions & information",
+      "GPS navigation & coordinates",
+      "AIS ship tracking",
+      "World ports database",
+      "Notices to Mariners",
+      "Operations calendar",
+      "Time & moon phase tracking"
+    ],
+    userRole: "All Operations Personnel"
   }
 ] as const;
 
@@ -543,6 +566,8 @@ export default function Operations() {
         return <MedOpsApp />;
       case "dmt-med-ops":
         return <DMTMedOpsApp />;
+      case "operational-widgets":
+        return <OperationalWidgets />;
       case "calendar":
         return <OperationsCalendarWidget timezone={preferences?.timezone || 'UTC'} />;
       default:
@@ -554,11 +579,7 @@ export default function Operations() {
     <>
       <RoleBasedNavigation />
       <div className="min-h-screen bg-background" data-sidebar-content="true">
-        <div className="flex h-[calc(100vh-5rem)] overflow-hidden">
-          {/* Main Content Area */}
-          <ResizablePanelGroup direction="horizontal" className="w-full h-full">
-            <ResizablePanel defaultSize={75} minSize={50} className="overflow-auto">
-              <main ref={scrollableContainerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 h-full overflow-auto" id="main-content" role="main" aria-label="Operations Center">
+        <main ref={scrollableContainerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8" id="main-content" role="main" aria-label="Operations Center">
         {/* Main Content Area - Shows grid of cards or selected app */}
         {selectedApp ? (
           <div className="space-y-4">
@@ -692,17 +713,7 @@ export default function Operations() {
             </div>
           </DialogContent>
         </Dialog>
-              </main>
-            </ResizablePanel>
-            
-            <ResizableHandle withHandle className="w-2 bg-slate-200 hover:bg-slate-300 transition-colors" />
-            
-            {/* Widget Control Panel - Right Sidebar */}
-            <ResizablePanel defaultSize={25} minSize={20} maxSize={40} className="hidden lg:block">
-              <OperationsWidgetPanel />
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </div>
+        </main>
       </div>
     </>
   );

@@ -49,3 +49,7 @@ After adding the domain:
 - ✅ No more old sales page
 - ✅ Domain status should be "Active" (green checkmark)
 
+
+
+
+

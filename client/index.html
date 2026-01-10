@@ -13,72 +13,106 @@
       // CRITICAL: Force scroll to top IMMEDIATELY before React loads
       // This runs synchronously and prevents any scroll restoration
       (function() {
-        // Disable scroll restoration
+        // Disable scroll restoration FIRST
         if ('scrollRestoration' in history) {
           history.scrollRestoration = 'manual';
         }
         
-        // Lock scroll position immediately
-        let scrollLocked = true;
-        let scrollLockTimeout;
+        // Set scroll position IMMEDIATELY - before anything else
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
         
-        function lockScroll() {
-          window.scrollTo(0, 0);
-          document.documentElement.scrollTop = 0;
-          document.body.scrollTop = 0;
+        // Also set it on the window object directly
+        if (window.scrollY !== undefined) {
+          window.scrollY = 0;
+        }
+        if (window.pageYOffset !== undefined) {
+          window.pageYOffset = 0;
         }
         
-        // Force scroll to top immediately and repeatedly
-        lockScroll();
+        // Lock scroll position
+        let scrollLocked = true;
+        let scrollCheckInterval;
+        let unlockTimeout;
         
-        // Prevent any scroll events from moving the page
+        function forceScrollTop() {
+          window.scrollTo(0, 0);
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+          // Try all possible scroll properties
+          if (document.documentElement) {
+            document.documentElement.scrollTop = 0;
+            document.documentElement.scrollLeft = 0;
+          }
+          if (document.body) {
+            document.body.scrollTop = 0;
+            document.body.scrollLeft = 0;
+          }
+        }
+        
+        // Force scroll to top immediately
+        forceScrollTop();
+        
+        // Prevent scroll events
         function preventScroll(e) {
           if (scrollLocked) {
             e.preventDefault();
             e.stopPropagation();
-            lockScroll();
+            e.stopImmediatePropagation();
+            forceScrollTop();
             return false;
           }
         }
         
-        // Add scroll prevention listeners
-        window.addEventListener('scroll', preventScroll, { passive: false, capture: true });
-        window.addEventListener('wheel', preventScroll, { passive: false, capture: true });
-        window.addEventListener('touchmove', preventScroll, { passive: false, capture: true });
+        // Add aggressive scroll prevention
+        const scrollOptions = { passive: false, capture: true };
+        window.addEventListener('scroll', preventScroll, scrollOptions);
+        window.addEventListener('wheel', preventScroll, scrollOptions);
+        window.addEventListener('touchmove', preventScroll, scrollOptions);
+        document.addEventListener('scroll', preventScroll, scrollOptions);
         
-        // Aggressively check and reset scroll position
-        let scrollCheckInterval = setInterval(function() {
-          if (window.scrollY > 0 || document.documentElement.scrollTop > 0 || document.body.scrollTop > 0) {
-            lockScroll();
+        // Continuously check and reset scroll
+        scrollCheckInterval = setInterval(function() {
+          if (window.scrollY > 0 || window.pageYOffset > 0 || 
+              document.documentElement.scrollTop > 0 || document.body.scrollTop > 0) {
+            forceScrollTop();
           }
-        }, 5); // Check every 5ms
+        }, 1); // Check every 1ms for maximum responsiveness
         
-        // Unlock scroll after React has fully loaded (3 seconds should be enough)
-        scrollLockTimeout = setTimeout(function() {
+        // Unlock after 5 seconds (enough for React to fully render)
+        unlockTimeout = setTimeout(function() {
           scrollLocked = false;
-          clearInterval(scrollCheckInterval);
-          window.removeEventListener('scroll', preventScroll, { capture: true });
-          window.removeEventListener('wheel', preventScroll, { capture: true });
-          window.removeEventListener('touchmove', preventScroll, { capture: true });
+          if (scrollCheckInterval) clearInterval(scrollCheckInterval);
+          window.removeEventListener('scroll', preventScroll, scrollOptions);
+          window.removeEventListener('wheel', preventScroll, scrollOptions);
+          window.removeEventListener('touchmove', preventScroll, scrollOptions);
+          document.removeEventListener('scroll', preventScroll, scrollOptions);
           // Final scroll to top
-          lockScroll();
-        }, 3000);
+          forceScrollTop();
+        }, 5000);
         
         // Also unlock on load
         window.addEventListener('load', function() {
-          clearTimeout(scrollLockTimeout);
-          clearInterval(scrollCheckInterval);
+          if (unlockTimeout) clearTimeout(unlockTimeout);
+          if (scrollCheckInterval) clearInterval(scrollCheckInterval);
           scrollLocked = false;
-          window.removeEventListener('scroll', preventScroll, { capture: true });
-          window.removeEventListener('wheel', preventScroll, { capture: true });
-          window.removeEventListener('touchmove', preventScroll, { capture: true });
-          lockScroll();
+          window.removeEventListener('scroll', preventScroll, scrollOptions);
+          window.removeEventListener('wheel', preventScroll, scrollOptions);
+          window.removeEventListener('touchmove', preventScroll, scrollOptions);
+          document.removeEventListener('scroll', preventScroll, scrollOptions);
+          forceScrollTop();
         }, { once: true });
         
-        // Prevent scroll on DOMContentLoaded
-        document.addEventListener('DOMContentLoaded', function() {
-          lockScroll();
-        }, { once: true });
+        // Also on DOMContentLoaded
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() {
+            forceScrollTop();
+          }, { once: true });
+        } else {
+          forceScrollTop();
+        }
       })();
     </script>
     <script type="module" src="/src/main.tsx"></script>

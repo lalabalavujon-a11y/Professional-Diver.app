@@ -19,6 +19,7 @@ import {
   Download,
   Building2,
   RefreshCw,
+  Upload,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -295,11 +296,19 @@ export default function AdminDashboard() {
         <PageSection
           title="Content Management"
           actions={
-            <Link href="/markdown-editor">
-              <Button variant="ghost" size="sm" data-testid="button-manage-all">
-                Manage All
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link href="/admin/bulk-upload">
+                <Button variant="ghost" size="sm" data-testid="button-bulk-upload">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Bulk Upload
+                </Button>
+              </Link>
+              <Link href="/markdown-editor">
+                <Button variant="ghost" size="sm" data-testid="button-manage-all">
+                  Manage All
+                </Button>
+              </Link>
+            </div>
           }
         >
           {tracksLoading ? (

@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import AITutor from "@/components/ai-tutor";
 import PracticeScenario from "@/components/practice-scenario";
 import EnhancedLessonContent from "@/components/enhanced-lesson-content";
-import LessonPodcastPlayer from "@/components/lesson-podcast-player";
+import PodcastPlayerCompact from "@/components/podcast-player-compact";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Bookmark, FileText, Video, ExternalLink } from "lucide-react";
+import { ChevronLeft, ChevronRight, Bookmark, FileText, Video, ChevronDown, ChevronUp } from "lucide-react";
 import { Link } from "wouter";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useState } from "react";
 import type { Lesson } from "@shared/schema";
 
 // Extended lesson type that includes trackSlug
@@ -139,10 +141,35 @@ function getSubjectResources(trackSlug: string): Array<{icon: JSX.Element, title
 
 export default function LessonDetail() {
   const [, params] = useRoute("/lessons/:id");
+  const [, setLocation] = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { data: lesson, isLoading } = useQuery<LessonWithTrackSlug>({
     queryKey: ["/api/lessons", params?.id],
     enabled: !!params?.id,
   });
+
+  const handleBackClick = () => {
+    console.log('Back button clicked, lesson:', lesson);
+    console.log('trackSlug:', lesson?.trackSlug);
+    
+    // Check if trackSlug exists (could be in different formats)
+    const trackSlug = (lesson as any)?.trackSlug || lesson?.trackSlug;
+    
+    if (trackSlug) {
+      console.log('Navigating to track detail:', `/tracks/${trackSlug}`);
+      setLocation(`/tracks/${trackSlug}`);
+    } else {
+      console.log('No trackSlug found, using browser history back');
+      // Use browser history to go back one step
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        // If no history, go to tracks list
+        console.log('No history, navigating to /tracks');
+        setLocation("/tracks");
+      }
+    }
+  };
 
   if (isLoading) {
     return (
@@ -185,6 +212,11 @@ export default function LessonDetail() {
     );
   }
 
+  // Debug: Log media URLs to help diagnose display issues
+  const pdfUrl = (lesson as any).pdfUrl || null;
+  const podcastUrl = (lesson as any).podcastUrl || null;
+  console.log('Lesson Media URLs:', { pdfUrl, podcastUrl, lessonId: lesson.id });
+
   return (
     <>
       <RoleBasedNavigation />
@@ -194,11 +226,13 @@ export default function LessonDetail() {
           <div className="border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Link href="/tracks">
-                  <button className="text-slate-500 hover:text-slate-700" data-testid="button-back">
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                </Link>
+                <button 
+                  onClick={handleBackClick}
+                  className="text-slate-500 hover:text-slate-700" 
+                  data-testid="button-back"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
                 <div>
                   <h2 className="text-xl font-semibold text-slate-900" data-testid="text-lesson-title">
                     {lesson.title}
@@ -221,18 +255,24 @@ export default function LessonDetail() {
             </div>
           </div>
           
-          <div className="flex">
+          <div className="flex gap-6">
+            {/* Main Content Area */}
             <div className="flex-1 p-6">
-              <LessonPodcastPlayer
-                podcastUrl={(lesson as any).podcastUrl || null}
-                podcastDuration={(lesson as any).podcastDuration || undefined}
-                lessonTitle={lesson.title}
-              />
+              {/* Compact Podcast Player at Top */}
+              {podcastUrl && (
+                <PodcastPlayerCompact
+                  podcastUrl={podcastUrl}
+                  podcastDuration={(lesson as any).podcastDuration || undefined}
+                  lessonTitle={lesson.title}
+                />
+              )}
               
               <EnhancedLessonContent 
                 content={lesson.content || "No content available."}
                 trackSlug={(lesson as any).trackSlug || 'ndt-inspection'}
                 lessonTitle={lesson.title}
+                pdfUrl={pdfUrl}
+                lessonId={lesson.id}
               />
 
               <div className="mt-8 pt-6 border-t border-gray-200">
@@ -257,72 +297,94 @@ export default function LessonDetail() {
               </div>
             </div>
 
-            <div className="w-80 border-l border-gray-200 bg-gray-50 p-6">
-              <div className="mb-6">
-                <h3 className="font-semibold text-slate-900 mb-3">Lesson Progress</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <div className="w-6 h-6 bg-ocean-500 rounded-full flex items-center justify-center mr-3">
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
-                      </svg>
+            {/* Progress and Resources Sidebar - Collapsible */}
+            <div className={`flex-shrink-0 border-l border-gray-200 bg-gray-50 transition-all duration-300 ${isSidebarOpen ? 'w-80' : 'w-12'}`}>
+              <Collapsible open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-between p-4 border-b border-gray-200 rounded-none hover:bg-gray-100"
+                  >
+                    <span className="font-semibold text-slate-900">Lesson Info</span>
+                    {isSidebarOpen ? (
+                      <ChevronUp className="w-4 h-4 text-slate-500" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-500" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="p-6">
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-slate-900 mb-3">Lesson Progress</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center">
+                        <div className="w-6 h-6 bg-ocean-500 rounded-full flex items-center justify-center mr-3">
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                          </svg>
+                        </div>
+                        <span className="text-sm text-slate-600">Content Reading</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-6 h-6 border-2 border-primary-500 rounded-full flex items-center justify-center mr-3">
+                          <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
+                        </div>
+                        <span className="text-sm text-slate-900 font-medium">Quiz Attempt</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-6 h-6 border-2 border-gray-300 rounded-full mr-3"></div>
+                        <span className="text-sm text-slate-400">Completion</span>
+                      </div>
                     </div>
-                    <span className="text-sm text-slate-600">Content Reading</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-6 h-6 border-2 border-primary-500 rounded-full flex items-center justify-center mr-3">
-                      <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
-                    </div>
-                    <span className="text-sm text-slate-900 font-medium">Quiz Attempt</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-6 h-6 border-2 border-gray-300 rounded-full mr-3"></div>
-                    <span className="text-sm text-slate-400">Completion</span>
-                  </div>
-                </div>
-              </div>
 
-              <div className="mb-6">
-                <h3 className="font-semibold text-slate-900 mb-3">Track Outline</h3>
-                <div className="space-y-2">
-                  {getTrackOutline((lesson as any)?.trackSlug || 'ndt-inspection').map((item, index) => (
-                    <div key={index} className={`flex items-center p-2 rounded-lg cursor-pointer ${
-                      index === 0 
-                        ? 'bg-primary-50 border border-primary-200' 
-                        : 'hover:bg-gray-100'
-                    }`}>
-                      <div className={`w-2 h-2 rounded-full mr-3 ${
-                        index === 0 ? 'bg-primary-500' : 'bg-gray-300'
-                      }`}></div>
-                      <span className={`text-sm ${
-                        index === 0 ? 'font-medium text-primary-700' : 'text-slate-600'
-                      }`}>{item}</span>
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-slate-900 mb-3">Track Outline</h3>
+                    <div className="space-y-2">
+                      {getTrackOutline((lesson as any)?.trackSlug || 'ndt-inspection').map((item, index) => (
+                        <div key={index} className={`flex items-center p-2 rounded-lg cursor-pointer ${
+                          index === 0 
+                            ? 'bg-primary-50 border border-primary-200' 
+                            : 'hover:bg-gray-100'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full mr-3 ${
+                            index === 0 ? 'bg-primary-500' : 'bg-gray-300'
+                          }`}></div>
+                          <span className={`text-sm ${
+                            index === 0 ? 'font-medium text-primary-700' : 'text-slate-600'
+                          }`}>{item}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-3">Resources</h3>
-                <div className="space-y-2">
-                  {getSubjectResources((lesson as any)?.trackSlug || 'ndt-inspection').map((resource, index) => (
-                    <a key={index} href="#" className="flex items-center p-2 text-primary-600 hover:bg-primary-50 rounded-lg" data-testid={`link-resource-${index}`}>
-                      {resource.icon}
-                      <span className="text-sm">{resource.title}</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 mb-3">Resources</h3>
+                    <div className="space-y-2">
+                      {getSubjectResources((lesson as any)?.trackSlug || 'ndt-inspection').map((resource, index) => (
+                        <a key={index} href="#" className="flex items-center p-2 text-primary-600 hover:bg-primary-50 rounded-lg" data-testid={`link-resource-${index}`}>
+                          {resource.icon}
+                          <span className="text-sm">{resource.title}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </div>
         </section>
 
-        {/* AI Tutor Integration */}
-        <AITutor trackSlug={(lesson as any).trackSlug || 'ndt-inspection'} lessonTitle={lesson.title} />
-        
         {/* Practice Scenarios */}
         <PracticeScenario trackSlug={(lesson as any).trackSlug || 'ndt-inspection'} />
       </main>
+
+      {/* AI Tutor - Sticky at Bottom */}
+      <div className="sticky bottom-0 z-50 w-full bg-white border-t border-gray-200 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <AITutor trackSlug={(lesson as any).trackSlug || 'ndt-inspection'} lessonTitle={lesson.title} />
+        </div>
+      </div>
     </div>
     </>
   );

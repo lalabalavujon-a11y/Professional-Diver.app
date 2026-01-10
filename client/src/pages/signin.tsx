@@ -126,18 +126,16 @@ export default function SignIn() {
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
-            <Link href="/">
-              <a className="flex items-center justify-center space-x-3">
-                <img 
-                  src={diverWellLogo} 
-                  alt="Professional Diver - Diver Well Training" 
-                  className="w-12 h-12 rounded-lg"
-                />
-                <div>
-                  <div className="text-lg font-bold text-slate-900">Professional Diver</div>
-                  <div className="text-xs text-slate-500">Diver Well Training</div>
-                </div>
-              </a>
+            <Link href="/" className="flex items-center justify-center space-x-3">
+              <img 
+                src={diverWellLogo} 
+                alt="Professional Diver - Diver Well Training" 
+                className="w-12 h-12 rounded-lg"
+              />
+              <div>
+                <div className="text-lg font-bold text-slate-900">Professional Diver</div>
+                <div className="text-xs text-slate-500">Diver Well Training</div>
+              </div>
             </Link>
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900" data-testid="text-signin-title">
@@ -334,10 +332,8 @@ export default function SignIn() {
           )}
 
           <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-            <Link href="/dashboard">
-              <a className="text-sm text-primary-600 hover:text-primary-700" data-testid="link-back-dashboard">
-                ← Back to Dashboard
-              </a>
+            <Link href="/dashboard" className="text-sm text-primary-600 hover:text-primary-700" data-testid="link-back-dashboard">
+              ← Back to Dashboard
             </Link>
           </div>
         </CardContent>

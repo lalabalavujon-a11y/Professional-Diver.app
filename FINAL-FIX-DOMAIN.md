@@ -80,3 +80,7 @@ It should now show the new training app, not the old sales page.
 3. Verify DNS record is saved correctly in Cloudflare
 4. Check that the domain was removed from the old project
 
+
+
+
+

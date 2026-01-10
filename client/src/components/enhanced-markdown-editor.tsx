@@ -39,6 +39,40 @@ interface EnhancedMarkdownEditorProps {
   showPreview?: boolean;
 }
 
+/**
+ * Transform AI Tutor references in markdown to show first name and subject matter expertise only
+ * Pattern: **AI Tutor: Dr. Michael Rodriguez - Diving Physics Specialist with 12+ years...**
+ * Becomes: **AI Tutor: Michael - Diving Physics Specialist**
+ * Removes: credentials (Dr., Prof., etc.), surnames, years of experience
+ */
+function transformAITutorNames(content: string): string {
+  // Match patterns like:
+  // **AI Tutor: Dr. Michael Rodriguez - Diving Physics Specialist with 12+ years...**
+  // **AI Tutor: Michael Rodriguez - Diving Physics Specialist**
+  // **AI Tutor: Dr. Michael - Diving Physics Specialist**
+  // Extract first name and subject matter expertise (remove credentials, years, etc.)
+  
+  // Comprehensive pattern that matches AI Tutor references
+  // Captures: optional title, first name, optional last name, dash, expertise text
+  const pattern = /\*\*AI Tutor:\s*(?:Dr\.|Prof\.|Mr\.|Ms\.|Mrs\.)?\s*([A-Za-z]+)(?:\s+[A-Za-z]+)?\s*-\s*([^*]+?)\*\*/g;
+  
+  return content.replace(pattern, (match, firstName, expertise) => {
+    // Clean up expertise: remove "with X years", credentials, etc.
+    let cleanExpertise = expertise.trim();
+    
+    // Remove patterns like "with 12+ years", "with 20 years of experience", etc.
+    cleanExpertise = cleanExpertise.replace(/\s+with\s+\d+[+\-]?\s*(?:years?|yrs?)\s*(?:of\s+experience|in\s+the\s+field)?.*$/gi, '');
+    
+    // Remove patterns like "12+ years", "20 years experience", etc. at the end
+    cleanExpertise = cleanExpertise.replace(/\s+\d+[+\-]?\s*(?:years?|yrs?)\s*(?:of\s+experience|in\s+the\s+field)?.*$/gi, '');
+    
+    // Remove any trailing commas, periods, dashes, or whitespace
+    cleanExpertise = cleanExpertise.replace(/[,.\-\s]+$/, '').trim();
+    
+    return `**AI Tutor: ${firstName} - ${cleanExpertise}**`;
+  });
+}
+
 export default function EnhancedMarkdownEditor({
   value,
   onChange,

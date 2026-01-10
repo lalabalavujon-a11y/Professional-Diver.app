@@ -110,6 +110,17 @@ function sanitizeFilename(title: string): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // DEBUG: Verify userManagement is initialized correctly
+  console.log('[Server Startup] 🔍 Verifying SUPER_ADMIN users are initialized...');
+  const superAdmin1 = userManagement.getSpecialUser('lalabalavu.jon@gmail.com');
+  const superAdmin2 = userManagement.getSpecialUser('sephdee@hotmail.com');
+  console.log('[Server Startup] Super Admin 1:', superAdmin1 ? `✅ Found (${superAdmin1.role})` : '❌ NOT FOUND');
+  console.log('[Server Startup] Super Admin 2:', superAdmin2 ? `✅ Found (${superAdmin2.role})` : '❌ NOT FOUND');
+  
+  if (!superAdmin1 || !superAdmin2) {
+    console.error('[Server Startup] ⚠️ WARNING: SUPER_ADMIN users not properly initialized!');
+  }
+
   // SRS (Phase 2–4) routes
   registerSrsRoutes(app);
   
@@ -3430,6 +3441,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Normalize email (lowercase, trim)
       const normalizedEmail = email.toLowerCase().trim();
 
+      // CRITICAL FIX: Always check for SUPER_ADMIN emails FIRST before any other lookup
+      // This ensures SUPER_ADMIN role is never overridden by database or other checks
+      const isSuperAdminEmail = normalizedEmail === 'lalabalavu.jon@gmail.com' || normalizedEmail === 'sephdee@hotmail.com';
+      
+      if (isSuperAdminEmail) {
+        // Get stored profile data
+        const storedProfile = userProfileStore.get(normalizedEmail) || {};
+        
+        // Return SUPER_ADMIN user directly
+        const superAdminUser = {
+          id: normalizedEmail === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : 'super-admin-2',
+          name: storedProfile.name || 'Jon Lalabalavu',
+          email: normalizedEmail,
+          role: 'SUPER_ADMIN',
+          subscriptionType: 'LIFETIME',
+          subscriptionStatus: 'ACTIVE',
+          subscriptionDate: new Date('2024-01-01').toISOString(),
+          trialExpiresAt: null,
+          phone: storedProfile.phone || '',
+          bio: storedProfile.bio || '',
+          company: storedProfile.company || '',
+          jobTitle: storedProfile.jobTitle || '',
+          location: storedProfile.location || '',
+          profilePictureUrl: getProfilePictureUrl(storedProfile.profilePictureUrl, normalizedEmail),
+          createdAt: storedProfile.createdAt || new Date('2024-01-01').toISOString(),
+          updatedAt: storedProfile.updatedAt || new Date('2024-01-01').toISOString(),
+        };
+        
+        console.log(`[GET /api/users/current] ✅ SUPER_ADMIN user returned directly for: ${normalizedEmail}`);
+        return res.json(superAdminUser);
+      }
+
       // Get stored profile data
       const storedProfile = userProfileStore.get(normalizedEmail) || {};
       
@@ -3861,22 +3904,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hasDatabaseUrl = !!process.env.DATABASE_URL;
       const usersTable = (env === 'development' && !hasDatabaseUrl) ? usersSQLite : users;
       
-      const user = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      // CRITICAL: Check for SUPER_ADMIN emails FIRST - never create them as USER
+      const isSuperAdminEmail = normalizedEmail === 'lalabalavu.jon@gmail.com' || normalizedEmail === 'sephdee@hotmail.com';
+      
+      const user = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
       if (user.length > 0) {
+        // If user exists but is SUPER_ADMIN email with wrong role, log warning (don't auto-fix to avoid breaking things)
+        if (isSuperAdminEmail && user[0].role !== 'SUPER_ADMIN') {
+          console.warn(`[getUserIdFromEmail] ⚠️ WARNING: SUPER_ADMIN email ${normalizedEmail} found in database with role ${user[0].role} instead of SUPER_ADMIN`);
+        }
         return user[0].id;
       }
       
       // If user doesn't exist, try to create a minimal user record
-      console.log('User not found, attempting to create user for email:', email);
+      // BUT: For SUPER_ADMIN emails, use correct role
+      const role = isSuperAdminEmail ? 'SUPER_ADMIN' : 'USER';
+      const subscriptionType = isSuperAdminEmail ? 'LIFETIME' : 'TRIAL';
+      const userId = isSuperAdminEmail 
+        ? (normalizedEmail === 'lalabalavu.jon@gmail.com' ? 'super-admin-1' : 'super-admin-2')
+        : `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const userName = isSuperAdminEmail ? 'Jon Lalabalavu' : email.split('@')[0];
+      
+      console.log(`User not found, attempting to create user for email: ${email} with role: ${role}`);
       try {
         const newUser = await db
           .insert(usersTable)
           .values({
-            id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            email: email,
-            name: email.split('@')[0], // Use email prefix as name
-            role: 'USER',
-            subscriptionType: 'TRIAL',
+            id: userId,
+            email: normalizedEmail,
+            name: userName,
+            role: role,
+            subscriptionType: subscriptionType,
             subscriptionStatus: 'ACTIVE',
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -3884,13 +3944,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .returning();
         
         if (newUser && newUser.length > 0) {
-          console.log('Created new user:', newUser[0].id);
+          console.log(`Created new user: ${newUser[0].id} with role: ${newUser[0].role}`);
           return newUser[0].id;
         }
       } catch (createError: any) {
         console.error('Error creating user:', createError);
         // If creation fails (e.g., duplicate), try to fetch again
-        const retryUser = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+        const retryUser = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
         if (retryUser.length > 0) {
           return retryUser[0].id;
         }

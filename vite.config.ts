@@ -25,6 +25,8 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "shared"),
       "@assets": path.resolve(__dirname, "attached_assets"),
     },
+    // Ensure TS/TSX modules resolve consistently in CI/Railway builds
+    extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json"],
   },
   root: "./client",
   build: {
@@ -43,6 +45,12 @@ export default defineConfig({
         ws: true,
         // Express routes ARE prefixed with "/api" (like "/api/auth/credentials")
         // so we don't rewrite - just pass through /api/* -> /api/*
+      },
+      '/uploads': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false,
+        // Proxy uploads directory to Express server
       }
     }
   },

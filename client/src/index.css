@@ -254,6 +254,9 @@
     overflow-x: hidden;
     /* Prevent scroll anchoring which can cause scroll to bottom */
     overflow-anchor: none;
+    /* CRITICAL: Prevent html from being taller than viewport */
+    max-height: 100vh;
+    overflow-y: auto; /* Allow scrolling if content exceeds viewport */
   }
 
   body {
@@ -261,21 +264,22 @@
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    height: 100vh; /* Exactly viewport height */
+    /* Remove min-height - let body be natural height based on content */
+    height: auto;
     position: relative;
     /* Prevent scroll anchoring */
     overflow-anchor: none;
-    /* Prevent body from scrolling - content areas handle their own scrolling */
-    overflow-y: hidden;
+    /* Body scrolling will be unlocked by JavaScript after React loads */
+    /* Initial state: locked to prevent scroll to bottom */
   }
   
   #root {
-    height: 100vh; /* Exactly viewport height */
+    /* Remove min-height - let root be natural height based on content */
+    height: auto;
+    min-height: 0;
     position: relative;
     /* Prevent scroll anchoring */
     overflow-anchor: none;
-    /* Prevent root from scrolling */
-    overflow: hidden;
   }
 }
 
@@ -356,6 +360,14 @@
 
 /* Sidebar layout spacing - Apply to pages with RoleBasedNavigation */
 
+/* SidebarProvider container - prevent it from causing scroll issues */
+.group\/sidebar-wrapper {
+  /* Remove min-h-svh that might be causing issues */
+  min-height: 0 !important;
+  height: auto !important;
+  /* Ensure it doesn't force viewport height */
+}
+
 /* Fixed header positioning - adjusts with sidebar width */
 header[data-testid="navigation-header"] {
   position: fixed !important;
@@ -397,6 +409,10 @@ header[data-testid="navigation-header"] {
   min-height: 0;
   /* Prevent any layout shifts that might cause scrolling */
   contain: layout style;
+  /* CRITICAL: Ensure content starts at top, not pushed down */
+  top: 0;
+  /* Prevent flex/grid from adding extra space */
+  align-self: flex-start;
 }
 
 /* Ensure first child doesn't add extra spacing */
@@ -404,11 +420,16 @@ header[data-testid="navigation-header"] {
   margin-top: 0 !important;
 }
 
-/* Override min-h-screen on content areas - the min-height should be the viewport height,
-   and padding-top is separate, so total height will be 100vh + padding, which is correct */
+/* Override min-h-screen on content areas - REMOVE min-height entirely */
+/* CRITICAL: Tailwind's min-h-screen makes content 100vh + padding = taller than viewport */
+/* Solution: Remove min-height, let content be natural height, padding-top handles header spacing */
+div[data-sidebar-content="true"].min-h-screen,
 [data-sidebar-content="true"].min-h-screen {
-  min-height: 100vh !important; /* Full viewport height */
-  padding-top: var(--header-height, 5rem) !important; /* Padding is separate, not included in min-height */
+  /* Remove min-height completely - content should be natural height */
+  min-height: 0 !important;
+  /* Keep padding-top for header spacing */
+  padding-top: var(--header-height, 5rem) !important;
+  /* Content will be natural height, starting right below header */
 }
 
 @media (max-width: 768px) {
@@ -418,9 +439,14 @@ header[data-testid="navigation-header"] {
     width: 100%;
   }
   
+  /* Mobile: Remove min-height, let content be natural height */
+  div[data-sidebar-content="true"].min-h-screen,
   [data-sidebar-content="true"].min-h-screen {
-    min-height: 100vh !important;
+    /* Remove min-height completely on mobile too */
+    min-height: 0 !important;
+    /* Keep padding-top for mobile header spacing */
     padding-top: 3.5rem !important;
+    /* Content will be natural height, starting right below header */
   }
 }
 

@@ -79,6 +79,12 @@ export class TempDatabaseStorage {
         title: lessons.title,
         order: lessons.order,
         content: lessons.content,
+        podcastUrl: lessons.podcastUrl,
+        pdfUrl: lessons.pdfUrl,
+        podcastDuration: lessons.podcastDuration,
+        estimatedMinutes: lessons.estimatedMinutes,
+        isRequired: lessons.isRequired,
+        objectives: lessons.objectives,
         createdAt: lessons.createdAt,
         updatedAt: lessons.updatedAt,
         trackSlug: tracks.slug,
@@ -100,6 +106,10 @@ export class TempDatabaseStorage {
     content: string;
     estimatedMinutes?: number;
     isRequired?: boolean;
+    podcastUrl?: string | null;
+    podcastDuration?: number | null;
+    pdfUrl?: string | null;
+    notebookLmUrl?: string | null;
   }>) {
     try {
       const updateFields: any = {
@@ -112,24 +122,27 @@ export class TempDatabaseStorage {
       if (data.content !== undefined) updateFields.content = data.content;
       if (data.estimatedMinutes !== undefined) updateFields.estimatedMinutes = data.estimatedMinutes;
       if (data.isRequired !== undefined) updateFields.isRequired = data.isRequired;
+      if (data.podcastUrl !== undefined) updateFields.podcastUrl = data.podcastUrl;
+      if (data.podcastDuration !== undefined) updateFields.podcastDuration = data.podcastDuration;
+      if (data.pdfUrl !== undefined) updateFields.pdfUrl = data.pdfUrl;
+      if (data.notebookLmUrl !== undefined) updateFields.notebookLmUrl = data.notebookLmUrl;
 
       const [updatedLesson] = await db
         .update(lessons)
         .set(updateFields)
         .where(eq(lessons.id, id))
-        .returning({
-          id: lessons.id,
-          trackId: lessons.trackId,
-          title: lessons.title,
-          order: lessons.order,
-          content: lessons.content,
-          createdAt: lessons.createdAt,
-          updatedAt: lessons.updatedAt,
-        });
+        .returning();
 
       return updatedLesson || undefined;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating lesson:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        stack: error?.stack,
+        updateFields,
+        lessonId: id
+      });
       throw error;
     }
   }

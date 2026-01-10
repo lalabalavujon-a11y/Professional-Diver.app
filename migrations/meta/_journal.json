@@ -15,6 +15,13 @@
       "when": 1767806444815,
       "tag": "0001_clammy_hellion",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1767806444816,
+      "tag": "0002_add_pdf_url_to_lessons",
+      "breakpoints": true
     }
   ]
 }

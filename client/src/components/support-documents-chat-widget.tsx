@@ -286,3 +286,5 @@ export default function SupportDocumentsChatWidget({ currentSection, onSectionCh
   );
 }
 
+
+
