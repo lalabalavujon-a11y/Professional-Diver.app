@@ -1727,8 +1727,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const files = (req as any).files as Express.Multer.File[];
-        if (!files || files.length === 0) {
-          return res.status(400).json({ error: 'No files uploaded' });
+
+        // Ensure files is an array of file-like objects to avoid type confusion
+        if (
+          !Array.isArray(files) ||
+          files.length === 0 ||
+          typeof files[0] !== "object" ||
+          files[0] === null ||
+          typeof (files[0] as any).originalname !== "string" ||
+          typeof (files[0] as any).filename !== "string"
+        ) {
+          return res.status(400).json({ error: "No valid files uploaded" });
         }
 
         const { parseFilenameForLesson, findLessonByParsedFilename, getFileType } = await import('./utils/file-matcher');
