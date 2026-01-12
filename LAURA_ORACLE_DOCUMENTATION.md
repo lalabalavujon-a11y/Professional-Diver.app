@@ -31,10 +31,10 @@ Laura is the **Super Platform Oracle AI Assistant** for the Professional Diver T
 - **System Maintenance**: Automated health checks and fixes
 
 ### 5. Voice Communication
-- **Text-to-Speech**: OpenAI TTS with Alloy voice (friendly "country girl" voice)
-- **Audio Responses**: Laura can speak her responses aloud
-- **Voice Controls**: Toggle voice on/off, play/pause controls
-- **High-Quality Audio**: MP3 format with optimal speed and clarity
+- **Live Voice (Native Audio)**: Gemini Live (low-latency streaming audio over WebSocket)
+- **Interruptible (Barge-in)**: Stop audio instantly and continue talking
+- **Voice Controls**: Toggle Live Voice on/off, stop audio, push-to-talk
+- **Hybrid Mode**: Gemini handles the voice loop; background agents handle heavy tasks via tool calls
 
 ## 🛠️ Technical Architecture
 
@@ -54,7 +54,7 @@ class LauraOracleService {
 - `GET /api/laura-oracle/analytics` - Platform analytics
 - `POST /api/laura-oracle/admin-task` - Execute admin tasks
 - `POST /api/laura-oracle/learn-objectives` - LangSmith learning
-- `POST /api/laura-oracle/voice` - Generate voice responses (TTS)
+- `WS /api/laura-oracle/live` - Live voice (Gemini Live)
 - `GET /api/laura-oracle/info` - Oracle information
 
 ### Frontend Interface (`client/src/pages/chat-laura.tsx`)
@@ -62,7 +62,7 @@ class LauraOracleService {
 - **Analytics Tab**: Real-time platform metrics
 - **Admin Tab**: Administrative task management
 - **Monitoring Tab**: System health and performance
-- **Voice Controls**: Toggle voice on/off, play/pause audio responses
+- **Live Voice Controls**: Toggle Live Voice on/off, stop audio, push-to-talk
 
 ## 🧠 LangSmith Integration
 
@@ -235,14 +235,14 @@ Laura: "Here's the real-time system performance overview..."
 ### Voice Communication
 ```
 User: "Laura, can you explain the platform analytics in detail?"
-Laura: [Text response] + [Voice response with Alloy voice]
-[Laura speaks her response using the friendly "country girl" Alloy voice]
+Laura: [Live response] with native streaming audio
+[Laura speaks with low-latency audio (interruptible / barge-in capable)]
 ```
 
 ### Voice Controls
-- **Toggle Voice**: Click the voice button to enable/disable audio responses
-- **Play/Pause**: Control audio playback during Laura's responses
-- **Voice Indicator**: See when voice is available for Laura's messages
+- **Toggle Live Voice**: Enable/disable the live voice panel
+- **Talk**: Stream microphone audio to Laura (native audio input)
+- **Stop audio**: Stop playback immediately (barge-in behavior)
 
 ## 🔍 Monitoring and Maintenance
 
