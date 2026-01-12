@@ -146,6 +146,17 @@ export const LiveVoicePanel = forwardRef<
       setStatus("error");
       return;
     }
+    // Gemini / Google APIs often send { error: { message } }
+    const nestedError = msg.error;
+    if (
+      isRecord(nestedError) &&
+      typeof nestedError.message === "string" &&
+      nestedError.message.trim()
+    ) {
+      setLastError(nestedError.message);
+      setStatus("error");
+      return;
+    }
 
     // Extract text + audio from a few possible shapes.
     const parts =

@@ -309,6 +309,10 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
 
     upstreamWs.on("open", () => {
       try {
+        const model = process.env.GEMINI_LIVE_MODEL || "models/gemini-2.0-flash-exp";
+        console.log(
+          `🎙️ Gemini Live upstream connected for ${agent} (model=${model})`
+        );
         upstreamWs?.send(JSON.stringify(buildSetupMessage(agent)));
       } catch (err) {
         sendClientError(
@@ -369,7 +373,18 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
       }
     });
 
-    upstreamWs.on("close", () => closeBoth("Upstream closed"));
+    upstreamWs.on("close", (code: number, reason: Buffer) => {
+      const reasonText = reason?.toString?.() || "";
+      console.warn(
+        `🎙️ Gemini Live upstream closed for ${agent}: code=${code} reason=${reasonText}`
+      );
+      sendClientError(
+        clientWs,
+        "upstream_closed",
+        `Gemini Live upstream closed (code=${code}) ${reasonText}`.trim()
+      );
+      closeBoth("Upstream closed");
+    });
     upstreamWs.on("error", (err) => {
       sendClientError(
         clientWs,
@@ -377,6 +392,19 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
         err instanceof Error ? err.message : "Gemini upstream error"
       );
       closeBoth("Upstream error");
+    });
+    upstreamWs.on("unexpected-response", (_req, res) => {
+      const status = res.statusCode;
+      const statusText = res.statusMessage;
+      console.error(
+        `🎙️ Gemini Live upstream unexpected response for ${agent}: ${status} ${statusText}`
+      );
+      sendClientError(
+        clientWs,
+        "upstream_unexpected_response",
+        `Gemini Live upstream unexpected response: ${status} ${statusText}`.trim()
+      );
+      closeBoth("Upstream unexpected response");
     });
 
     clientWs.on("message", (payload) => {
