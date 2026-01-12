@@ -175,8 +175,20 @@ export default function Welfare({
     setEditingRecord(record);
     setFormData({
       recordDate: format(new Date(record.recordDate), "yyyy-MM-dd"),
-      accommodation: record.accommodation || { type: "", location: "", facilities: [], notes: "" },
-      meals: record.meals || { breakfast: "", lunch: "", dinner: "", snacks: "", dietaryRequirements: [], notes: "" },
+      accommodation: {
+        type: record.accommodation?.type ?? "",
+        location: record.accommodation?.location ?? "",
+        facilities: record.accommodation?.facilities ?? [],
+        notes: record.accommodation?.notes ?? "",
+      },
+      meals: {
+        breakfast: record.meals?.breakfast ?? "",
+        lunch: record.meals?.lunch ?? "",
+        dinner: record.meals?.dinner ?? "",
+        snacks: record.meals?.snacks ?? "",
+        dietaryRequirements: record.meals?.dietaryRequirements ?? [],
+        notes: record.meals?.notes ?? "",
+      },
       restPeriods: record.restPeriods || [],
       healthNotes: record.healthNotes || "",
     });
