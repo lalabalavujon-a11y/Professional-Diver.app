@@ -299,31 +299,16 @@ export default function DiveSupervisorControlApp() {
           <div>
             {(() => {
               if (!activeContainerConfig) return null;
-              const Component = activeContainerConfig.component;
-              if (activeContainer === 'team' || activeContainer === 'whiteboard') {
-                return <Component />;
-              } else if (activeContainer === 'operations-log') {
-                return (
-                  <Component 
-                    selectedOperationId={selectedOperationId}
-                    onOperationSelect={setSelectedOperationId}
-                  />
-                );
-              } else if (activeContainer === 'welfare' || activeContainer === 'shipping' || activeContainer === 'notices-mariners') {
-                return (
-                  <Component 
-                    operationId={selectedOperationId}
-                    onOperationSelect={setSelectedOperationId}
-                  />
-                );
-              } else {
-                return (
-                  <Component 
-                    operationId={selectedOperationId}
-                    onOperationSelect={setSelectedOperationId}
-                  />
-                );
-              }
+              // The container registry mixes components with different prop shapes.
+              // Pass a superset of props and allow each component to pick what it needs.
+              const Component = activeContainerConfig.component as React.ComponentType<any>;
+              return (
+                <Component
+                  selectedOperationId={selectedOperationId}
+                  operationId={selectedOperationId}
+                  onOperationSelect={setSelectedOperationId}
+                />
+              );
             })()}
           </div>
         </div>
