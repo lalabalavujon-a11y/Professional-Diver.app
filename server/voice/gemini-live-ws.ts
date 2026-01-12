@@ -215,7 +215,10 @@ async function runToolCall(call: GeminiToolCall): Promise<unknown> {
 }
 
 function buildSetupMessage(agent: VoiceAgentId) {
-  const model = process.env.GEMINI_LIVE_MODEL || "models/gemini-2.0-flash-exp";
+  // Prefer a "live" model by default; can be overridden per environment.
+  // If your project only has access to different model IDs, set GEMINI_LIVE_MODEL.
+  const model =
+    process.env.GEMINI_LIVE_MODEL || "models/gemini-2.0-flash-live-001";
 
   return {
     setup: {
@@ -239,7 +242,8 @@ function buildSetupMessage(agent: VoiceAgentId) {
 function sendClientError(
   clientWs: WebSocket,
   code: string,
-  message: string
+  message: string,
+  onSent?: () => void
 ): void {
   if (clientWs.readyState !== WebSocket.OPEN) return;
   clientWs.send(
@@ -247,7 +251,8 @@ function sendClientError(
       type: "error",
       code,
       message,
-    })
+    }),
+    onSent
   );
 }
 
@@ -375,22 +380,31 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
 
     upstreamWs.on("close", (code: number, reason: Buffer) => {
       const reasonText = reason?.toString?.() || "";
+      const closeSummary = `Upstream closed (code=${code}) ${reasonText}`.trim();
       console.warn(
         `🎙️ Gemini Live upstream closed for ${agent}: code=${code} reason=${reasonText}`
       );
-      sendClientError(
-        clientWs,
-        "upstream_closed",
-        `Gemini Live upstream closed (code=${code}) ${reasonText}`.trim()
-      );
-      closeBoth("Upstream closed");
+      if (clientWs.readyState === WebSocket.OPEN) {
+        sendClientError(
+          clientWs,
+          "upstream_closed",
+          `Gemini Live ${closeSummary}`.trim()
+        );
+        setTimeout(() => closeBoth(closeSummary), 250);
+        return;
+      }
+      closeBoth(closeSummary);
     });
     upstreamWs.on("error", (err) => {
-      sendClientError(
-        clientWs,
-        "upstream_error",
-        err instanceof Error ? err.message : "Gemini upstream error"
-      );
+      if (clientWs.readyState === WebSocket.OPEN) {
+        sendClientError(
+          clientWs,
+          "upstream_error",
+          err instanceof Error ? err.message : "Gemini upstream error"
+        );
+        setTimeout(() => closeBoth("Upstream error"), 250);
+        return;
+      }
       closeBoth("Upstream error");
     });
     upstreamWs.on("unexpected-response", (_req, res) => {
@@ -399,11 +413,15 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
       console.error(
         `🎙️ Gemini Live upstream unexpected response for ${agent}: ${status} ${statusText}`
       );
-      sendClientError(
-        clientWs,
-        "upstream_unexpected_response",
-        `Gemini Live upstream unexpected response: ${status} ${statusText}`.trim()
-      );
+      if (clientWs.readyState === WebSocket.OPEN) {
+        sendClientError(
+          clientWs,
+          "upstream_unexpected_response",
+          `Gemini Live upstream unexpected response: ${status} ${statusText}`.trim()
+        );
+        setTimeout(() => closeBoth("Upstream unexpected response"), 250);
+        return;
+      }
       closeBoth("Upstream unexpected response");
     });
 
