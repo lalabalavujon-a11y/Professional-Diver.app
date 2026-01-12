@@ -7,7 +7,44 @@ export interface LiveVoiceEventHandlers {
   onError?: (evt: Event) => void;
 }
 
+function normalizeHttpUrl(value: string): string {
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  return `https://${value}`;
+}
+
+function httpOriginToWsBase(origin: string): string {
+  const u = new URL(origin);
+  u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
+  // Only keep origin (strip any path/query)
+  u.pathname = "";
+  u.search = "";
+  u.hash = "";
+  // URL.toString() includes trailing slash; normalize away.
+  return u.toString().replace(/\/$/, "");
+}
+
 function getWsBaseUrl(): string {
+  // Allow explicitly setting WS base (useful when frontend and API are on different hosts).
+  const wsEnv = (import.meta as any).env?.VITE_WS_URL as string | undefined;
+  if (wsEnv) {
+    // Accept either ws(s):// or http(s):// values.
+    const normalized = wsEnv.startsWith("ws://") || wsEnv.startsWith("wss://")
+      ? wsEnv
+      : normalizeHttpUrl(wsEnv);
+    return normalized.startsWith("ws://") || normalized.startsWith("wss://")
+      ? normalized.replace(/\/$/, "")
+      : httpOriginToWsBase(normalized);
+  }
+
+  // Fall back to API URL if provided (matches queryClient.ts behavior).
+  const apiEnv = (import.meta as any).env?.VITE_API_URL as string | undefined;
+  if (apiEnv) {
+    const normalized = normalizeHttpUrl(apiEnv);
+    const origin = new URL(normalized).origin;
+    return httpOriginToWsBase(origin);
+  }
+
+  // Default: same host as the current page.
   const isHttps = window.location.protocol === "https:";
   const wsProto = isHttps ? "wss" : "ws";
   return `${wsProto}://${window.location.host}`;
@@ -112,7 +149,7 @@ export class GeminiLiveVoiceSession {
 
     await new Promise<void>((resolve, reject) => {
       const timer = window.setTimeout(() => {
-        reject(new Error("Timed out connecting to live voice WebSocket"));
+        reject(new Error(`Timed out connecting to live voice WebSocket (${wsUrl})`));
       }, 10000);
 
       const cleanup = () => window.clearTimeout(timer);
@@ -123,7 +160,7 @@ export class GeminiLiveVoiceSession {
       });
       this.ws?.addEventListener("error", () => {
         cleanup();
-        reject(new Error("Failed to connect to live voice WebSocket"));
+        reject(new Error(`Failed to connect to live voice WebSocket (${wsUrl})`));
       });
     });
   }
