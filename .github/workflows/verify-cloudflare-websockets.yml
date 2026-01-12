@@ -1,5 +1,7 @@
 name: Verify Cloudflare WebSockets
 
+permissions: read-all
+
 on:
   workflow_dispatch:
     inputs:
