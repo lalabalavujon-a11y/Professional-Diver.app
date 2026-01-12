@@ -86,15 +86,8 @@ export default function DPRFormEditor({ dpr, operationId, onSave, onCancel }: DP
       if (!response.ok) throw new Error('Failed to save DPR');
       return response.json();
     },
-    onSuccess: (data, variables, context) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/dive-supervisor/dprs"] });
-      if (!context?.silent) {
-        toast({
-          title: "Success",
-          description: dpr ? "DPR updated" : "DPR created",
-        });
-        onSave(data);
-      }
     },
     onError: (error: Error) => {
       toast({
@@ -106,7 +99,8 @@ export default function DPRFormEditor({ dpr, operationId, onSave, onCancel }: DP
   });
 
   const handleSave = (silent = false) => {
-    mutation.mutate({
+    mutation.mutate(
+      {
       reportDate: formData.reportDate,
       reportData: {
         weather: formData.weather,
@@ -120,7 +114,18 @@ export default function DPRFormEditor({ dpr, operationId, onSave, onCancel }: DP
         personnel: formData.personnel,
         hoursWorked: formData.hoursWorked,
       },
-    }, { context: { silent } });
+      },
+      {
+        onSuccess: (data) => {
+          if (silent) return;
+          toast({
+            title: "Success",
+            description: dpr ? "DPR updated" : "DPR created",
+          });
+          onSave(data);
+        },
+      }
+    );
   };
 
   return (

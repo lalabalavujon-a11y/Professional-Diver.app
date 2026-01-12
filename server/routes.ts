@@ -41,6 +41,7 @@ import {
   MedicalFacilityType 
 } from "./medical-facilities-service";
 import multer from "multer";
+import { registerGeminiLiveVoiceWsRoutes } from "./voice/gemini-live-ws";
 
 // In-memory store for user profile data (for demo purposes)
 const userProfileStore = new Map<string, any>();
@@ -6909,6 +6910,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  // Gemini Live (native audio) WebSocket endpoints:
+  // - /api/laura-oracle/live
+  // - /api/diver-well/live
+  //
+  // This keeps the API key server-side and enables the low-latency voice loop.
+  registerGeminiLiveVoiceWsRoutes(httpServer);
   // Initialize Platform Change Monitor and Documentation Updater
   try {
     const { default: PlatformChangeMonitor } = await import('./platform-change-monitor');

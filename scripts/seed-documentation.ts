@@ -109,7 +109,7 @@ const initialSections = [
       },
       {
         title: 'Voice Features',
-        content: 'Laura supports text-to-speech responses using OpenAI TTS with the Alloy voice. You can toggle voice on/off and control playback. Voice responses are particularly helpful for hands-free learning.'
+        content: 'Laura supports low-latency live voice via Gemini Live (native audio over WebSocket). You can toggle Live Voice on/off, talk hands-free, and stop audio instantly (barge-in style).'
       }
     ]),
     updatedBy: 'laura',

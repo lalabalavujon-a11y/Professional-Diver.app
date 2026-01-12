@@ -176,7 +176,11 @@ export default function DiveTeamRoster({
     // Get members who haven't been assigned this role recently
     const recentAssignments = rosterAssignments
       .filter(a => a.diverRole === role)
-      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      .sort((a, b) => {
+        const bt = new Date(((b as any).createdAt ?? (b as any).assignedAt ?? (b as any).updatedAt ?? 0) as any).getTime();
+        const at = new Date(((a as any).createdAt ?? (a as any).assignedAt ?? (a as any).updatedAt ?? 0) as any).getTime();
+        return bt - at;
+      });
     
     // Find members who haven't done this role recently
     const recentRoleMemberIds = recentAssignments.slice(0, availableMembers.length).map(a => a.teamMemberId);

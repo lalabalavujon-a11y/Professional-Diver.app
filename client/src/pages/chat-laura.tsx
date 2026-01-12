@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import RoleBasedNavigation from "@/components/role-based-navigation";
+import { LiveVoicePanel, type LiveVoicePanelHandle } from "@/components/live-voice/LiveVoicePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,11 +80,10 @@ export default function ChatLaura() {
   const [platformAnalytics, setPlatformAnalytics] = useState<PlatformAnalytics | null>(null);
   const [activeTab, setActiveTab] = useState('chat');
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const liveVoiceRef = useRef<LiveVoicePanelHandle | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -124,52 +124,15 @@ export default function ChatLaura() {
     if (!voiceEnabled) return;
 
     try {
-      // Stop any currently playing audio
-      if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-      }
-
-      const response = await fetch('/api/laura-oracle/voice', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      });
-
-      if (response.ok) {
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        
-        setCurrentAudio(audio);
-        setIsPlaying(true);
-
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(audioUrl);
-        };
-
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(audioUrl);
-        };
-
-        await audio.play();
-      }
+      await liveVoiceRef.current?.speak(text);
     } catch (error) {
       console.error('Error playing voice response:', error);
-      setIsPlaying(false);
     }
   };
 
   const stopVoice = () => {
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-      setIsPlaying(false);
-    }
+    liveVoiceRef.current?.stopAudio();
+    liveVoiceRef.current?.stopMic();
   };
 
   const handleSendMessage = async () => {
@@ -461,10 +424,10 @@ export default function ChatLaura() {
                           }`}
                         >
                           {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                          <span className="text-xs">Voice</span>
+                          <span className="text-xs">Live Voice</span>
                         </Button>
                         
-                        {isPlaying && (
+                        {voiceEnabled && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -480,6 +443,11 @@ export default function ChatLaura() {
                   </CardHeader>
                   
                   <CardContent className="flex-1 flex flex-col p-0">
+                    {voiceEnabled && (
+                      <div className="p-4 pb-0">
+                        <LiveVoicePanel ref={liveVoiceRef} agent="laura-oracle" />
+                      </div>
+                    )}
                     {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                       {messages.map((message) => (
@@ -816,10 +784,10 @@ export default function ChatLaura() {
                         }`}
                       >
                         {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                        <span className="text-xs">Voice</span>
+                        <span className="text-xs">Live Voice</span>
                       </Button>
                       
-                      {isPlaying && (
+                      {voiceEnabled && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -835,6 +803,11 @@ export default function ChatLaura() {
                 </CardHeader>
                 
                 <CardContent className="flex-1 flex flex-col p-0">
+                  {voiceEnabled && (
+                    <div className="p-4 pb-0">
+                      <LiveVoicePanel ref={liveVoiceRef} agent="laura-oracle" />
+                    </div>
+                  )}
                   {/* Messages */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {messages.map((message) => (
