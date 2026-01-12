@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Volume2, VolumeX, Pause, Mic, MicOff, Waves, ChevronDown, ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { LiveVoicePanel, type LiveVoicePanelHandle } from "@/components/live-voice/LiveVoicePanel";
 
 interface Message {
   id: string;
@@ -33,13 +34,12 @@ export default function DiverWellOperationsApp() {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isExpertiseOpen, setIsExpertiseOpen] = useState(false);
   const [isHoveringExpertise, setIsHoveringExpertise] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const liveVoiceRef = useRef<LiveVoicePanelHandle | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -63,52 +63,15 @@ export default function DiverWellOperationsApp() {
     if (!voiceEnabled) return;
 
     try {
-      // Stop any currently playing audio
-      if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-      }
-
-      const response = await fetch('/api/diver-well/voice', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      });
-
-      if (response.ok) {
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        
-        setCurrentAudio(audio);
-        setIsPlaying(true);
-
-        audio.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(audioUrl);
-        };
-
-        audio.onerror = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(audioUrl);
-        };
-
-        await audio.play();
-      }
+      await liveVoiceRef.current?.speak(text);
     } catch (error) {
       console.error('Error playing voice response:', error);
-      setIsPlaying(false);
     }
   };
 
   const stopVoice = () => {
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-      setIsPlaying(false);
-    }
+    liveVoiceRef.current?.stopAudio();
+    liveVoiceRef.current?.stopMic();
   };
 
   const handleSendMessage = async () => {
@@ -327,10 +290,10 @@ export default function DiverWellOperationsApp() {
                     }`}
                   >
                     {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                    <span className="text-xs">Voice</span>
+                    <span className="text-xs">Live Voice</span>
                   </Button>
                   
-                  {isPlaying && (
+                  {voiceEnabled && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -346,6 +309,11 @@ export default function DiverWellOperationsApp() {
             </CardHeader>
             
             <CardContent className="flex-1 flex flex-col p-0">
+              {voiceEnabled && (
+                <div className="p-4 pb-0">
+                  <LiveVoicePanel ref={liveVoiceRef} agent="diver-well" />
+                </div>
+              )}
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map((message) => (
