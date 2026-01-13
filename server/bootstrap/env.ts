@@ -18,17 +18,24 @@ config({ path: '.env.local', override: false });
  * Set one of:
  * - GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json (file already on disk)
  * - GOOGLE_SERVICE_ACCOUNT_JSON=<full JSON contents> (this bootstrap will write a temp file)
+ * - GOOGLE_SERVICE_ACCOUNT_JSON_B64=<base64 JSON> (recommended on platforms that struggle with multiline secrets)
  */
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+const serviceAccountJson =
+  process.env.GOOGLE_SERVICE_ACCOUNT_JSON ||
+  (process.env.GOOGLE_SERVICE_ACCOUNT_JSON_B64
+    ? Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_B64, 'base64').toString('utf8')
+    : undefined);
+
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && serviceAccountJson) {
   try {
     const tmpDir = os.tmpdir();
     const credsPath = path.join(tmpDir, 'google-service-account.json');
-    fs.writeFileSync(credsPath, process.env.GOOGLE_SERVICE_ACCOUNT_JSON, { encoding: 'utf8' });
+    fs.writeFileSync(credsPath, serviceAccountJson, { encoding: 'utf8' });
     process.env.GOOGLE_APPLICATION_CREDENTIALS = credsPath;
-    console.log('🔐 Google credentials loaded from GOOGLE_SERVICE_ACCOUNT_JSON (temp file created)');
+    console.log('🔐 Google credentials loaded from env (temp file created)');
   } catch (e) {
     console.warn(
-      '⚠️ Failed to write GOOGLE_SERVICE_ACCOUNT_JSON to temp file; Google ADC may not work:',
+      '⚠️ Failed to write service account JSON to temp file; Google ADC may not work:',
       e instanceof Error ? e.message : e
     );
   }
