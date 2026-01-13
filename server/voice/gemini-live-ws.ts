@@ -230,9 +230,40 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
 
   let tokenResult: any;
   try {
+    // Try to get more details about the client before requesting token
+    if (client && typeof client === 'object') {
+      console.log("LAURA: Client type:", client.constructor?.name);
+      // Check if it's a JWT client and log its properties
+      if ('credentials' in client) {
+        console.log("LAURA: Client has credentials property");
+      }
+      if ('projectId' in client) {
+        console.log(`LAURA: Client projectId: ${(client as any).projectId}`);
+      }
+    }
+    
+    console.log("LAURA: Attempting to get access token...");
     tokenResult = await client.getAccessToken();
+    console.log("LAURA: Access token retrieved successfully");
   } catch (err) {
     console.error("LAURA: Google ADC getAccessToken() error:", err);
+    
+    // Try to get more details from the error
+    const anyErr = err as any;
+    if (anyErr?.response) {
+      console.error("LAURA: Error has response:", {
+        status: anyErr.response.status,
+        statusText: anyErr.response.statusText,
+        data: anyErr.response.data,
+      });
+    }
+    
+    // Check if there's an inner error in the stack or message
+    const errorString = String(err);
+    const errorStack = anyErr?.stack || '';
+    console.error("LAURA: Full error string:", errorString);
+    console.error("LAURA: Error stack (first 10 lines):", errorStack.split('\n').slice(0, 10).join('\n'));
+    
     const formatted = formatAuthFailure(err);
     console.error("LAURA:", formatted);
     throw new Error(formatted);
