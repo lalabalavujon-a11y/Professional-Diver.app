@@ -328,9 +328,22 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
               console.error("LAURA: HTTP Status:", tokenResponse.status, tokenResponse.statusText);
               console.error("LAURA: Error details:", JSON.stringify(tokenData, null, 2));
             } else {
-              console.log("LAURA: ✅ Token exchange successful - access token obtained!");
-              // Use the manually obtained token
-              tokenResult = { token: tokenData.access_token };
+              // Check for access_token in response
+              if (tokenData.access_token) {
+                console.log("LAURA: ✅ Token exchange successful - access token obtained!");
+                tokenResult = { token: tokenData.access_token };
+              } else if (tokenData.id_token) {
+                // If we got id_token instead of access_token, log the issue
+                console.error("LAURA: ⚠️ Response contains id_token instead of access_token");
+                console.error("LAURA: Response keys:", Object.keys(tokenData));
+                console.error("LAURA: Full response:", JSON.stringify(tokenData, null, 2));
+                // This shouldn't happen, but let's log it for debugging
+                throw new Error("OAuth2 token response missing access_token (got id_token instead)");
+              } else {
+                console.error("LAURA: ❌ Token response missing both access_token and id_token");
+                console.error("LAURA: Response:", JSON.stringify(tokenData, null, 2));
+                throw new Error("OAuth2 token response missing access_token");
+              }
             }
           } catch (jwtErr: any) {
             console.error("LAURA: ❌ JWT signing failed:", jwtErr?.message);
