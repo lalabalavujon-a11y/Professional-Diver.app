@@ -337,18 +337,25 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
       }
     });
 
-    upstreamWs.on("message", async (payload) => {
+    upstreamWs.on("message", async (payload, isBinary) => {
       // Always forward upstream messages to the client (UI can decide what to render/play).
+      // IMPORTANT: Forward JSON as *text* frames so browsers don't treat it as binary.
       try {
         if (clientWs.readyState === WebSocket.OPEN) {
-          clientWs.send(payload);
+          if (!isBinary) {
+            const text =
+              typeof payload === "string" ? payload : payload.toString("utf8");
+            clientWs.send(text);
+          } else {
+            clientWs.send(payload, { binary: true });
+          }
         }
       } catch {
         // ignore
       }
 
       // Intercept tool calls, run them locally, and respond back upstream.
-      const parsed = safeJsonParse(payload);
+      const parsed = isBinary ? null : safeJsonParse(payload);
       const toolCalls = extractToolCalls(parsed);
       if (!toolCalls.length) return;
 
