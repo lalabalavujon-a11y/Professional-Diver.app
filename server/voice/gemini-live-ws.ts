@@ -76,9 +76,23 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
   function formatAuthFailure(err: unknown): string {
     // google-auth-library typically throws GaxiosError with a response payload.
     const anyErr = err as any;
+    
+    // Log the raw error structure for debugging
+    console.error("LAURA: Raw error object structure:", {
+      hasResponse: !!anyErr?.response,
+      status: anyErr?.response?.status,
+      statusText: anyErr?.response?.statusText,
+      data: anyErr?.response?.data,
+      code: anyErr?.code,
+      name: anyErr?.name,
+      message: anyErr?.message,
+      keys: Object.keys(anyErr || {}),
+    });
+    
     const msg =
       typeof anyErr?.message === "string" ? anyErr.message : "Unknown auth error";
     const status = anyErr?.response?.status;
+    const statusText = anyErr?.response?.statusText;
     const data = anyErr?.response?.data;
     const errorCode = anyErr?.code || anyErr?.response?.data?.error || anyErr?.response?.data?.error_description;
     const errorType = anyErr?.name || anyErr?.constructor?.name || typeof err;
@@ -104,6 +118,7 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
     const pieces = [
       "Could not refresh access token via Google ADC.",
       status ? `HTTP ${String(status)}` : null,
+      statusText ? `statusText=${statusText}` : null,
       errorType && errorType !== "Error" ? `errorType=${errorType}` : null,
       errorCode ? `errorCode=${String(errorCode)}` : null,
       responseError ? `googleError=${String(responseError)}` : null,
@@ -370,10 +385,14 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
     try {
       upstreamWs = await createGeminiLiveUpstreamWebSocket();
     } catch (err) {
+      // Log the full error details for debugging
+      console.error(`LAURA: Failed to create Gemini Live upstream WebSocket for ${agent}:`, err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to start Gemini Live session.";
+      console.error(`LAURA: Error message: ${errorMessage}`);
       sendClientError(
         clientWs,
         "missing_gemini_key",
-        err instanceof Error ? err.message : "Failed to start Gemini Live session."
+        errorMessage
       );
       closeBoth("Gemini Live not configured");
       return;
