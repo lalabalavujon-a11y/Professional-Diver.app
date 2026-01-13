@@ -276,8 +276,8 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
       tokenResult = await client.getAccessToken();
       console.log("LAURA: Access token retrieved successfully");
     } catch (tokenErr: any) {
-      // Log everything we can find
-      console.error("LAURA: Detailed token error:", {
+      // Log everything we can find - use JSON.stringify to ensure we see all properties
+      const errorDetails: any = {
         message: tokenErr?.message,
         name: tokenErr?.name,
         code: tokenErr?.code,
@@ -286,20 +286,49 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
         hostname: tokenErr?.hostname,
         address: tokenErr?.address,
         port: tokenErr?.port,
-        response: tokenErr?.response ? {
+        toString: String(tokenErr),
+      };
+      
+      // Try to get response details
+      if (tokenErr?.response) {
+        errorDetails.response = {
           status: tokenErr.response.status,
           statusText: tokenErr.response.statusText,
           data: tokenErr.response.data,
           headers: tokenErr.response.headers,
-        } : undefined,
-        config: tokenErr?.config ? {
+        };
+        console.error("LAURA: Error has HTTP response:", JSON.stringify(errorDetails.response, null, 2));
+      }
+      
+      // Try to get config details
+      if (tokenErr?.config) {
+        errorDetails.config = {
           url: tokenErr.config.url,
           method: tokenErr.config.method,
-          headers: tokenErr.config.headers,
-        } : undefined,
-        toString: String(tokenErr),
-        stack: tokenErr?.stack,
-      });
+          headers: tokenErr.config.headers ? Object.keys(tokenErr.config.headers) : undefined,
+        };
+        console.error("LAURA: Error request config:", JSON.stringify(errorDetails.config, null, 2));
+      }
+      
+      // Log all enumerable properties
+      const allProps: Record<string, any> = {};
+      for (const key in tokenErr) {
+        try {
+          allProps[key] = tokenErr[key];
+        } catch {
+          allProps[key] = '[cannot serialize]';
+        }
+      }
+      console.error("LAURA: All error properties:", JSON.stringify(allProps, null, 2));
+      
+      // Log the full error object as JSON
+      try {
+        console.error("LAURA: Full error object (JSON):", JSON.stringify(tokenErr, Object.getOwnPropertyNames(tokenErr), 2));
+      } catch (jsonErr) {
+        console.error("LAURA: Could not stringify error:", jsonErr);
+      }
+      
+      console.error("LAURA: Detailed token error summary:", JSON.stringify(errorDetails, null, 2));
       throw tokenErr;
     }
   } catch (err) {
