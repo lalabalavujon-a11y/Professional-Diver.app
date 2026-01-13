@@ -125,6 +125,8 @@ export class GeminiLiveVoiceSession {
 
     const wsUrl = `${getWsBaseUrl()}${getLivePath(this.agent)}`;
     this.ws = new WebSocket(wsUrl);
+    // Prefer ArrayBuffer for binary frames so we can safely detect/ignore them.
+    this.ws.binaryType = "arraybuffer";
 
     this.ws.onopen = () => {
       this.handlers.onOpen?.();
@@ -138,13 +140,35 @@ export class GeminiLiveVoiceSession {
       this.handlers.onError?.(evt);
     };
 
-    this.ws.onmessage = (evt) => {
+    const handleIncoming = async (data: unknown) => {
       try {
-        const msg = JSON.parse(String(evt.data)) as unknown;
-        this.handlers.onJsonMessage?.(msg);
+        if (typeof data === "string") {
+          const msg = JSON.parse(data) as unknown;
+          this.handlers.onJsonMessage?.(msg);
+          return;
+        }
+
+        if (data instanceof ArrayBuffer) {
+          const text = new TextDecoder("utf-8").decode(new Uint8Array(data));
+          const msg = JSON.parse(text) as unknown;
+          this.handlers.onJsonMessage?.(msg);
+          return;
+        }
+
+        if (data instanceof Blob) {
+          const buf = await data.arrayBuffer();
+          const text = new TextDecoder("utf-8").decode(new Uint8Array(buf));
+          const msg = JSON.parse(text) as unknown;
+          this.handlers.onJsonMessage?.(msg);
+        }
       } catch {
-        // Some payloads may be non-JSON; ignore in UI.
+        // Non-JSON (or binary audio) frames are expected; ignore.
       }
+    };
+
+    this.ws.onmessage = (evt) => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      handleIncoming(evt.data);
     };
 
     await new Promise<void>((resolve, reject) => {
