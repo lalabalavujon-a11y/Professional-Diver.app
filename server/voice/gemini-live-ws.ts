@@ -75,13 +75,21 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
 
   // Fall back to ADC (works well for Vertex/Google Cloud deployments).
   const { google } = await import("googleapis");
+  const scopesFromEnv = process.env.GOOGLE_AUTH_SCOPES
+    ? process.env.GOOGLE_AUTH_SCOPES.split(",").map((s) => s.trim()).filter(Boolean)
+    : null;
+
   const auth = new google.auth.GoogleAuth({
-    // cloud-platform covers most Vertex use cases; generative-language is the direct scope
-    // for the Gemini API host we connect to here.
-    scopes: [
-      "https://www.googleapis.com/auth/cloud-platform",
-      "https://www.googleapis.com/auth/generative-language",
-    ],
+    // Some Gemini Live endpoints require OAuth and can be picky about scopes.
+    // Defaults cover both Gemini API + Vertex-style access patterns.
+    scopes:
+      scopesFromEnv ??
+      [
+        "https://www.googleapis.com/auth/cloud-platform",
+        "https://www.googleapis.com/auth/generative-language",
+        // Some projects require explicit Vertex scope even when using the Gemini API host.
+        "https://www.googleapis.com/auth/aiplatform",
+      ],
   });
   const client = await auth.getClient();
   const tokenResult = await client.getAccessToken();
