@@ -165,21 +165,62 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
     ? process.env.GOOGLE_AUTH_SCOPES.split(",").map((s) => s.trim()).filter(Boolean)
     : null;
 
+  const scopes = scopesFromEnv ?? [
+    "https://www.googleapis.com/auth/cloud-platform",
+    "https://www.googleapis.com/auth/generative-language",
+    // Some projects require explicit Vertex scope even when using the Gemini API host.
+    "https://www.googleapis.com/auth/aiplatform",
+  ];
+
+  // Log credential file info for debugging
+  const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (credsPath) {
+    const fs = await import("node:fs");
+    try {
+      if (fs.existsSync(credsPath)) {
+        const stats = fs.statSync(credsPath);
+        console.log(`LAURA: Credentials file exists: ${credsPath} (${stats.size} bytes)`);
+        // Validate JSON structure
+        try {
+          const credsContent = fs.readFileSync(credsPath, "utf8");
+          const credsJson = JSON.parse(credsContent);
+          console.log(`LAURA: Credentials valid JSON - project: ${credsJson.project_id}, client_email: ${credsJson.client_email}`);
+          // Check private key format
+          if (credsJson.private_key) {
+            const keyLines = credsJson.private_key.split('\n');
+            const hasBegin = keyLines.some((line: string) => line.includes('BEGIN'));
+            const hasEnd = keyLines.some((line: string) => line.includes('END'));
+            console.log(`LAURA: Private key format check - has BEGIN: ${hasBegin}, has END: ${hasEnd}, lines: ${keyLines.length}`);
+            if (!hasBegin || !hasEnd) {
+              console.error("LAURA: ⚠️ Private key may be malformed - missing BEGIN/END markers");
+            }
+          } else {
+            console.error("LAURA: ❌ Private key missing from credentials JSON");
+          }
+        } catch (parseErr) {
+          console.error("LAURA: ❌ Failed to parse credentials JSON:", parseErr instanceof Error ? parseErr.message : parseErr);
+        }
+      } else {
+        console.error(`LAURA: ❌ Credentials file does not exist: ${credsPath}`);
+      }
+    } catch (fsErr) {
+      console.error("LAURA: Error checking credentials file:", fsErr instanceof Error ? fsErr.message : fsErr);
+    }
+  } else {
+    console.warn("LAURA: ⚠️ GOOGLE_APPLICATION_CREDENTIALS not set");
+  }
+
+  console.log(`LAURA: Requesting scopes: ${scopes.join(", ")}`);
+
   const auth = new google.auth.GoogleAuth({
     // Some Gemini Live endpoints require OAuth and can be picky about scopes.
     // Defaults cover both Gemini API + Vertex-style access patterns.
-    scopes:
-      scopesFromEnv ??
-      [
-        "https://www.googleapis.com/auth/cloud-platform",
-        "https://www.googleapis.com/auth/generative-language",
-        // Some projects require explicit Vertex scope even when using the Gemini API host.
-        "https://www.googleapis.com/auth/aiplatform",
-      ],
+    scopes,
   });
   let client: any;
   try {
     client = await auth.getClient();
+    console.log("LAURA: GoogleAuth client created successfully");
   } catch (err) {
     console.error("LAURA: Google ADC getClient() error:", err);
     const formatted = formatAuthFailure(err);
