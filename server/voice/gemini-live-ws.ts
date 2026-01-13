@@ -62,16 +62,20 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
   // - We keep this as a server-to-server connection so the browser never sees credentials.
   //
   // Auth options:
-  // - GEMINI_API_KEY (simplest)
+  // - GEMINI_API_KEY (NOT SUPPORTED for Live WebSocket - requires OAuth2)
   // - Application Default Credentials (service account / workload identity) via OAuth bearer token
+  //
+  // NOTE: Gemini Live WebSocket REQUIRES OAuth2 authentication, not API keys.
+  // The error "API keys are not supported by this API" confirms this.
 
-  const apiKey = process.env.GEMINI_API_KEY;
   const urlBase =
     "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent";
 
-  if (apiKey) {
-    return new WebSocket(`${urlBase}?key=${encodeURIComponent(apiKey)}`);
-  }
+  // Skip API key check - Gemini Live requires OAuth2
+  // const apiKey = process.env.GEMINI_API_KEY;
+  // if (apiKey) {
+  //   return new WebSocket(`${urlBase}?key=${encodeURIComponent(apiKey)}`);
+  // }
 
   function formatAuthFailure(err: unknown): string {
     // google-auth-library typically throws GaxiosError with a response payload.
