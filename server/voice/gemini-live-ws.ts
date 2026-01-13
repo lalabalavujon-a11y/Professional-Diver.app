@@ -80,16 +80,34 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
       typeof anyErr?.message === "string" ? anyErr.message : "Unknown auth error";
     const status = anyErr?.response?.status;
     const data = anyErr?.response?.data;
-    const dataStr =
-      data && typeof data === "object"
-        ? JSON.stringify(data)
-        : typeof data === "string"
-          ? data
-          : "";
-
+    const errorCode = anyErr?.code || anyErr?.response?.data?.error || anyErr?.response?.data?.error_description;
+    const errorType = anyErr?.name || anyErr?.constructor?.name || typeof err;
+    
+    // Try to extract error details from various possible locations
+    let dataStr = "";
+    if (data) {
+      if (typeof data === "object") {
+        // Extract error, error_description, or full object
+        const errorDetail = data.error || data.error_description || data;
+        dataStr = typeof errorDetail === "string" 
+          ? errorDetail 
+          : JSON.stringify(errorDetail);
+      } else if (typeof data === "string") {
+        dataStr = data;
+      }
+    }
+    
+    // Also check for error in response.data.error
+    const responseError = anyErr?.response?.data?.error;
+    const responseErrorDesc = anyErr?.response?.data?.error_description;
+    
     const pieces = [
       "Could not refresh access token via Google ADC.",
       status ? `HTTP ${String(status)}` : null,
+      errorType && errorType !== "Error" ? `errorType=${errorType}` : null,
+      errorCode ? `errorCode=${String(errorCode)}` : null,
+      responseError ? `googleError=${String(responseError)}` : null,
+      responseErrorDesc ? `googleErrorDesc=${String(responseErrorDesc)}` : null,
       msg ? `message=${msg}` : null,
       dataStr ? `details=${dataStr}` : null,
       "Common fixes: ensure the service account key is enabled (not revoked), system time is correct, billing is enabled, and APIs are enabled (Vertex AI API + Generative Language API).",
@@ -119,14 +137,20 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
   try {
     client = await auth.getClient();
   } catch (err) {
-    throw new Error(formatAuthFailure(err));
+    console.error("LAURA: Google ADC getClient() error:", err);
+    const formatted = formatAuthFailure(err);
+    console.error("LAURA:", formatted);
+    throw new Error(formatted);
   }
 
   let tokenResult: any;
   try {
     tokenResult = await client.getAccessToken();
   } catch (err) {
-    throw new Error(formatAuthFailure(err));
+    console.error("LAURA: Google ADC getAccessToken() error:", err);
+    const formatted = formatAuthFailure(err);
+    console.error("LAURA:", formatted);
+    throw new Error(formatted);
   }
   const token = typeof tokenResult === "string" ? tokenResult : tokenResult?.token;
   if (!token) {
