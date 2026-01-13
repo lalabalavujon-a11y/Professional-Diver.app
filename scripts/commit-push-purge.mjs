@@ -58,7 +58,7 @@ const commitAndPush = (message) => {
   }
 
   console.log(`📝 Committing with message: "${message}"`);
-  run(`git commit -m "${message.replace(/"/g, '\\"')}"`);
+  execSync("git", { args: ["commit", "-m", message], stdio: "pipe", encoding: "utf8" });
 
   const branch = run("git rev-parse --abbrev-ref HEAD");
   console.log(`⬆️ Pushing to origin/${branch}...`);
