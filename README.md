@@ -73,11 +73,11 @@ LANGSMITH_PROJECT=professional-diver-training-app
 NODE_ENV=development
 
 # Weather API Configuration (optional - for weather widget)
-OPENWEATHER_API_KEY=74b55691a7171ca1c37f50bf8a9b2abc
+OPENWEATHER_API_KEY=your_openweather_api_key_here
 # Get your free API key at: https://openweathermap.org/api
 
 # Tides API Configuration (optional - for tides widget)
-STORMGLASS_API_KEY=df87c788-e994-11f0-b5c3-0242ac130003-df87c81e-e994-11f0-b5c3-0242ac130003
+STORMGLASS_API_KEY=your_stormglass_api_key_here
 # Get your free API key at: https://stormglass.io/
 # Alternative: NOAA_TIDES_API_KEY for NOAA Tides API
 ```
