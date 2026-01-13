@@ -73,6 +73,30 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
     return new WebSocket(`${urlBase}?key=${encodeURIComponent(apiKey)}`);
   }
 
+  function formatAuthFailure(err: unknown): string {
+    // google-auth-library typically throws GaxiosError with a response payload.
+    const anyErr = err as any;
+    const msg =
+      typeof anyErr?.message === "string" ? anyErr.message : "Unknown auth error";
+    const status = anyErr?.response?.status;
+    const data = anyErr?.response?.data;
+    const dataStr =
+      data && typeof data === "object"
+        ? JSON.stringify(data)
+        : typeof data === "string"
+          ? data
+          : "";
+
+    const pieces = [
+      "Could not refresh access token via Google ADC.",
+      status ? `HTTP ${String(status)}` : null,
+      msg ? `message=${msg}` : null,
+      dataStr ? `details=${dataStr}` : null,
+      "Common fixes: ensure the service account key is enabled (not revoked), system time is correct, billing is enabled, and APIs are enabled (Vertex AI API + Generative Language API).",
+    ].filter(Boolean);
+    return pieces.join(" ");
+  }
+
   // Fall back to ADC (works well for Vertex/Google Cloud deployments).
   const { google } = await import("googleapis");
   const scopesFromEnv = process.env.GOOGLE_AUTH_SCOPES
@@ -91,8 +115,19 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
         "https://www.googleapis.com/auth/aiplatform",
       ],
   });
-  const client = await auth.getClient();
-  const tokenResult = await client.getAccessToken();
+  let client: any;
+  try {
+    client = await auth.getClient();
+  } catch (err) {
+    throw new Error(formatAuthFailure(err));
+  }
+
+  let tokenResult: any;
+  try {
+    tokenResult = await client.getAccessToken();
+  } catch (err) {
+    throw new Error(formatAuthFailure(err));
+  }
   const token = typeof tokenResult === "string" ? tokenResult : tokenResult?.token;
   if (!token) {
     throw new Error(
