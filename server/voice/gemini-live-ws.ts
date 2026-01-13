@@ -321,7 +321,13 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
             
             const tokenData = await tokenResponse.json() as any;
             console.log("LAURA: Token exchange response status:", tokenResponse.status);
-            console.log("LAURA: Token exchange response:", JSON.stringify(tokenData, null, 2));
+            console.log("LAURA: Token exchange response keys:", Object.keys(tokenData));
+            console.log("LAURA: Token exchange response (full):", JSON.stringify(tokenData, null, 2));
+            console.log("LAURA: Has access_token?", !!tokenData.access_token);
+            console.log("LAURA: Has id_token?", !!tokenData.id_token);
+            if (tokenData.access_token) {
+              console.log("LAURA: access_token length:", tokenData.access_token.length);
+            }
             
             if (!tokenResponse.ok) {
               console.error("LAURA: ❌ Token exchange failed - this is the actual error!");
