@@ -49,16 +49,48 @@ const serviceAccountJson = resolveServiceAccountJsonFromEnv();
 
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && serviceAccountJson) {
   try {
+    // Validate JSON before writing
+    let parsedJson: any;
+    try {
+      parsedJson = JSON.parse(serviceAccountJson);
+    } catch (parseError) {
+      console.error('❌ Invalid JSON in service account credentials:', parseError instanceof Error ? parseError.message : parseError);
+      throw new Error('Service account JSON is not valid JSON');
+    }
+    
+    // Check for required fields
+    if (!parsedJson.type || parsedJson.type !== 'service_account') {
+      console.warn('⚠️ Service account JSON missing or incorrect "type" field (expected "service_account")');
+    }
+    if (!parsedJson.project_id) {
+      console.warn('⚠️ Service account JSON missing "project_id" field');
+    }
+    if (!parsedJson.private_key) {
+      console.warn('⚠️ Service account JSON missing "private_key" field');
+    }
+    if (!parsedJson.client_email) {
+      console.warn('⚠️ Service account JSON missing "client_email" field');
+    }
+    
     const tmpDir = os.tmpdir();
     const credsPath = path.join(tmpDir, 'google-service-account.json');
     fs.writeFileSync(credsPath, serviceAccountJson, { encoding: 'utf8' });
     process.env.GOOGLE_APPLICATION_CREDENTIALS = credsPath;
     console.log('🔐 Google credentials loaded from env (temp file created)');
+    console.log(`   Project ID: ${parsedJson.project_id || 'NOT SET'}`);
+    console.log(`   Client Email: ${parsedJson.client_email || 'NOT SET'}`);
+    console.log(`   Credentials file: ${credsPath}`);
   } catch (e) {
-    console.warn(
-      '⚠️ Failed to write service account JSON to temp file; Google ADC may not work:',
+    console.error(
+      '❌ Failed to write service account JSON to temp file; Google ADC may not work:',
       e instanceof Error ? e.message : e
     );
+  }
+} else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  console.log(`🔐 Using existing GOOGLE_APPLICATION_CREDENTIALS: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
+  // Verify file exists
+  if (!fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+    console.error(`❌ GOOGLE_APPLICATION_CREDENTIALS file does not exist: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
   }
 }
 
