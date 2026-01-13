@@ -20,11 +20,32 @@ config({ path: '.env.local', override: false });
  * - GOOGLE_SERVICE_ACCOUNT_JSON=<full JSON contents> (this bootstrap will write a temp file)
  * - GOOGLE_SERVICE_ACCOUNT_JSON_B64=<base64 JSON> (recommended on platforms that struggle with multiline secrets)
  */
-const serviceAccountJson =
-  process.env.GOOGLE_SERVICE_ACCOUNT_JSON ||
-  (process.env.GOOGLE_SERVICE_ACCOUNT_JSON_B64
-    ? Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_B64, 'base64').toString('utf8')
-    : undefined);
+function looksLikeJsonObject(text: string): boolean {
+  const t = text.trim();
+  return t.startsWith('{') && t.endsWith('}');
+}
+
+function resolveServiceAccountJsonFromEnv(): string | undefined {
+  const direct = process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
+  if (direct && looksLikeJsonObject(direct)) return direct;
+
+  const b64OrJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON_B64?.trim();
+  if (!b64OrJson) return undefined;
+
+  // Common misconfiguration: raw JSON pasted into the *_B64 field.
+  if (looksLikeJsonObject(b64OrJson)) return b64OrJson;
+
+  const decoded = Buffer.from(b64OrJson, 'base64').toString('utf8').trim();
+  if (decoded && looksLikeJsonObject(decoded)) return decoded;
+
+  console.warn(
+    '⚠️ Invalid GOOGLE_SERVICE_ACCOUNT_JSON_B64: value did not decode to JSON. ' +
+      'If you pasted raw JSON, use GOOGLE_SERVICE_ACCOUNT_JSON instead, or base64-encode it first.'
+  );
+  return undefined;
+}
+
+const serviceAccountJson = resolveServiceAccountJsonFromEnv();
 
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && serviceAccountJson) {
   try {
