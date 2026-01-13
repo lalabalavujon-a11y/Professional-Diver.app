@@ -271,65 +271,81 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
       }
     }
     
-    // Try with explicit error handling
+    // Try with explicit error handling and manual JWT test
     try {
+      // First, try to get token the normal way
+      console.log("LAURA: Calling client.getAccessToken()...");
       tokenResult = await client.getAccessToken();
       console.log("LAURA: Access token retrieved successfully");
     } catch (tokenErr: any) {
-      // Log everything we can find - use JSON.stringify to ensure we see all properties
-      const errorDetails: any = {
-        message: tokenErr?.message,
-        name: tokenErr?.name,
-        code: tokenErr?.code,
-        errno: tokenErr?.errno,
-        syscall: tokenErr?.syscall,
-        hostname: tokenErr?.hostname,
-        address: tokenErr?.address,
-        port: tokenErr?.port,
-        toString: String(tokenErr),
-      };
+      console.error("LAURA: getAccessToken() failed. Error type:", typeof tokenErr, "Error constructor:", tokenErr?.constructor?.name);
       
-      // Try to get response details
-      if (tokenErr?.response) {
-        errorDetails.response = {
-          status: tokenErr.response.status,
-          statusText: tokenErr.response.statusText,
-          data: tokenErr.response.data,
-          headers: tokenErr.response.headers,
-        };
-        console.error("LAURA: Error has HTTP response:", JSON.stringify(errorDetails.response, null, 2));
-      }
-      
-      // Try to get config details
-      if (tokenErr?.config) {
-        errorDetails.config = {
-          url: tokenErr.config.url,
-          method: tokenErr.config.method,
-          headers: tokenErr.config.headers ? Object.keys(tokenErr.config.headers) : undefined,
-        };
-        console.error("LAURA: Error request config:", JSON.stringify(errorDetails.config, null, 2));
-      }
-      
-      // Log all enumerable properties
-      const allProps: Record<string, any> = {};
-      for (const key in tokenErr) {
-        try {
-          allProps[key] = tokenErr[key];
-        } catch {
-          allProps[key] = '[cannot serialize]';
-        }
-      }
-      console.error("LAURA: All error properties:", JSON.stringify(allProps, null, 2));
-      
-      // Log the full error object as JSON
+      // Try to manually test JWT signing and token exchange
+      console.log("LAURA: Attempting manual JWT token request to capture actual error...");
       try {
-        console.error("LAURA: Full error object (JSON):", JSON.stringify(tokenErr, Object.getOwnPropertyNames(tokenErr), 2));
-      } catch (jsonErr) {
-        console.error("LAURA: Could not stringify error:", jsonErr);
+        const fsMod = await import("node:fs");
+        const fs = fsMod.default || fsMod;
+        const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+        if (credsPath && fs.existsSync(credsPath)) {
+          const credsContent = fs.readFileSync(credsPath, "utf8");
+          const credsJson = JSON.parse(credsContent);
+          
+          // Try to manually make the OAuth2 token request
+          const jwtModule = await import("jsonwebtoken");
+          const jwt = jwtModule.default || jwtModule;
+          const now = Math.floor(Date.now() / 1000);
+          const jwtPayload = {
+            iss: credsJson.client_email,
+            sub: credsJson.client_email,
+            aud: "https://oauth2.googleapis.com/token",
+            exp: now + 3600,
+            iat: now,
+            scope: scopes.join(" "),
+          };
+          
+          console.log("LAURA: Creating JWT with payload:", JSON.stringify(jwtPayload, null, 2));
+          
+          try {
+            const signedJwt = jwt.sign(jwtPayload, credsJson.private_key, { algorithm: "RS256" });
+            console.log("LAURA: JWT signed successfully, length:", signedJwt.length);
+            
+            // Try to exchange JWT for access token manually (Node.js 18+ has fetch built-in)
+            const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: new URLSearchParams({
+                grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                assertion: signedJwt,
+              }).toString(),
+            });
+            
+            const tokenData = await tokenResponse.json() as any;
+            console.log("LAURA: Token exchange response status:", tokenResponse.status);
+            console.log("LAURA: Token exchange response:", JSON.stringify(tokenData, null, 2));
+            
+            if (!tokenResponse.ok) {
+              console.error("LAURA: ❌ Token exchange failed - this is the actual error!");
+              console.error("LAURA: HTTP Status:", tokenResponse.status, tokenResponse.statusText);
+              console.error("LAURA: Error details:", JSON.stringify(tokenData, null, 2));
+            } else {
+              console.log("LAURA: ✅ Token exchange successful - access token obtained!");
+              // Use the manually obtained token
+              tokenResult = { token: tokenData.access_token };
+            }
+          } catch (jwtErr: any) {
+            console.error("LAURA: ❌ JWT signing failed:", jwtErr?.message);
+            console.error("LAURA: JWT error details:", JSON.stringify(jwtErr, Object.getOwnPropertyNames(jwtErr), 2));
+          }
+        }
+      } catch (manualErr: any) {
+        console.error("LAURA: Manual token request failed:", manualErr?.message);
       }
       
-      console.error("LAURA: Detailed token error summary:", JSON.stringify(errorDetails, null, 2));
-      throw tokenErr;
+      // If manual token request also failed, throw the original error
+      if (!tokenResult) {
+        console.error("LAURA: All token request methods failed");
+        throw tokenErr;
+      }
     }
   } catch (err) {
     console.error("LAURA: Google ADC getAccessToken() error:", err);
