@@ -243,8 +243,61 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
     }
     
     console.log("LAURA: Attempting to get access token...");
-    tokenResult = await client.getAccessToken();
-    console.log("LAURA: Access token retrieved successfully");
+    
+    // Try to manually test the credentials by reading and validating the key file
+    const fs = await import("node:fs");
+    const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (credsPath && fs.existsSync(credsPath)) {
+      try {
+        const credsContent = fs.readFileSync(credsPath, "utf8");
+        const credsJson = JSON.parse(credsContent);
+        
+        // Check if private key can be parsed (basic validation)
+        if (credsJson.private_key) {
+          const key = credsJson.private_key;
+          // Remove headers/footers and whitespace for validation
+          const keyContent = key.replace(/-----BEGIN[^-]+-----/g, '').replace(/-----END[^-]+-----/g, '').replace(/\s/g, '');
+          console.log(`LAURA: Private key content length (without headers): ${keyContent.length} chars`);
+          if (keyContent.length < 100) {
+            console.error("LAURA: ⚠️ Private key seems too short - might be corrupted");
+          }
+        }
+      } catch (keyErr) {
+        console.error("LAURA: Error validating key file:", keyErr instanceof Error ? keyErr.message : keyErr);
+      }
+    }
+    
+    // Try with explicit error handling
+    try {
+      tokenResult = await client.getAccessToken();
+      console.log("LAURA: Access token retrieved successfully");
+    } catch (tokenErr: any) {
+      // Log everything we can find
+      console.error("LAURA: Detailed token error:", {
+        message: tokenErr?.message,
+        name: tokenErr?.name,
+        code: tokenErr?.code,
+        errno: tokenErr?.errno,
+        syscall: tokenErr?.syscall,
+        hostname: tokenErr?.hostname,
+        address: tokenErr?.address,
+        port: tokenErr?.port,
+        response: tokenErr?.response ? {
+          status: tokenErr.response.status,
+          statusText: tokenErr.response.statusText,
+          data: tokenErr.response.data,
+          headers: tokenErr.response.headers,
+        } : undefined,
+        config: tokenErr?.config ? {
+          url: tokenErr.config.url,
+          method: tokenErr.config.method,
+          headers: tokenErr.config.headers,
+        } : undefined,
+        toString: String(tokenErr),
+        stack: tokenErr?.stack,
+      });
+      throw tokenErr;
+    }
   } catch (err) {
     console.error("LAURA: Google ADC getAccessToken() error:", err);
     
