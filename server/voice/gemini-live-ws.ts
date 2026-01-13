@@ -495,19 +495,30 @@ function sendClientError(
 export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
   const wss = new WebSocketServer({ noServer: true });
 
+  console.log("🎙️ Registering Gemini Live Voice WebSocket routes...");
+
   httpServer.on("upgrade", (req, socket, head) => {
     const url = getWsUrl(req);
     const pathname = url.pathname;
 
+    console.log(`🔌 WebSocket upgrade request: ${req.method} ${pathname} from ${req.headers.origin || 'unknown origin'}`);
+
     // Two dedicated endpoints (one per agent).
     const isLaura = pathname === "/api/laura-oracle/live";
     const isDiver = pathname === "/api/diver-well/live";
-    if (!isLaura && !isDiver) return;
+    if (!isLaura && !isDiver) {
+      console.log(`⚠️ WebSocket upgrade ignored - path not matched: ${pathname}`);
+      return;
+    }
+
+    console.log(`✅ WebSocket upgrade accepted for ${isLaura ? 'laura-oracle' : 'diver-well'}`);
 
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit("connection", ws, req, pathname);
     });
   });
+  
+  console.log("✅ Gemini Live Voice WebSocket routes registered");
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   wss.on("connection", async (clientWs: WebSocket, req: IncomingMessage) => {
