@@ -1,0 +1,15 @@
+name = "professionaldiver-api-production"
+main = "worker/index.ts"
+compatibility_date = "2024-11-20"
+compatibility_flags = ["nodejs_compat"]
+
+# Route the Worker to your API subdomain.
+# This matches your desired routing: api.professionaldiver.app/* → Railway
+routes = [
+  { pattern = "api.professionaldiver.app/*", zone_name = "professionaldiver.app" }
+]
+
+[vars]
+ENVIRONMENT = "production"
+NODE_ENV = "production"
+

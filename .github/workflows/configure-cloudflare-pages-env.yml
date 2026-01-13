@@ -1,0 +1,121 @@
+name: Configure Cloudflare Pages Env Vars
+
+permissions: read-all
+
+on:
+  workflow_dispatch:
+    inputs:
+      account_id:
+        description: "Cloudflare Account ID"
+        required: true
+        default: "e7a2d7a3d1a02089d4fb14ef5f5e702d"
+        type: string
+      project_name:
+        description: "Cloudflare Pages project name"
+        required: true
+        default: "professional-diver-app"
+        type: string
+      environment:
+        description: "Pages environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - preview
+      var_name:
+        description: "Env var name (must start with VITE_)"
+        required: true
+        default: "VITE_WS_URL"
+        type: string
+      var_value:
+        description: "Env var value (e.g. https://your-api.example.com or wss://your-api.example.com)"
+        required: true
+        type: string
+      var_type:
+        description: "plain_text is fine for public API host; use secret_text if sensitive"
+        required: true
+        default: "plain_text"
+        type: choice
+        options:
+          - plain_text
+          - secret_text
+
+jobs:
+  set-env:
+    name: Set Pages env var
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate token present
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "❌ Missing GitHub secret: CLOUDFLARE_API_TOKEN"
+            exit 1
+          fi
+
+      - name: Update Pages env var
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT_ID: ${{ inputs.account_id }}
+          PROJECT_NAME: ${{ inputs.project_name }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          VAR_NAME: ${{ inputs.var_name }}
+          VAR_VALUE: ${{ inputs.var_value }}
+          VAR_TYPE: ${{ inputs.var_type }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${VAR_NAME}" != VITE_* ]]; then
+            echo "❌ VAR_NAME must start with VITE_ (Vite only exposes VITE_* to the client build)"
+            exit 1
+          fi
+
+          echo "🔧 Setting ${VAR_NAME} for Pages project ${PROJECT_NAME} (${ENVIRONMENT})"
+
+          # Build PATCH payload. Cloudflare Pages expects env vars under deployment_configs.
+          # API docs: PATCH /accounts/:account_id/pages/projects/:project_name
+          PAYLOAD=$(jq -n \
+            --arg env "${ENVIRONMENT}" \
+            --arg name "${VAR_NAME}" \
+            --arg value "${VAR_VALUE}" \
+            --arg type "${VAR_TYPE}" \
+            '{deployment_configs: {($env): {env_vars: {($name): {value: $value, type: $type}}}}}')
+
+          RESPONSE=$(curl -sS -X PATCH \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/pages/projects/${PROJECT_NAME}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "${PAYLOAD}")
+
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
+          if [ "$SUCCESS" != "true" ]; then
+            echo "❌ Failed to update Pages project env var"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "✅ Updated. Verifying keys present..."
+
+          GET_RESPONSE=$(curl -sS -X GET \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/pages/projects/${PROJECT_NAME}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json")
+
+          GET_SUCCESS=$(echo "$GET_RESPONSE" | jq -r '.success // false')
+          if [ "$GET_SUCCESS" != "true" ]; then
+            echo "⚠️ Updated but failed to re-fetch project for verification"
+            echo "$GET_RESPONSE"
+            exit 0
+          fi
+
+          echo "$GET_RESPONSE" | jq -r --arg env "${ENVIRONMENT}" '
+            "Env keys for \($env):",
+            (.result.deployment_configs[$env].env_vars | keys | sort | .[] )'
+
+          echo ""
+          echo "ℹ️ Note: you may need to trigger a new Pages deployment for the build to pick up the new VITE_* env var."
+
