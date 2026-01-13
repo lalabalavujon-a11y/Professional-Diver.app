@@ -77,6 +77,10 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
     // google-auth-library typically throws GaxiosError with a response payload.
     const anyErr = err as any;
     
+    // Check for nested errors (Node.js error chaining, google-auth-library wrapping)
+    const cause = anyErr?.cause;
+    const originalError = anyErr?.originalError || anyErr?.error;
+    
     // Log the raw error structure for debugging
     console.error("LAURA: Raw error object structure:", {
       hasResponse: !!anyErr?.response,
@@ -86,8 +90,33 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
       code: anyErr?.code,
       name: anyErr?.name,
       message: anyErr?.message,
+      stack: anyErr?.stack?.split('\n').slice(0, 5).join('\n'), // First 5 lines of stack
+      hasCause: !!cause,
+      causeMessage: cause?.message,
+      causeCode: cause?.code,
+      hasOriginalError: !!originalError,
+      originalErrorMessage: originalError?.message,
+      originalErrorCode: originalError?.code,
       keys: Object.keys(anyErr || {}),
     });
+    
+    // If there's a cause or originalError, log it separately
+    if (cause) {
+      console.error("LAURA: Error cause:", {
+        name: cause?.name,
+        message: cause?.message,
+        code: cause?.code,
+        stack: cause?.stack?.split('\n').slice(0, 3).join('\n'),
+      });
+    }
+    if (originalError) {
+      console.error("LAURA: Original error:", {
+        name: originalError?.name,
+        message: originalError?.message,
+        code: originalError?.code,
+        stack: originalError?.stack?.split('\n').slice(0, 3).join('\n'),
+      });
+    }
     
     const msg =
       typeof anyErr?.message === "string" ? anyErr.message : "Unknown auth error";
