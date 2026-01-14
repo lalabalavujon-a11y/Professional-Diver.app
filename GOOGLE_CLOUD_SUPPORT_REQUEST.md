@@ -119,11 +119,19 @@ Has access_token: false
 Has id_token: true
 ```
 
+## Related Known Issue
+
+There is currently an active Google Cloud service issue with Cloud Identity and Access Management (IAM) that started on January 11, 2026 and is still ongoing (as of January 13, 2026). This issue is causing failures with certain IAM APIs.
+
+While our issue manifests differently (OAuth2 token endpoint returning `id_token` instead of `access_token`), it's possible that this could be related to the ongoing IAM service issues, as the OAuth2 token endpoint relies on IAM for service account authentication.
+
+We are monitoring the IAM service issue status and will update this request if the issue resolves when the IAM service issue is fixed.
+
 ## Request
 
 Please investigate why Google's OAuth2 token endpoint is returning `id_token` instead of `access_token` for service account JWT bearer grants. This behavior is preventing authentication with the Gemini Live Voice API.
 
-Is there a configuration issue, or is this a known issue with the OAuth2 token endpoint for this project/service account?
+Is there a configuration issue, or is this a known issue with the OAuth2 token endpoint for this project/service account? Could this be related to the ongoing IAM service issues?
 
 ## Additional Context
 
@@ -133,5 +141,5 @@ Is there a configuration issue, or is this a known issue with the OAuth2 token e
 - No error messages from Google indicating why `access_token` is not being returned
 
 ## Contact Information
-- **Email**: [Your email address]
+- **Email**: lalabalavu.jon@gmail.com
 - **Project**: Professional Diver App (massive-dynamo-484115-a2)
