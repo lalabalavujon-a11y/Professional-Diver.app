@@ -86,29 +86,54 @@ export default function SignIn() {
     },
   });
 
-  // FORCE SUPER_ADMIN login immediately on mount
+  // Load remembered credentials on component mount and auto-login SUPER_ADMIN
   useEffect(() => {
-    const superAdminEmail = 'lalabalavu.jon@gmail.com';
-    const superAdminPassword = 'Admin123';
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    const rememberedPassword = localStorage.getItem('rememberedPassword');
+    const currentUserEmail = localStorage.getItem('userEmail');
     
-    // FORCE SUPER_ADMIN credentials
-    localStorage.setItem('userEmail', superAdminEmail);
-    localStorage.setItem('rememberedEmail', superAdminEmail);
-    localStorage.setItem('rememberedPassword', superAdminPassword);
-    localStorage.setItem('isSuperAdmin', 'true');
+    // If already logged in, redirect to dashboard
+    if (currentUserEmail) {
+      const normalizedEmail = currentUserEmail.toLowerCase().trim();
+      // Check if it's a SUPER_ADMIN email
+      const superAdminEmails = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+      if (superAdminEmails.includes(normalizedEmail)) {
+        console.log('[SignIn] Already logged in as SUPER_ADMIN, redirecting to dashboard');
+        setLocation('/dashboard');
+        return;
+      }
+    }
     
-    // Set form values
-    setEmail(superAdminEmail);
-    setPassword(superAdminPassword);
-    setRememberMe(true);
+    // Auto-login SUPER_ADMIN if credentials are stored
+    if (rememberedEmail && rememberedPassword) {
+      const normalizedEmail = rememberedEmail.toLowerCase().trim();
+      const superAdminEmails = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+      const superAdminPasswords: Record<string, string> = {
+        'lalabalavu.jon@gmail.com': 'Admin123',
+        'sephdee@hotmail.com': 'Admin123',
+      };
+      
+      if (superAdminEmails.includes(normalizedEmail) && 
+          rememberedPassword === superAdminPasswords[normalizedEmail]) {
+        console.log('[SignIn] Auto-logging in SUPER_ADMIN:', normalizedEmail);
+        // Automatically trigger login
+        credentialsSignInMutation.mutate({ 
+          email: normalizedEmail, 
+          password: rememberedPassword, 
+          rememberMe: true 
+        });
+        return;
+      }
+    }
     
-    // IMMEDIATELY auto-login SUPER_ADMIN
-    console.log('[SignIn] 🔒 FORCING SUPER_ADMIN auto-login');
-    credentialsSignInMutation.mutate({ 
-      email: superAdminEmail, 
-      password: superAdminPassword, 
-      rememberMe: true 
-    });
+    // Load remembered credentials into form
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+    if (rememberedPassword) {
+      setPassword(rememberedPassword);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 

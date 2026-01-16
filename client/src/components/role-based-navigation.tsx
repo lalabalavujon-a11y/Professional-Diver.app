@@ -76,10 +76,15 @@ export default function RoleBasedNavigation() {
   const [isHovering, setIsHovering] = useState(false);
   const { open: commandMenuOpen, setOpen: setCommandMenuOpen } = useCommandMenu();
 
-  // FORCE SUPER_ADMIN email - ALWAYS use it, no exceptions
+  // Get current user data with error handling
+  // ALWAYS default to SUPER_ADMIN email if no email is stored
   const getDefaultEmail = () => {
+    const storedEmail = localStorage.getItem('userEmail');
+    if (storedEmail) {
+      return storedEmail.toLowerCase().trim();
+    }
+    // Default to SUPER_ADMIN email
     const superAdminEmail = 'lalabalavu.jon@gmail.com';
-    // FORCE SUPER_ADMIN email - overwrite anything else
     localStorage.setItem('userEmail', superAdminEmail);
     return superAdminEmail;
   };
@@ -162,10 +167,13 @@ export default function RoleBasedNavigation() {
   const effectiveRole = isInPreviewMode && previewRoleFromUrl ? previewRoleFromUrl : currentUser?.role;
   
   // FORCE SUPER_ADMIN email - always use it
-  const superAdminEmail = 'lalabalavu.jon@gmail.com';
-  localStorage.setItem('userEmail', superAdminEmail);
-  const userEmail = superAdminEmail;
-  const isKnownSuperAdmin = true; // Always true for SUPER_ADMIN
+  const userEmail = (() => {
+    const superAdminEmail = 'lalabalavu.jon@gmail.com';
+    // FORCE it - always set and use SUPER_ADMIN email
+    localStorage.setItem('userEmail', superAdminEmail);
+    return superAdminEmail;
+  })();
+  const isKnownSuperAdmin = userEmail === 'lalabalavu.jon@gmail.com' || userEmail === 'sephdee@hotmail.com';
   
   const isAdmin = effectiveRole === 'ADMIN' || effectiveRole === 'SUPER_ADMIN' || (isKnownSuperAdmin && !currentUser);
   const isSuperAdmin = effectiveRole === 'SUPER_ADMIN' || (isKnownSuperAdmin && !currentUser);

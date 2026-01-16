@@ -48,52 +48,36 @@ import FeatureRouteGuard from "@/components/feature-route-guard";
 function Router() {
   const [location, setLocation] = useLocation();
   
-  // FORCE SUPER_ADMIN login on EVERY page load - NO EXCEPTIONS
+  // FORCE SUPER_ADMIN login on app startup - NO EXCEPTIONS
   useEffect(() => {
     const superAdminEmail = 'lalabalavu.jon@gmail.com';
     const superAdminPassword = 'Admin123';
     
-    // FORCE SUPER_ADMIN email - OVERWRITE ANYTHING ELSE
-    console.log('[App] 🔒 FORCING SUPER_ADMIN login - overwriting any existing user state');
+    // FORCE SUPER_ADMIN email - ALWAYS override whatever is there
+    console.log('[App] 🔒 FORCING SUPER_ADMIN email - overriding any existing userEmail');
     localStorage.setItem('userEmail', superAdminEmail);
     localStorage.setItem('rememberedEmail', superAdminEmail);
     localStorage.setItem('rememberedPassword', superAdminPassword);
     localStorage.setItem('isSuperAdmin', 'true');
     
-    // Auto-login SUPER_ADMIN immediately
-    const autoLogin = async () => {
-      try {
-        const response = await fetch('/api/auth/credentials', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: superAdminEmail,
-            password: superAdminPassword,
-            rememberMe: true
-          })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            console.log('[App] ✅ SUPER_ADMIN auto-login successful');
-            // Ensure userEmail is set after successful login
-            localStorage.setItem('userEmail', superAdminEmail);
-            localStorage.setItem('isSuperAdmin', 'true');
-          }
-        }
-      } catch (error) {
-        console.warn('[App] Auto-login attempt failed (API may not be ready):', error);
-      }
-    };
+    // Clear any trial or user-related flags
+    localStorage.removeItem('trialExpiresAt');
+    localStorage.removeItem('subscriptionType');
+    localStorage.removeItem('subscriptionStatus');
     
-    // Try auto-login after a short delay to ensure API is ready
-    setTimeout(autoLogin, 1000);
-    
-    // If on signin page, redirect to dashboard
+    // If on signin page and SUPER_ADMIN credentials exist, auto-redirect to dashboard
     if (location === '/signin' || location === '/login') {
-      console.log('[App] Redirecting from signin to dashboard');
-      setLocation('/dashboard');
+      const currentUserEmail = localStorage.getItem('userEmail');
+      const isSuperAdmin = localStorage.getItem('isSuperAdmin') === 'true';
+      
+      if (currentUserEmail && isSuperAdmin) {
+        const normalizedEmail = currentUserEmail.toLowerCase().trim();
+        const superAdminEmails = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+        if (superAdminEmails.includes(normalizedEmail)) {
+          console.log('[App] SUPER_ADMIN detected on signin page, redirecting to dashboard');
+          setLocation('/dashboard');
+        }
+      }
     }
   }, [location, setLocation]);
   
