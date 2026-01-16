@@ -77,14 +77,10 @@ export default function RoleBasedNavigation() {
   const { open: commandMenuOpen, setOpen: setCommandMenuOpen } = useCommandMenu();
 
   // Get current user data with error handling
-  // ALWAYS default to SUPER_ADMIN email if no email is stored
+  // FORCE SUPER_ADMIN email - ALWAYS use it, no exceptions
   const getDefaultEmail = () => {
-    const storedEmail = localStorage.getItem('userEmail');
-    if (storedEmail) {
-      return storedEmail.toLowerCase().trim();
-    }
-    // Default to SUPER_ADMIN email
     const superAdminEmail = 'lalabalavu.jon@gmail.com';
+    // FORCE it - always override whatever is stored
     localStorage.setItem('userEmail', superAdminEmail);
     return superAdminEmail;
   };
