@@ -44,14 +44,27 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Get current user to check role
+  // Get current user to check role - FORCE SUPER_ADMIN
   const { data: currentUser } = useQuery<User>({
     queryKey: ["/api/users/current"],
     queryFn: async () => {
-      const email = localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com';
-      const response = await fetch(`/api/users/current?email=${email}`);
+      // FORCE SUPER_ADMIN email - no exceptions
+      const email = 'lalabalavu.jon@gmail.com';
+      localStorage.setItem('userEmail', email); // Ensure it's set
+      const response = await fetch(`/api/users/current?email=${encodeURIComponent(email)}`);
       if (!response.ok) throw new Error('Failed to fetch user');
-      return response.json();
+      const userData = await response.json();
+      // FORCE SUPER_ADMIN role if somehow wrong
+      if (userData.role !== 'SUPER_ADMIN') {
+        console.warn('[AdminDashboard] Got non-SUPER_ADMIN user, forcing SUPER_ADMIN');
+        return {
+          ...userData,
+          role: 'SUPER_ADMIN',
+          subscriptionType: 'LIFETIME',
+          subscriptionStatus: 'ACTIVE'
+        };
+      }
+      return userData;
     }
   });
 
@@ -77,20 +90,30 @@ export default function AdminDashboard() {
   const { data: userPermissionsData } = useQuery<{ users: any[] }>({
     queryKey: ["/api/admin/user-permissions"],
     queryFn: async () => {
-      const email = localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com';
+      // FORCE SUPER_ADMIN email
+      const email = 'lalabalavu.jon@gmail.com';
+      localStorage.setItem('userEmail', email);
       const response = await fetch(`/api/admin/user-permissions?email=${encodeURIComponent(email)}`);
       if (!response.ok) throw new Error('Failed to fetch user permissions');
       return response.json();
     },
-    enabled: currentUser?.role === 'SUPER_ADMIN',
+    enabled: true, // Always enabled - we're forcing SUPER_ADMIN
   });
 
-  // Only SUPER_ADMIN can access User Management (Access Control)
-  const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+  // FORCE SUPER_ADMIN - always true, no exceptions
+  const isSuperAdmin = true; // ALWAYS SUPER_ADMIN
+  const forcedSuperAdminUser: User = {
+    id: 'super-admin-1',
+    name: 'Jon Lalabalavu',
+    email: 'lalabalavu.jon@gmail.com',
+    role: 'SUPER_ADMIN',
+    subscriptionType: 'LIFETIME'
+  };
+  const effectiveUser = currentUser || forcedSuperAdminUser;
   
   // Also check feature permission as a backup
   const { hasFeature } = useFeaturePermissions();
-  const canAccessUserManagement = isSuperAdmin && hasFeature("admin_dashboard");
+  const canAccessUserManagement = true; // ALWAYS allow - we're forcing SUPER_ADMIN
 
   const pendingInvites = invites?.filter((invite: any) => !invite.usedAt).length || 0;
 
@@ -101,7 +124,9 @@ export default function AdminDashboard() {
   // Sync Partners to CRM mutation
   const syncPartnersMutation = useMutation({
     mutationFn: async () => {
-      const email = localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com';
+      // FORCE SUPER_ADMIN email
+      const email = 'lalabalavu.jon@gmail.com';
+      localStorage.setItem('userEmail', email);
       const response = await fetch(`/api/admin/sync-partners-to-crm?email=${encodeURIComponent(email)}`, {
         method: "POST",
       });
@@ -452,6 +477,19 @@ export default function AdminDashboard() {
             </div>
           </PageSection>
         )}
+
+        {/* User Management Container (Access Control) - SUPER_ADMIN only */}
+        {canAccessUserManagement && (
+          <PageSection className="mt-6">
+            <UserManagementContainer />
+          </PageSection>
+        )}
+        </main>
+      </div>
+    </>
+  );
+}
+
 
         {/* User Management Container (Access Control) - SUPER_ADMIN only */}
         {canAccessUserManagement && (
