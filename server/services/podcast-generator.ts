@@ -19,7 +19,20 @@ export interface PodcastResult {
   durationSeconds?: number;
 }
 
-const openai = new OpenAI();
+// Lazy initialization of OpenAI client - only create when needed and API key is available
+let openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is required for OpenAI features. Please set the environment variable.');
+    }
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
 
 /**
  * Generate a comprehensive 15-20 minute podcast script from lesson content
@@ -65,6 +78,7 @@ Generate the podcast script now:`;
 
   try {
     // Use cheaper gpt-3.5-turbo model to reduce costs
+    const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo', // Cheaper than gpt-4o-mini
       messages: [
@@ -170,6 +184,7 @@ export async function generateLessonPodcast({
     }
   }
   
+  const openai = getOpenAIClient();
   const response = await openai.audio.speech.create({
     model: 'tts-1', // Standard quality - 3x cheaper than tts-1-hd
     voice,
