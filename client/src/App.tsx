@@ -48,21 +48,35 @@ import FeatureRouteGuard from "@/components/feature-route-guard";
 function Router() {
   const [location, setLocation] = useLocation();
   
-  // Auto-login SUPER_ADMIN on app startup if credentials exist
+  // Auto-login SUPER_ADMIN on app startup - ALWAYS ensure SUPER_ADMIN is set
   useEffect(() => {
+    const superAdminEmail = 'lalabalavu.jon@gmail.com';
+    const superAdminPassword = 'Admin123';
+    
+    // ALWAYS ensure SUPER_ADMIN email is set in userEmail
+    const currentUserEmail = localStorage.getItem('userEmail');
+    if (!currentUserEmail || (currentUserEmail !== superAdminEmail && currentUserEmail !== 'sephdee@hotmail.com')) {
+      console.log('[App] Setting SUPER_ADMIN email as default');
+      localStorage.setItem('userEmail', superAdminEmail);
+    }
+    
     // Initialize SUPER_ADMIN credentials if they don't exist (first time setup)
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     const rememberedPassword = localStorage.getItem('rememberedPassword');
-    const superAdminEmail = 'lalabalavu.jon@gmail.com';
-    const superAdminPassword = 'Admin123';
     
     if (!rememberedEmail || !rememberedPassword) {
       // First time - set SUPER_ADMIN credentials
       console.log('[App] Initializing SUPER_ADMIN credentials');
       localStorage.setItem('rememberedEmail', superAdminEmail);
       localStorage.setItem('rememberedPassword', superAdminPassword);
-      localStorage.setItem('userEmail', superAdminEmail);
       localStorage.setItem('isSuperAdmin', 'true');
+    } else {
+      // Even if credentials exist, ensure userEmail is set to SUPER_ADMIN if it's a SUPER_ADMIN email
+      const normalizedRemembered = rememberedEmail.toLowerCase().trim();
+      if (normalizedRemembered === superAdminEmail || normalizedRemembered === 'sephdee@hotmail.com') {
+        localStorage.setItem('userEmail', normalizedRemembered);
+        localStorage.setItem('isSuperAdmin', 'true');
+      }
     }
     
     // If on signin page and SUPER_ADMIN credentials exist, auto-redirect to dashboard

@@ -38,6 +38,7 @@ import UserProfileDropdown from "@/components/user-profile-dropdown";
 import LauraAssistant from "@/components/laura-assistant";
 import HeaderWidgetBar from "@/components/widgets/header-widget-bar";
 import { useFeaturePermissions } from "@/hooks/use-feature-permissions";
+import { useGlobalFeatureFlags } from "@/hooks/use-global-feature-flags";
 import RolePreviewDropdown from "@/components/role-preview-dropdown";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -75,17 +76,63 @@ export default function RoleBasedNavigation() {
   const [isHovering, setIsHovering] = useState(false);
   const { open: commandMenuOpen, setOpen: setCommandMenuOpen } = useCommandMenu();
 
-  // Get current user data
-  const { data: currentUser } = useQuery<User>({
+  // Get current user data with error handling
+  // ALWAYS default to SUPER_ADMIN email if no email is stored
+  const getDefaultEmail = () => {
+    const storedEmail = localStorage.getItem('userEmail');
+    if (storedEmail) {
+      return storedEmail.toLowerCase().trim();
+    }
+    // Default to SUPER_ADMIN email
+    const superAdminEmail = 'lalabalavu.jon@gmail.com';
+    localStorage.setItem('userEmail', superAdminEmail);
+    return superAdminEmail;
+  };
+
+  const { data: currentUser, error: userError } = useQuery<User>({
     queryKey: ["/api/users/current"],
     queryFn: async () => {
-      const email = (localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com').toLowerCase().trim();
-      const response = await fetch(`/api/users/current?email=${encodeURIComponent(email)}`);
-      if (!response.ok) throw new Error('Failed to fetch user');
-      const userData = await response.json();
-      console.log('[RoleBasedNavigation] Current user:', { email, role: userData.role, name: userData.name });
-      return userData;
-    }
+      try {
+        const email = getDefaultEmail();
+        const response = await fetch(`/api/users/current?email=${encodeURIComponent(email)}`);
+        if (!response.ok) {
+          // If API fails, return a fallback SUPER_ADMIN user
+          const superAdminEmails = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+          if (superAdminEmails.includes(email)) {
+            console.warn('[RoleBasedNavigation] API call failed, using fallback SUPER_ADMIN user');
+            return {
+              id: 'super-admin-fallback',
+              name: 'Super Admin',
+              email: email,
+              role: 'SUPER_ADMIN' as const,
+              subscriptionType: 'LIFETIME' as const
+            };
+          }
+          throw new Error(`Failed to fetch user: ${response.status}`);
+        }
+        const userData = await response.json();
+        console.log('[RoleBasedNavigation] Current user:', { email, role: userData.role, name: userData.name });
+        return userData;
+      } catch (error) {
+        console.error('[RoleBasedNavigation] Error fetching user:', error);
+        // Return fallback SUPER_ADMIN user if API fails
+        const email = getDefaultEmail();
+        const superAdminEmails = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+        if (superAdminEmails.includes(email)) {
+          return {
+            id: 'super-admin-fallback',
+            name: 'Super Admin',
+            email: email,
+            role: 'SUPER_ADMIN' as const,
+            subscriptionType: 'LIFETIME' as const
+          };
+        }
+        throw error; // Re-throw for other users
+      }
+    },
+    retry: 1, // Only retry once
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
   });
 
   // Get feature permissions
@@ -117,7 +164,17 @@ export default function RoleBasedNavigation() {
   const effectiveRole = isInPreviewMode && previewRoleFromUrl ? previewRoleFromUrl : currentUser?.role;
   
   // Check email directly as fallback for SUPER_ADMIN detection
-  const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase().trim();
+  // Always ensure SUPER_ADMIN email is set if not present
+  const userEmail = (() => {
+    const stored = localStorage.getItem('userEmail');
+    if (stored) {
+      return stored.toLowerCase().trim();
+    }
+    // Default to SUPER_ADMIN email
+    const defaultEmail = 'lalabalavu.jon@gmail.com';
+    localStorage.setItem('userEmail', defaultEmail);
+    return defaultEmail;
+  })();
   const isKnownSuperAdmin = userEmail === 'lalabalavu.jon@gmail.com' || userEmail === 'sephdee@hotmail.com';
   
   const isAdmin = effectiveRole === 'ADMIN' || effectiveRole === 'SUPER_ADMIN' || (isKnownSuperAdmin && !currentUser);
