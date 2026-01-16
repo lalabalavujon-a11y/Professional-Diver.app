@@ -54,6 +54,13 @@ interface PlatformAnalytics {
 }
 
 export default function ChatLaura() {
+  // Super Admin emails - Jon Lalabalavu's accounts
+  const SUPER_ADMIN_EMAILS = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+  const isSuperAdminEmail = (email: string | undefined) => {
+    if (!email) return false;
+    return SUPER_ADMIN_EMAILS.includes(email.toLowerCase().trim());
+  };
+  
   // Get current user to check role
   const { data: currentUser } = useQuery({
     queryKey: ["/api/users/current"],
@@ -163,7 +170,7 @@ export default function ChatLaura() {
           userContext: {
             currentTab: activeTab,
             hasAnalytics: !!platformAnalytics,
-            userRole: currentUser?.role || 'USER',
+            userRole: currentUser?.role || (isSuperAdminEmail(currentUser?.email) ? 'SUPER_ADMIN' : 'USER'),
             isSuperAdmin: isSuperAdmin
           }
         }),

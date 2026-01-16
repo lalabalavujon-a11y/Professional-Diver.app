@@ -499,16 +499,3 @@ export default function AdminDashboard() {
     </>
   );
 }
-
-
-        {/* User Management Container (Access Control) - SUPER_ADMIN only */}
-        {canAccessUserManagement && (
-          <PageSection className="mt-6">
-            <UserManagementContainer />
-          </PageSection>
-        )}
-        </main>
-      </div>
-    </>
-  );
-}

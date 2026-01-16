@@ -21,6 +21,13 @@ interface SupportDocumentsChatWidgetProps {
 }
 
 export default function SupportDocumentsChatWidget({ currentSection, onSectionChange }: SupportDocumentsChatWidgetProps) {
+  // Super Admin emails - Jon Lalabalavu's accounts
+  const SUPER_ADMIN_EMAILS = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+  const isSuperAdminEmail = (email: string | undefined) => {
+    if (!email) return false;
+    return SUPER_ADMIN_EMAILS.includes(email.toLowerCase().trim());
+  };
+  
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -93,7 +100,7 @@ export default function SupportDocumentsChatWidget({ currentSection, onSectionCh
           userContext: {
             currentSection: currentSection || 'general',
             page: 'support-documents',
-            userRole: currentUser?.role || 'USER'
+            userRole: currentUser?.role || (isSuperAdminEmail(currentUser?.email) ? 'SUPER_ADMIN' : 'USER')
           }
         }),
       });
