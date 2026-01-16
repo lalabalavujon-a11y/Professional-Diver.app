@@ -4,11 +4,23 @@ import { tracks, lessons, quizzes, questions } from '../shared/schema.js';
 async function professionalSeed() {
   console.log('🌱 Seeding professional diving education content...');
 
-  // Clear existing data
-  await db.delete(questions);
-  await db.delete(quizzes);
-  await db.delete(lessons);
-  await db.delete(tracks);
+  // ONLY clear existing data if explicitly requested via CLEAR_DB=true environment variable
+  // This prevents accidental data loss when seeding
+  if (process.env.CLEAR_DB === 'true') {
+    console.log('⚠️ CLEAR_DB=true - Clearing existing data...');
+    await db.delete(questions);
+    await db.delete(quizzes);
+    await db.delete(lessons);
+    await db.delete(tracks);
+  } else {
+    // Check if data already exists
+    const existingTracks = await db.select().from(tracks).limit(1);
+    if (existingTracks.length > 0) {
+      console.log('ℹ️  Data already exists in database. Skipping seed to preserve existing data.');
+      console.log('   To clear and reseed, set CLEAR_DB=true environment variable.');
+      return;
+    }
+  }
 
   // Create the 7 comprehensive professional diving tracks from DIVER-WELL-TRAINING documentation
   const [ndtTrack] = await db.insert(tracks).values({
