@@ -19,6 +19,14 @@ import { useToast } from "@/hooks/use-toast";
 export default function UserProfileDropdown() {
   const { toast } = useToast();
   
+  // Super Admin emails - Jon Lalabalavu's accounts
+  const SUPER_ADMIN_EMAILS = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+  
+  const isSuperAdminEmail = (email: string | undefined) => {
+    if (!email) return false;
+    return SUPER_ADMIN_EMAILS.includes(email.toLowerCase().trim());
+  };
+  
   // Get current user data - FORCE SUPER_ADMIN email
   const { data: currentUser } = useQuery({
     queryKey: ["/api/users/current"],
@@ -72,9 +80,9 @@ export default function UserProfileDropdown() {
     }
   };
 
-  const getRoleBadge = (role: string, subscriptionType: string) => {
+  const getRoleBadge = (role: string, subscriptionType: string, email?: string) => {
     if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
-      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">👑 Admin</Badge>;
+      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">👑 Super Admin</Badge>;
     }
     if (subscriptionType === 'LIFETIME') {
       return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">⭐ Lifetime</Badge>;
@@ -85,7 +93,12 @@ export default function UserProfileDropdown() {
     if (subscriptionType === 'MONTHLY') {
       return <Badge variant="secondary" className="bg-slate-100 text-slate-800">🥈 Monthly</Badge>;
     }
-    return <Badge variant="secondary">Member</Badge>;
+    // Only show Super Admin badge for Jon's emails, otherwise Member
+    return isSuperAdminEmail(email) ? (
+      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">👑 Super Admin</Badge>
+    ) : (
+      <Badge variant="secondary">Member</Badge>
+    );
   };
 
   const getInitials = (name: string, email: string) => {
@@ -108,7 +121,7 @@ export default function UserProfileDropdown() {
           {currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar ? (
             <img 
               src={currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar}
-              alt={currentUser?.name || 'User'}
+              alt={currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : 'User')}
               className="w-8 h-8 rounded-full object-cover border-2 border-slate-200"
               onError={(e) => {
                 // Fallback to initials if image fails to load
@@ -128,7 +141,7 @@ export default function UserProfileDropdown() {
           </div>
           <div className="hidden md:block text-left">
             <div className="text-sm font-medium text-slate-700">
-              {currentUser?.name || 'User'}
+              {currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : 'User')}
             </div>
           </div>
         </Button>
@@ -140,7 +153,7 @@ export default function UserProfileDropdown() {
               {currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar ? (
                 <img 
                   src={currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar}
-                  alt={currentUser?.name || 'User'}
+                  alt={currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : 'User')}
                   className="w-12 h-12 rounded-full object-cover border-2 border-slate-200"
                   onError={(e) => {
                     // Fallback to initials if image fails to load
@@ -160,7 +173,7 @@ export default function UserProfileDropdown() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium leading-none">
-                  {currentUser?.name || 'User'}
+                  {currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : 'User')}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground mt-1">
                   {currentUser?.email}
@@ -171,17 +184,17 @@ export default function UserProfileDropdown() {
             
             {/* Role Badge */}
             <div className="flex justify-center">
-              {getRoleBadge(currentUser?.role, currentUser?.subscriptionType)}
+              {getRoleBadge(currentUser?.role, currentUser?.subscriptionType, currentUser?.email)}
             </div>
 
             {/* Mini Status Badge */}
             <div className="scale-90 origin-left">
               <UserStatusBadge
-                role={currentUser?.role || 'USER'}
-                subscriptionType={currentUser?.subscriptionType || 'TRIAL'}
+                role={currentUser?.role || (isSuperAdminEmail(currentUser?.email) ? 'SUPER_ADMIN' : 'USER')}
+                subscriptionType={currentUser?.subscriptionType || (isSuperAdminEmail(currentUser?.email) ? 'LIFETIME' : 'TRIAL')}
                 subscriptionDate={currentUser?.subscriptionDate}
                 trialExpiresAt={currentUser?.trialExpiresAt}
-                userName={currentUser?.name}
+                userName={currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : undefined)}
               />
             </div>
           </div>

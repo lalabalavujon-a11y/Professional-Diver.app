@@ -218,6 +218,13 @@ export default function ProfileSettings() {
     notifyUnitsPreferenceChange();
   }, [unitsPreference]);
 
+  // Super Admin emails - Jon Lalabalavu's accounts
+  const SUPER_ADMIN_EMAILS = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+  const isSuperAdminEmail = (email: string | undefined) => {
+    if (!email) return false;
+    return SUPER_ADMIN_EMAILS.includes(email.toLowerCase().trim());
+  };
+  
   // Get current user data
   const { data: currentUser, isLoading } = useQuery({
     queryKey: ["/api/users/current"],
@@ -683,11 +690,11 @@ export default function ProfileSettings() {
                       <p className="text-sm text-slate-500">{currentUser?.email}</p>
                     </div>
                     <UserStatusBadge
-                      role={currentUser?.role || 'USER'}
-                      subscriptionType={currentUser?.subscriptionType || 'TRIAL'}
+                      role={currentUser?.role || (isSuperAdminEmail(currentUser?.email) ? 'SUPER_ADMIN' : 'USER')}
+                      subscriptionType={currentUser?.subscriptionType || (isSuperAdminEmail(currentUser?.email) ? 'LIFETIME' : 'TRIAL')}
                       subscriptionDate={currentUser?.subscriptionDate}
                       trialExpiresAt={currentUser?.trialExpiresAt}
-                      userName={currentUser?.name}
+                      userName={currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : undefined)}
                     />
                   </div>
                   

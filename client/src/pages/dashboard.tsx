@@ -38,6 +38,13 @@ interface UserProgressData {
 }
 
 export default function Dashboard() {
+  // Super Admin emails - Jon Lalabalavu's accounts
+  const SUPER_ADMIN_EMAILS = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+  const isSuperAdminEmail = (email: string | undefined) => {
+    if (!email) return false;
+    return SUPER_ADMIN_EMAILS.includes(email.toLowerCase().trim());
+  };
+  
   // Get current user data to determine role and subscription
   const { data: currentUser } = useQuery({
     queryKey: ["/api/users/current"],
@@ -95,11 +102,11 @@ export default function Dashboard() {
         {/* User Status Badge */}
         <div className="mb-6">
           <UserStatusBadge 
-            role={currentUser?.role || 'USER'}
-            subscriptionType={currentUser?.subscriptionType || 'TRIAL'}
+            role={currentUser?.role || (isSuperAdminEmail(currentUser?.email) ? 'SUPER_ADMIN' : 'USER')}
+            subscriptionType={currentUser?.subscriptionType || (isSuperAdminEmail(currentUser?.email) ? 'LIFETIME' : 'TRIAL')}
             subscriptionDate={currentUser?.subscriptionDate}
-            trialExpiresAt={currentUser?.trialExpiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()}
-            userName={currentUser?.name}
+            trialExpiresAt={currentUser?.trialExpiresAt || (isSuperAdminEmail(currentUser?.email) ? undefined : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())}
+            userName={currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : undefined)}
           />
         </div>
 

@@ -252,7 +252,40 @@ export default function UserStatusBadge({
     );
   }
 
-  // Default fallback
+  // Default fallback - only show Super Admin if role is actually SUPER_ADMIN
+  // The API sets role to SUPER_ADMIN for Jon's emails (lalabalavu.jon@gmail.com, sephdee@hotmail.com)
+  // This fallback should only be reached if role is undefined/null - in which case check role from props
+  // Note: The check above (line 72) already handles role === 'SUPER_ADMIN', so this is just for safety
+  if (role === 'SUPER_ADMIN') {
+    return (
+      <Card className="border-yellow-200 bg-gradient-to-r from-yellow-50 to-amber-50">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
+                <Crown className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-semibold text-amber-800">
+                    Super Admin
+                  </span>
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
+                    Full Access
+                  </Badge>
+                </div>
+                {userName && (
+                  <p className="text-sm text-amber-600">Welcome, {userName}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Default fallback for regular users
   return (
     <Card className="border-slate-200 bg-slate-50">
       <CardContent className="p-4">
