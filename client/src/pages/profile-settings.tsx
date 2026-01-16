@@ -709,7 +709,7 @@ export default function ProfileSettings() {
                     </div>
                     <div>
                       <p className="text-slate-500">Account Type</p>
-                      <p className="font-medium">{currentUser?.role}</p>
+                      <p className="font-medium">{isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : (currentUser?.role || 'User')}</p>
                     </div>
                   </div>
                 </CardContent>
