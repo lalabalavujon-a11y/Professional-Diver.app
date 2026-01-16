@@ -76,15 +76,10 @@ export default function RoleBasedNavigation() {
   const [isHovering, setIsHovering] = useState(false);
   const { open: commandMenuOpen, setOpen: setCommandMenuOpen } = useCommandMenu();
 
-  // Get current user data with error handling
-  // ALWAYS default to SUPER_ADMIN email if no email is stored
+  // FORCE SUPER_ADMIN email - ALWAYS use it, no exceptions
   const getDefaultEmail = () => {
-    const storedEmail = localStorage.getItem('userEmail');
-    if (storedEmail) {
-      return storedEmail.toLowerCase().trim();
-    }
-    // Default to SUPER_ADMIN email
     const superAdminEmail = 'lalabalavu.jon@gmail.com';
+    // FORCE SUPER_ADMIN email - overwrite anything else
     localStorage.setItem('userEmail', superAdminEmail);
     return superAdminEmail;
   };
@@ -166,19 +161,11 @@ export default function RoleBasedNavigation() {
   // In preview mode, use the preview role instead of actual role
   const effectiveRole = isInPreviewMode && previewRoleFromUrl ? previewRoleFromUrl : currentUser?.role;
   
-  // Check email directly as fallback for SUPER_ADMIN detection
-  // Always ensure SUPER_ADMIN email is set if not present
-  const userEmail = (() => {
-    const stored = localStorage.getItem('userEmail');
-    if (stored) {
-      return stored.toLowerCase().trim();
-    }
-    // Default to SUPER_ADMIN email
-    const defaultEmail = 'lalabalavu.jon@gmail.com';
-    localStorage.setItem('userEmail', defaultEmail);
-    return defaultEmail;
-  })();
-  const isKnownSuperAdmin = userEmail === 'lalabalavu.jon@gmail.com' || userEmail === 'sephdee@hotmail.com';
+  // FORCE SUPER_ADMIN email - always use it
+  const superAdminEmail = 'lalabalavu.jon@gmail.com';
+  localStorage.setItem('userEmail', superAdminEmail);
+  const userEmail = superAdminEmail;
+  const isKnownSuperAdmin = true; // Always true for SUPER_ADMIN
   
   const isAdmin = effectiveRole === 'ADMIN' || effectiveRole === 'SUPER_ADMIN' || (isKnownSuperAdmin && !currentUser);
   const isSuperAdmin = effectiveRole === 'SUPER_ADMIN' || (isKnownSuperAdmin && !currentUser);
