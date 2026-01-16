@@ -71,6 +71,32 @@ export class LangChainConfig {
     return this.langsmithClient;
   }
 
+  /**
+   * Voice provider preference for real-time audio.
+   * - auto: try Gemini → OpenAI fallback
+   * - gemini: force Gemini
+   * - openai: force OpenAI
+   * - both: allow either (auto-select)
+   */
+  public getVoiceProvider(): "auto" | "gemini" | "openai" | "both" {
+    const raw = process.env.VOICE_PROVIDER?.toLowerCase?.() ?? "auto";
+    if (raw === "gemini" || raw === "openai" || raw === "both") return raw;
+    return "auto";
+  }
+
+  public isVoiceProviderAvailable(provider: "gemini" | "openai"): boolean {
+    if (provider === "gemini") {
+      return (
+        !!process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+        !!process.env.GEMINI_API_KEY
+      );
+    }
+    if (provider === "openai") {
+      return !!process.env.OPENAI_API_KEY;
+    }
+    return false;
+  }
+
   // Brand-neutral system prompt for all AI tutors
   public getBrandNeutralSystemPrompt(discipline: string): string {
     return `You are a highly experienced professional diving education specialist with 20+ years of expertise in ${discipline}. 

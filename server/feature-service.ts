@@ -11,12 +11,14 @@ import { featureDefinitions, roleFeatureDefaults, userFeatureOverrides, users, g
 import { featureDefinitions as featureDefinitionsSQLite, roleFeatureDefaults as roleFeatureDefaultsSQLite, userFeatureOverrides as userFeatureOverridesSQLite, users as usersSQLite, globalFeatureFlags as globalFeatureFlagsSQLite } from "@shared/schema-sqlite";
 import { eq, and } from "drizzle-orm";
 import { FEATURE_REGISTRY, getAllFeatures } from "./feature-registry";
+import { hasTierAccess, type SubscriptionTier } from "./subscription-tier-service";
 
 const isSQLiteDev = () => process.env.NODE_ENV === "development";
 
 /**
  * Resolve user permissions by merging role defaults with user overrides
  * Global feature flags are checked first (SUPER_ADMIN exempt)
+ * For Network features, also checks subscription tier
  */
 export async function resolveUserPermissions(
   userId: string,
@@ -33,19 +35,42 @@ export async function resolveUserPermissions(
     // Get global feature flags (only if not SUPER_ADMIN)
     const globalFlags = isSuperAdmin ? {} : await getGlobalFeatureFlags();
 
+    // Get user data to check subscription tier
+    let userTier: SubscriptionTier | null = null;
+    try {
+      const userData = isSQLiteDev()
+        ? await db.select().from(usersSQLite).where(eq(usersSQLite.id, userId)).limit(1)
+        : await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      
+      if (userData.length > 0) {
+        userTier = (userData[0] as any).networkAccessTier || (userData[0] as any).subscriptionTier || null;
+      }
+    } catch (error) {
+      console.warn(`[FeatureService] Could not fetch user tier for ${userId}:`, error);
+    }
+
     // Get role defaults for this user's role
     const roleDefaults = await getRoleDefaults(userRole);
 
     // Get user overrides
     const userOverrides = await getUserOverrides(userId);
 
-    // Merge: global flag > override > default
+    // Merge: global flag > tier check > override > default
     for (const feature of allFeatures) {
       // Check global flag first (unless SUPER_ADMIN)
       if (!isSuperAdmin && globalFlags[feature.id] === false) {
         // Globally disabled - user cannot access regardless of role/user permissions
         permissions[feature.id] = false;
         continue;
+      }
+
+      // For Network features, check subscription tier
+      if (feature.id === "dive_connection_network" && userTier) {
+        // Network requires at least DIVER tier
+        if (!hasTierAccess(userTier, "DIVER")) {
+          permissions[feature.id] = false;
+          continue;
+        }
       }
 
       // If globally enabled (or SUPER_ADMIN), check user overrides and role defaults
@@ -482,14 +507,20 @@ export async function initializeGlobalFeatureFlags(): Promise<void> {
 
     if (isSQLiteDev()) {
       const { nanoid } = await import("nanoid");
-      const values = featuresToInitialize.map(feature => ({
-        id: nanoid(),
-        featureId: feature.id,
-        enabled: true,
-        description: feature.description || null,
-        updatedBy: 'system',
-        updatedAt: new Date(),
-      }));
+      const values = featuresToInitialize.map(feature => {
+        // Enterprise features and Dive Connection Network default to disabled
+        const defaultEnabled = (feature.id === 'enterprise_features' || feature.id === 'dive_connection_network') 
+          ? false 
+          : true;
+        return {
+          id: nanoid(),
+          featureId: feature.id,
+          enabled: defaultEnabled,
+          description: feature.description || null,
+          updatedBy: 'system',
+          updatedAt: new Date(),
+        };
+      });
 
       // Insert in batches if needed (SQLite might have limits)
       for (const value of values) {
@@ -502,13 +533,19 @@ export async function initializeGlobalFeatureFlags(): Promise<void> {
       }
     } else {
       // PostgreSQL - bulk insert
-      const values = featuresToInitialize.map(feature => ({
-        featureId: feature.id,
-        enabled: true,
-        description: feature.description || null,
-        updatedBy: 'system',
-        updatedAt: new Date(),
-      }));
+      const values = featuresToInitialize.map(feature => {
+        // Enterprise features and Dive Connection Network default to disabled
+        const defaultEnabled = (feature.id === 'enterprise_features' || feature.id === 'dive_connection_network') 
+          ? false 
+          : true;
+        return {
+          featureId: feature.id,
+          enabled: defaultEnabled,
+          description: feature.description || null,
+          updatedBy: 'system',
+          updatedAt: new Date(),
+        };
+      });
 
       // Insert each value individually to handle conflicts
       for (const value of values) {

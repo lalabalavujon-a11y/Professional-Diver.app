@@ -1,8 +1,18 @@
 import type { Server as HttpServer, IncomingMessage } from "http";
 import WebSocket, { WebSocketServer } from "ws";
 import type { AddressInfo } from "net";
+import { fallbackToOpenAIVoice, shouldFallbackToOpenAI } from "./voice-connection-manager";
 
 type VoiceAgentId = "laura-oracle" | "diver-well";
+
+const GEMINI_URL_BASE =
+  "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent";
+
+function getBooleanEnv(name: string, defaultValue = false): boolean {
+  const raw = process.env[name];
+  if (!raw) return defaultValue;
+  return ["1", "true", "yes", "on"].includes(raw.toLowerCase());
+}
 
 interface GeminiToolCall {
   name: string;
@@ -56,26 +66,59 @@ function extractToolCalls(msg: unknown): GeminiToolCall[] {
   return calls;
 }
 
+function createGeminiLiveWebSocketWithApiKey(urlBase: string): WebSocket {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY not configured for API key fallback.");
+  }
+  const url = `${urlBase}?key=${encodeURIComponent(apiKey)}`;
+  console.log("LAURA: Attempting Gemini Live connection with API key fallback...");
+  return new WebSocket(url);
+}
+
 async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
   // IMPORTANT:
   // - The bidi "Live" WebSocket endpoint is currently exposed via the Gemini API hostname.
   // - We keep this as a server-to-server connection so the browser never sees credentials.
   //
   // Auth options:
-  // - GEMINI_API_KEY (NOT SUPPORTED for Live WebSocket - requires OAuth2)
+  // - GEMINI_API_KEY (NOT SUPPORTED for Live WebSocket - requires OAuth2) — we still attempt as a fallback
   // - Application Default Credentials (service account / workload identity) via OAuth bearer token
   //
-  // NOTE: Gemini Live WebSocket REQUIRES OAuth2 authentication, not API keys.
-  // The error "API keys are not supported by this API" confirms this.
+  // NOTE: Gemini Live WebSocket REQUIRES OAuth2 authentication, but in practice some projects allow API key.
+  // We attempt API key only as a fallback or when explicitly configured.
 
-  const urlBase =
-    "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent";
+  const urlBase = GEMINI_URL_BASE;
 
-  // Skip API key check - Gemini Live requires OAuth2
-  // const apiKey = process.env.GEMINI_API_KEY;
-  // if (apiKey) {
-  //   return new WebSocket(`${urlBase}?key=${encodeURIComponent(apiKey)}`);
-  // }
+  const forceApiKey = getBooleanEnv("GEMINI_FALLBACK_TO_API_KEY", false);
+  const disableOAuth = getBooleanEnv("GEMINI_DISABLE_OAUTH", false);
+  const apiKeyAvailable = !!process.env.GEMINI_API_KEY;
+  let lastError: unknown = null;
+
+  if (disableOAuth) {
+    if (!apiKeyAvailable) {
+      throw new Error(
+        "GEMINI_DISABLE_OAUTH is enabled but no GEMINI_API_KEY is configured."
+      );
+    }
+    try {
+      console.log("LAURA: GEMINI_DISABLE_OAUTH=true, using API key only.");
+      return createGeminiLiveWebSocketWithApiKey(urlBase);
+    } catch (err) {
+      lastError = err;
+      console.error("LAURA: API key only mode failed for Gemini Live.", err);
+      throw err;
+    }
+  }
+
+  if (forceApiKey && apiKeyAvailable) {
+    try {
+      return createGeminiLiveWebSocketWithApiKey(urlBase);
+    } catch (err) {
+      lastError = err;
+      console.error("LAURA: Forced API key connection failed, will try OAuth2 next.", err);
+    }
+  }
 
   function formatAuthFailure(err: unknown): string {
     // google-auth-library typically throws GaxiosError with a response payload.
@@ -147,7 +190,7 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
     // Also check for error in response.data.error
     const responseError = anyErr?.response?.data?.error;
     const responseErrorDesc = anyErr?.response?.data?.error_description;
-    
+
     const pieces = [
       "Could not refresh access token via Google ADC.",
       status ? `HTTP ${String(status)}` : null,
@@ -176,231 +219,246 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
     "https://www.googleapis.com/auth/aiplatform",
   ];
 
-  // Log credential file info for debugging
-  const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  if (credsPath) {
-    const fs = await import("node:fs");
+  try {
+    // Log credential file info for debugging
+    const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (credsPath) {
+      const fs = await import("node:fs");
+      try {
+        if (fs.existsSync(credsPath)) {
+          const stats = fs.statSync(credsPath);
+          console.log(`LAURA: Credentials file exists: ${credsPath} (${stats.size} bytes)`);
+          // Validate JSON structure
+          try {
+            const credsContent = fs.readFileSync(credsPath, "utf8");
+            const credsJson = JSON.parse(credsContent);
+            console.log(`LAURA: Credentials valid JSON - project: ${credsJson.project_id}, client_email: ${credsJson.client_email}`);
+            // Check private key format
+            if (credsJson.private_key) {
+              const keyLines = credsJson.private_key.split('\n');
+              const hasBegin = keyLines.some((line: string) => line.includes('BEGIN'));
+              const hasEnd = keyLines.some((line: string) => line.includes('END'));
+              console.log(`LAURA: Private key format check - has BEGIN: ${hasBegin}, has END: ${hasEnd}, lines: ${keyLines.length}`);
+              if (!hasBegin || !hasEnd) {
+                console.error("LAURA: ⚠️ Private key may be malformed - missing BEGIN/END markers");
+              }
+            } else {
+              console.error("LAURA: ❌ Private key missing from credentials JSON");
+            }
+          } catch (parseErr) {
+            console.error("LAURA: ❌ Failed to parse credentials JSON:", parseErr instanceof Error ? parseErr.message : parseErr);
+          }
+        } else {
+          console.error(`LAURA: ❌ Credentials file does not exist: ${credsPath}`);
+        }
+      } catch (fsErr) {
+        console.error("LAURA: Error checking credentials file:", fsErr instanceof Error ? fsErr.message : fsErr);
+      }
+    } else {
+      console.warn("LAURA: ⚠️ GOOGLE_APPLICATION_CREDENTIALS not set");
+    }
+
+    console.log(`LAURA: Requesting scopes: ${scopes.join(", ")}`);
+
+    const auth = new google.auth.GoogleAuth({
+      // Some Gemini Live endpoints require OAuth and can be picky about scopes.
+      // Defaults cover both Gemini API + Vertex-style access patterns.
+      scopes,
+    });
+    let client: any;
+    client = await auth.getClient();
+    console.log("LAURA: GoogleAuth client created successfully");
+
+    let tokenResult: any;
     try {
-      if (fs.existsSync(credsPath)) {
-        const stats = fs.statSync(credsPath);
-        console.log(`LAURA: Credentials file exists: ${credsPath} (${stats.size} bytes)`);
-        // Validate JSON structure
+      // Try to get more details about the client before requesting token
+      if (client && typeof client === 'object') {
+        console.log("LAURA: Client type:", client.constructor?.name);
+        // Check if it's a JWT client and log its properties
+        if ('credentials' in client) {
+          console.log("LAURA: Client has credentials property");
+        }
+        if ('projectId' in client) {
+          console.log(`LAURA: Client projectId: ${(client as any).projectId}`);
+        }
+      }
+      
+      console.log("LAURA: Attempting to get access token...");
+      
+      // Try to manually test the credentials by reading and validating the key file
+      const fs = await import("node:fs");
+      const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      if (credsPath && fs.existsSync(credsPath)) {
         try {
           const credsContent = fs.readFileSync(credsPath, "utf8");
           const credsJson = JSON.parse(credsContent);
-          console.log(`LAURA: Credentials valid JSON - project: ${credsJson.project_id}, client_email: ${credsJson.client_email}`);
-          // Check private key format
+          
+          // Check if private key can be parsed (basic validation)
           if (credsJson.private_key) {
-            const keyLines = credsJson.private_key.split('\n');
-            const hasBegin = keyLines.some((line: string) => line.includes('BEGIN'));
-            const hasEnd = keyLines.some((line: string) => line.includes('END'));
-            console.log(`LAURA: Private key format check - has BEGIN: ${hasBegin}, has END: ${hasEnd}, lines: ${keyLines.length}`);
-            if (!hasBegin || !hasEnd) {
-              console.error("LAURA: ⚠️ Private key may be malformed - missing BEGIN/END markers");
+            const key = credsJson.private_key;
+            // Remove headers/footers and whitespace for validation
+            const keyContent = key.replace(/-----BEGIN[^-]+-----/g, '').replace(/-----END[^-]+-----/g, '').replace(/\s/g, '');
+            console.log(`LAURA: Private key content length (without headers): ${keyContent.length} chars`);
+            if (keyContent.length < 100) {
+              console.error("LAURA: ⚠️ Private key seems too short - might be corrupted");
             }
-          } else {
-            console.error("LAURA: ❌ Private key missing from credentials JSON");
           }
-        } catch (parseErr) {
-          console.error("LAURA: ❌ Failed to parse credentials JSON:", parseErr instanceof Error ? parseErr.message : parseErr);
+        } catch (keyErr) {
+          console.error("LAURA: Error validating key file:", keyErr instanceof Error ? keyErr.message : keyErr);
         }
-      } else {
-        console.error(`LAURA: ❌ Credentials file does not exist: ${credsPath}`);
       }
-    } catch (fsErr) {
-      console.error("LAURA: Error checking credentials file:", fsErr instanceof Error ? fsErr.message : fsErr);
-    }
-  } else {
-    console.warn("LAURA: ⚠️ GOOGLE_APPLICATION_CREDENTIALS not set");
-  }
-
-  console.log(`LAURA: Requesting scopes: ${scopes.join(", ")}`);
-
-  const auth = new google.auth.GoogleAuth({
-    // Some Gemini Live endpoints require OAuth and can be picky about scopes.
-    // Defaults cover both Gemini API + Vertex-style access patterns.
-    scopes,
-  });
-  let client: any;
-  try {
-    client = await auth.getClient();
-    console.log("LAURA: GoogleAuth client created successfully");
-  } catch (err) {
-    console.error("LAURA: Google ADC getClient() error:", err);
-    const formatted = formatAuthFailure(err);
-    console.error("LAURA:", formatted);
-    throw new Error(formatted);
-  }
-
-  let tokenResult: any;
-  try {
-    // Try to get more details about the client before requesting token
-    if (client && typeof client === 'object') {
-      console.log("LAURA: Client type:", client.constructor?.name);
-      // Check if it's a JWT client and log its properties
-      if ('credentials' in client) {
-        console.log("LAURA: Client has credentials property");
-      }
-      if ('projectId' in client) {
-        console.log(`LAURA: Client projectId: ${(client as any).projectId}`);
-      }
-    }
-    
-    console.log("LAURA: Attempting to get access token...");
-    
-    // Try to manually test the credentials by reading and validating the key file
-    const fs = await import("node:fs");
-    const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    if (credsPath && fs.existsSync(credsPath)) {
+      
+      // Try with explicit error handling and manual JWT test
       try {
-        const credsContent = fs.readFileSync(credsPath, "utf8");
-        const credsJson = JSON.parse(credsContent);
-        
-        // Check if private key can be parsed (basic validation)
-        if (credsJson.private_key) {
-          const key = credsJson.private_key;
-          // Remove headers/footers and whitespace for validation
-          const keyContent = key.replace(/-----BEGIN[^-]+-----/g, '').replace(/-----END[^-]+-----/g, '').replace(/\s/g, '');
-          console.log(`LAURA: Private key content length (without headers): ${keyContent.length} chars`);
-          if (keyContent.length < 100) {
-            console.error("LAURA: ⚠️ Private key seems too short - might be corrupted");
-          }
-        }
-      } catch (keyErr) {
-        console.error("LAURA: Error validating key file:", keyErr instanceof Error ? keyErr.message : keyErr);
-      }
-    }
-    
-    // Try with explicit error handling and manual JWT test
-    try {
-      // First, try to get token the normal way
-      console.log("LAURA: Calling client.getAccessToken()...");
+        // First, try to get token the normal way
+        console.log("LAURA: Calling client.getAccessToken()...");
       tokenResult = await client.getAccessToken();
-      console.log("LAURA: Access token retrieved successfully");
-    } catch (tokenErr: any) {
-      console.error("LAURA: getAccessToken() failed. Error type:", typeof tokenErr, "Error constructor:", tokenErr?.constructor?.name);
-      
-      // Try to manually test JWT signing and token exchange
-      console.log("LAURA: Attempting manual JWT token request to capture actual error...");
-      try {
-        const fsMod = await import("node:fs");
-        const fs = fsMod.default || fsMod;
-        const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-        if (credsPath && fs.existsSync(credsPath)) {
-          const credsContent = fs.readFileSync(credsPath, "utf8");
-          const credsJson = JSON.parse(credsContent);
-          
-          // Try to manually make the OAuth2 token request
-          const jwtModule = await import("jsonwebtoken");
-          const jwt = jwtModule.default || jwtModule;
-          const now = Math.floor(Date.now() / 1000);
-          const jwtPayload = {
-            iss: credsJson.client_email,
-            sub: credsJson.client_email,
-            aud: "https://oauth2.googleapis.com/token",
-            exp: now + 3600,
-            iat: now,
-            scope: scopes.join(" "),
-          };
-          
-          console.log("LAURA: Creating JWT with payload:", JSON.stringify(jwtPayload, null, 2));
-          
-          try {
-            const signedJwt = jwt.sign(jwtPayload, credsJson.private_key, { algorithm: "RS256" });
-            console.log("LAURA: JWT signed successfully, length:", signedJwt.length);
+        console.log("LAURA: Access token retrieved successfully");
+      } catch (tokenErr: any) {
+        console.error("LAURA: getAccessToken() failed. Error type:", typeof tokenErr, "Error constructor:", tokenErr?.constructor?.name);
+        
+        // Try to manually test JWT signing and token exchange
+        console.log("LAURA: Attempting manual JWT token request to capture actual error...");
+        try {
+          const fsMod = await import("node:fs");
+          const fs = fsMod.default || fsMod;
+          const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+          if (credsPath && fs.existsSync(credsPath)) {
+            const credsContent = fs.readFileSync(credsPath, "utf8");
+            const credsJson = JSON.parse(credsContent);
             
-            // Try to exchange JWT for access token manually (Node.js 18+ has fetch built-in)
-            const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-              method: "POST",
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: new URLSearchParams({
-                grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-                assertion: signedJwt,
-              }).toString(),
-            });
+            // Try to manually make the OAuth2 token request
+            const jwtModule = await import("jsonwebtoken");
+            const jwt = jwtModule.default || jwtModule;
+            const now = Math.floor(Date.now() / 1000);
+            const jwtPayload = {
+              iss: credsJson.client_email,
+              sub: credsJson.client_email,
+              aud: "https://oauth2.googleapis.com/token",
+              exp: now + 3600,
+              iat: now,
+              scope: scopes.join(" "),
+            };
             
-            const tokenData = await tokenResponse.json() as any;
-            console.log("LAURA: Token exchange response status:", tokenResponse.status);
-            console.log("LAURA: Token exchange response keys:", Object.keys(tokenData));
-            console.log("LAURA: Token exchange response (full):", JSON.stringify(tokenData, null, 2));
-            console.log("LAURA: Has access_token?", !!tokenData.access_token);
-            console.log("LAURA: Has id_token?", !!tokenData.id_token);
-            if (tokenData.access_token) {
-              console.log("LAURA: access_token length:", tokenData.access_token.length);
-            }
+            console.log("LAURA: Creating JWT with payload:", JSON.stringify(jwtPayload, null, 2));
             
-            if (!tokenResponse.ok) {
-              console.error("LAURA: ❌ Token exchange failed - this is the actual error!");
-              console.error("LAURA: HTTP Status:", tokenResponse.status, tokenResponse.statusText);
-              console.error("LAURA: Error details:", JSON.stringify(tokenData, null, 2));
-            } else {
-              // Check for access_token in response
+            try {
+              const signedJwt = jwt.sign(jwtPayload, credsJson.private_key, { algorithm: "RS256" });
+              console.log("LAURA: JWT signed successfully, length:", signedJwt.length);
+              
+              // Try to exchange JWT for access token manually (Node.js 18+ has fetch built-in)
+              const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({
+                  grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                  assertion: signedJwt,
+                }).toString(),
+              });
+              
+              const tokenData = await tokenResponse.json() as any;
+              console.log("LAURA: Token exchange response status:", tokenResponse.status);
+              console.log("LAURA: Token exchange response keys:", Object.keys(tokenData));
+              console.log("LAURA: Token exchange response (full):", JSON.stringify(tokenData, null, 2));
+              console.log("LAURA: Has access_token?", !!tokenData.access_token);
+              console.log("LAURA: Has id_token?", !!tokenData.id_token);
               if (tokenData.access_token) {
-                console.log("LAURA: ✅ Token exchange successful - access token obtained!");
-                tokenResult = { token: tokenData.access_token };
-              } else if (tokenData.id_token) {
-                // If we got id_token instead of access_token, log the issue
-                console.error("LAURA: ⚠️ Response contains id_token instead of access_token");
-                console.error("LAURA: Response keys:", Object.keys(tokenData));
-                console.error("LAURA: Full response:", JSON.stringify(tokenData, null, 2));
-                // This shouldn't happen, but let's log it for debugging
-                throw new Error("OAuth2 token response missing access_token (got id_token instead)");
-              } else {
-                console.error("LAURA: ❌ Token response missing both access_token and id_token");
-                console.error("LAURA: Response:", JSON.stringify(tokenData, null, 2));
-                throw new Error("OAuth2 token response missing access_token");
+                console.log("LAURA: access_token length:", tokenData.access_token.length);
               }
+              
+              if (!tokenResponse.ok) {
+                console.error("LAURA: ❌ Token exchange failed - this is the actual error!");
+                console.error("LAURA: HTTP Status:", tokenResponse.status, tokenResponse.statusText);
+                console.error("LAURA: Error details:", JSON.stringify(tokenData, null, 2));
+              } else {
+                // Check for access_token in response
+                if (tokenData.access_token) {
+                  console.log("LAURA: ✅ Token exchange successful - access token obtained!");
+                  tokenResult = { token: tokenData.access_token };
+                } else if (tokenData.id_token) {
+                  // If we got id_token instead of access_token, log the issue
+                  console.error("LAURA: ⚠️ Response contains id_token instead of access_token");
+                  console.error("LAURA: Response keys:", Object.keys(tokenData));
+                  console.error("LAURA: Full response:", JSON.stringify(tokenData, null, 2));
+                  // This shouldn't happen, but let's log it for debugging
+                  throw new Error("OAuth2 token response missing access_token (got id_token instead)");
+                } else {
+                  console.error("LAURA: ❌ Token response missing both access_token and id_token");
+                  console.error("LAURA: Response:", JSON.stringify(tokenData, null, 2));
+                  throw new Error("OAuth2 token response missing access_token");
+                }
+              }
+            } catch (jwtErr: any) {
+              console.error("LAURA: ❌ JWT signing failed:", jwtErr?.message);
+              console.error("LAURA: JWT error details:", JSON.stringify(jwtErr, Object.getOwnPropertyNames(jwtErr), 2));
             }
-          } catch (jwtErr: any) {
-            console.error("LAURA: ❌ JWT signing failed:", jwtErr?.message);
-            console.error("LAURA: JWT error details:", JSON.stringify(jwtErr, Object.getOwnPropertyNames(jwtErr), 2));
           }
+        } catch (manualErr: any) {
+          console.error("LAURA: Manual token request failed:", manualErr?.message);
         }
-      } catch (manualErr: any) {
-        console.error("LAURA: Manual token request failed:", manualErr?.message);
+        
+        // If manual token request also failed, throw the original error
+        if (!tokenResult) {
+          console.error("LAURA: All token request methods failed");
+          throw tokenErr;
+        }
+      }
+    } catch (err) {
+      console.error("LAURA: Google ADC getAccessToken() error:", err);
+      
+      // Try to get more details from the error
+      const anyErr = err as any;
+      if (anyErr?.response) {
+        console.error("LAURA: Error has response:", {
+          status: anyErr.response.status,
+          statusText: anyErr.response.statusText,
+          data: anyErr.response.data,
+        });
       }
       
-      // If manual token request also failed, throw the original error
-      if (!tokenResult) {
-        console.error("LAURA: All token request methods failed");
-        throw tokenErr;
-      }
+      // Check if there's an inner error in the stack or message
+      const errorString = String(err);
+      const errorStack = anyErr?.stack || '';
+      console.error("LAURA: Full error string:", errorString);
+      console.error("LAURA: Error stack (first 10 lines):", errorStack.split('\n').slice(0, 10).join('\n'));
+      
+      const formatted = formatAuthFailure(err);
+      console.error("LAURA:", formatted);
+      throw new Error(formatted);
     }
-  } catch (err) {
-    console.error("LAURA: Google ADC getAccessToken() error:", err);
-    
-    // Try to get more details from the error
-    const anyErr = err as any;
-    if (anyErr?.response) {
-      console.error("LAURA: Error has response:", {
-        status: anyErr.response.status,
-        statusText: anyErr.response.statusText,
-        data: anyErr.response.data,
-      });
+    const token = typeof tokenResult === "string" ? tokenResult : tokenResult?.token;
+    if (!token) {
+      throw new Error(
+        "Neither GEMINI_API_KEY nor Application Default Credentials are available for Gemini Live."
+      );
     }
-    
-    // Check if there's an inner error in the stack or message
-    const errorString = String(err);
-    const errorStack = anyErr?.stack || '';
-    console.error("LAURA: Full error string:", errorString);
-    console.error("LAURA: Error stack (first 10 lines):", errorStack.split('\n').slice(0, 10).join('\n'));
-    
-    const formatted = formatAuthFailure(err);
-    console.error("LAURA:", formatted);
-    throw new Error(formatted);
-  }
-  const token = typeof tokenResult === "string" ? tokenResult : tokenResult?.token;
-  if (!token) {
-    throw new Error(
-      "Neither GEMINI_API_KEY nor Application Default Credentials are available for Gemini Live."
-    );
+
+    console.log("LAURA: Using OAuth2 bearer token for Gemini Live connection.");
+    return new WebSocket(urlBase, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch (oauthErr) {
+    lastError = oauthErr;
+    console.error("LAURA: OAuth2 connection failed, considering API key fallback...", oauthErr);
   }
 
-  return new WebSocket(urlBase, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  if (apiKeyAvailable) {
+    try {
+      const ws = createGeminiLiveWebSocketWithApiKey(urlBase);
+      console.log("LAURA: Gemini Live connected using API key fallback.");
+      return ws;
+    } catch (apiErr) {
+      lastError = apiErr;
+      console.error("LAURA: API key fallback failed.", apiErr);
+    }
+  }
+
+  const message =
+    "Gemini Live could not obtain credentials (OAuth2 and API key both failed).";
+  console.error("LAURA:", message, lastError);
+  throw new Error(message);
 }
 
 function buildAgentSystemInstruction(agent: VoiceAgentId): string {
@@ -622,6 +680,19 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
       console.error(`LAURA: Failed to create Gemini Live upstream WebSocket for ${agent}:`, err);
       const errorMessage = err instanceof Error ? err.message : "Failed to start Gemini Live session.";
       console.error(`LAURA: Error message: ${errorMessage}`);
+
+      // Attempt OpenAI Voice fallback if enabled
+      if (shouldFallbackToOpenAI()) {
+        try {
+          console.warn("LAURA: Attempting OpenAI Voice fallback...");
+          await fallbackToOpenAIVoice(agent, clientWs);
+          console.log("LAURA: OpenAI Voice fallback connected.");
+          return;
+        } catch (fallbackErr) {
+          console.error("LAURA: OpenAI Voice fallback failed:", fallbackErr);
+        }
+      }
+
       sendClientError(
         clientWs,
         "missing_gemini_key",

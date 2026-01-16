@@ -42,6 +42,15 @@ import {
 } from "./medical-facilities-service";
 import multer from "multer";
 import { registerGeminiLiveVoiceWsRoutes } from "./voice/gemini-live-ws";
+import {
+  generateAllContent,
+  generateTrackContent,
+  generatePdf,
+  generatePodcast,
+  validateLessonContent,
+  getReviewQueue,
+} from "./api/content-generation";
+import { registerOpenAIVoiceWsRoutes } from "./voice/openai-live-ws";
 
 // In-memory store for user profile data (for demo purposes)
 const userProfileStore = new Map<string, any>();
@@ -145,6 +154,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
+  
+  // Custom route for diver-well-training PDFs with clean URLs
+  app.get('/diver-well-training/:lessonName', async (req, res) => {
+    try {
+      const { lessonName } = req.params;
+      const sanitized = sanitizeFilename(lessonName);
+      const filePath = path.join(process.cwd(), 'uploads', 'diver-well-training', `${sanitized}.pdf`);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'PDF not found' });
+      }
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${sanitized}.pdf"`);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error('Error serving PDF:', error);
+      res.status(500).json({ error: 'Failed to serve PDF' });
+    }
+  });
   
   // Custom static file handler with CORS headers for PDF files
   app.use('/uploads', (req, res, next) => {
@@ -2706,6 +2736,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Content generation & validation (admin placeholder endpoints)
+  app.post("/api/content/generate-all", generateAllContent);
+  app.post("/api/content/generate-track/:trackSlug", generateTrackContent);
+  app.post("/api/content/generate-pdf/:lessonId", generatePdf);
+  app.post("/api/content/generate-podcast/:lessonId", generatePodcast);
+  app.get("/api/content/validation/:lessonId", validateLessonContent);
+  app.get("/api/content/review-queue", getReviewQueue);
+
   // User progress routes
   app.get("/api/users/current/progress", async (req, res) => {
     try {
@@ -2891,7 +2929,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get global feature flags
+  // Get global feature flags (public endpoint for client-side checking)
+  app.get("/api/global-features", async (req, res) => {
+    try {
+      const { getGlobalFeatureFlags } = featureService;
+      const globalFlags = await getGlobalFeatureFlags();
+      res.json(globalFlags);
+    } catch (error) {
+      console.error("Global features API error:", error);
+      res.status(500).json({ error: "Failed to fetch global feature flags" });
+    }
+  });
+
+  // Get global feature flags (admin endpoint with metadata)
   app.get("/api/admin/global-features", async (req, res) => {
     try {
       const userEmail = req.query.email as string;
@@ -6916,6 +6966,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //
   // This keeps the API key server-side and enables the low-latency voice loop.
   registerGeminiLiveVoiceWsRoutes(httpServer);
+  // OpenAI Voice WebSocket endpoints (direct and fallback testing):
+  // - /api/openai/laura-oracle/live
+  // - /api/openai/diver-well/live
+  registerOpenAIVoiceWsRoutes(httpServer);
   // Initialize Platform Change Monitor and Documentation Updater
   try {
     const { default: PlatformChangeMonitor } = await import('./platform-change-monitor');

@@ -90,6 +90,9 @@ export default function RoleBasedNavigation() {
 
   // Get feature permissions
   const { hasFeature, isPreviewMode, previewRole, isLoading } = useFeaturePermissions();
+  
+  // Get global feature flags (for Enterprise and Network features)
+  const { isFeatureEnabled: isGlobalFeatureEnabled } = useGlobalFeatureFlags();
 
   // Check for preview mode in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -392,8 +395,9 @@ export default function RoleBasedNavigation() {
                   </SidebarMenuItem>
                 )}
 
-                {/* Operations Section - Visible to all users with all features */}
-                <SidebarMenuItem>
+                {/* Operations Section - Only visible if Enterprise features are enabled */}
+                {enterpriseFeaturesEnabled && (
+                  <SidebarMenuItem>
                     <Collapsible className="group/collapsible">
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton 
@@ -505,6 +509,7 @@ export default function RoleBasedNavigation() {
                       </CollapsibleContent>
                     </Collapsible>
                   </SidebarMenuItem>
+                )}
 
                 {/* Support Section - Available to all users */}
                 <SidebarMenuItem>

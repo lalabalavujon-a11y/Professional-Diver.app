@@ -153,6 +153,8 @@
     "@replit/vite-plugin-cartographer": "^0.3.2",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.4",
     "@swc-node/register": "^1.11.1",
+    "@swc/core": "^1.15.8",
+    "@swc/wasm": "^1.15.8",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.18",
     "@types/better-sqlite3": "^7.6.9",
@@ -189,7 +191,7 @@
     "vite": "^5.4.21"
   },
   "optionalDependencies": {
-    "better-sqlite3": "^9.4.3",
+    "better-sqlite3": "^9.6.0",
     "bufferutil": "^4.1.0"
   }
 }

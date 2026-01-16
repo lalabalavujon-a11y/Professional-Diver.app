@@ -72,6 +72,20 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition[]> = {
       category: "Integrations",
     },
   ],
+  platform: [
+    {
+      id: "enterprise_features",
+      name: "Enterprise Features",
+      description: "Access to Enterprise operations platform features",
+      category: "Platform",
+    },
+    {
+      id: "dive_connection_network",
+      name: "Dive Connection Network",
+      description: "Access to Dive Connection Network - connecting divers, companies, and service providers",
+      category: "Platform",
+    },
+  ],
 };
 
 /**

@@ -9,6 +9,8 @@ export const examTypeEnum = pgEnum("exam_type", ["QUIZ", "EXAM", "PRACTICE"]);
 export const certificationStatusEnum = pgEnum("certification_status", ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "EXPIRED"]);
 export const subscriptionTypeEnum = pgEnum("subscription_type", ["TRIAL", "MONTHLY", "ANNUAL", "LIFETIME"]);
 export const clientStatusEnum = pgEnum("client_status", ["ACTIVE", "PAUSED", "CANCELLED"]);
+export const entityTypeEnum = pgEnum("entity_type", ["INDIVIDUAL", "COMPANY", "SERVICE_PROVIDER"]);
+export const subscriptionTierEnum = pgEnum("subscription_tier", ["DIVER", "COMPANY", "SERVICE_PROVIDER"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -16,6 +18,10 @@ export const users = pgTable("users", {
   name: text("name"),
   role: roleEnum("role").default("USER").notNull(),
   subscriptionType: subscriptionTypeEnum("subscription_type").default("TRIAL").notNull(),
+  subscriptionTier: subscriptionTierEnum("subscription_tier"), // New: DIVER, COMPANY, SERVICE_PROVIDER
+  entityType: entityTypeEnum("entity_type").default("INDIVIDUAL").notNull(), // INDIVIDUAL, COMPANY, SERVICE_PROVIDER
+  networkAccessTier: subscriptionTierEnum("network_access_tier"), // Network platform access tier (synced with subscriptionTier)
+  platformAccess: json("platform_access").default({ training: true, network: false }), // JSON: { training: boolean, network: boolean }
   trialExpiresAt: timestamp("trial_expires_at"),
   subscriptionStatus: clientStatusEnum("subscription_status").default("ACTIVE").notNull(),
   stripeCustomerId: text("stripe_customer_id"),

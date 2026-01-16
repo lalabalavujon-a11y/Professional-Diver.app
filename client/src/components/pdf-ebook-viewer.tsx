@@ -10,7 +10,8 @@ import "react-pdf/dist/Page/TextLayer.css";
 // Configure PDF.js worker for react-pdf v10
 // Use unpkg CDN which works reliably with Vite
 if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
-  // Use CDN as it's more reliable across different environments
+  // Use full HTTPS URL - this avoids Vite's module resolution
+  // The worker must be loaded as a URL, not as an ES module
   pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
   console.log('PDF.js worker configured:', pdfjs.GlobalWorkerOptions.workerSrc);
 }
