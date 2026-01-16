@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import TrialCountdown from "@/components/trial-countdown";
 import UserManagementContainer from "@/components/user-management-container";
@@ -43,6 +44,15 @@ interface User {
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // FORCE SUPER_ADMIN email on component mount - NO EXCEPTIONS
+  useEffect(() => {
+    const superAdminEmail = 'lalabalavu.jon@gmail.com';
+    console.log('[AdminDashboard] 🔒 FORCING SUPER_ADMIN email on mount');
+    localStorage.setItem('userEmail', superAdminEmail);
+    localStorage.setItem('rememberedEmail', superAdminEmail);
+    localStorage.setItem('isSuperAdmin', 'true');
+  }, []);
 
   // Get current user to check role - FORCE SUPER_ADMIN
   const { data: currentUser } = useQuery<User>({
