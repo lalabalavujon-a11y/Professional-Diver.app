@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import RoleBasedNavigation from "@/components/role-based-navigation";
-import TrialCountdown from "@/components/trial-countdown";
+// TrialCountdown removed - Super Admin never sees trial messages
 import UserManagementContainer from "@/components/user-management-container";
 import { useFeaturePermissions } from "@/hooks/use-feature-permissions";
 import { PageHeader, StatCard, PageSection } from "@/components/ui/page-header";
@@ -200,13 +200,8 @@ export default function AdminDashboard() {
       <RoleBasedNavigation />
       <div className="min-h-screen bg-background" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        {/* Trial User Management */}
-        <div className="mb-6">
-          <TrialCountdown 
-            expiresAt={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()} 
-            showUpgradeButton={false}
-          />
-        </div>
+        {/* Trial User Management - HIDDEN for Super Admin */}
+        {/* Super Admin NEVER sees trial messages - removed TrialCountdown */}
 
         <PageHeader
           title="Admin Dashboard"
