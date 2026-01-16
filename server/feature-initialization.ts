@@ -168,7 +168,7 @@ export async function initializeDefaultRolePermissions(): Promise<void> {
     // Default permissions by role
     const defaultPermissions: Record<string, Record<string, boolean>> = {
       AFFILIATE: {
-        // Partner Admins: Most features enabled
+        // Partner Admins: Most features enabled (except platform features controlled by global flags)
         operations_center: true,
         dive_supervisor: true,
         admin_dashboard: true,
@@ -176,6 +176,8 @@ export async function initializeDefaultRolePermissions(): Promise<void> {
         analytics: true,
         content_editor: true,
         ghl_integration: true,
+        enterprise_features: false, // Controlled by global flag
+        dive_connection_network: false, // Controlled by global flag
       },
       ENTERPRISE: {
         // Enterprise Users: Operations + CRM enabled
@@ -186,6 +188,8 @@ export async function initializeDefaultRolePermissions(): Promise<void> {
         analytics: true,
         content_editor: false,
         ghl_integration: false,
+        enterprise_features: false, // Controlled by global flag
+        dive_connection_network: false, // Controlled by global flag
       },
       USER: {
         // Regular Users: Basic features only
@@ -196,9 +200,11 @@ export async function initializeDefaultRolePermissions(): Promise<void> {
         analytics: false,
         content_editor: false,
         ghl_integration: false,
+        enterprise_features: false, // Controlled by global flag
+        dive_connection_network: false, // Controlled by global flag
       },
       ADMIN: {
-        // Admins: All features enabled
+        // Admins: All features enabled (except platform features controlled by global flags)
         operations_center: true,
         dive_supervisor: true,
         admin_dashboard: true,
@@ -206,6 +212,8 @@ export async function initializeDefaultRolePermissions(): Promise<void> {
         analytics: true,
         content_editor: true,
         ghl_integration: true,
+        enterprise_features: false, // Controlled by global flag
+        dive_connection_network: false, // Controlled by global flag
       },
     };
 

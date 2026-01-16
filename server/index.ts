@@ -36,18 +36,23 @@ app.use((req, res, next) => {
   next();
 });
 
-// Skip body parsing for multipart/form-data (file uploads) - multer will handle it
+// Body parsing middleware - skip for multipart/form-data (file uploads handled by multer)
 app.use((req, res, next) => {
+  // Skip body parsing for multipart/form-data
   if (req.headers['content-type']?.includes('multipart/form-data')) {
-    return next(); // Skip body parsing for file uploads
+    return next();
   }
-  express.json()(req, res, next);
+  // Apply JSON parser
+  express.json({ limit: '10mb' })(req, res, next);
 });
+
 app.use((req, res, next) => {
+  // Skip body parsing for multipart/form-data
   if (req.headers['content-type']?.includes('multipart/form-data')) {
-    return next(); // Skip body parsing for file uploads
+    return next();
   }
-  express.urlencoded({ extended: false })(req, res, next);
+  // Apply URL-encoded parser
+  express.urlencoded({ extended: false, limit: '10mb' })(req, res, next);
 });
 
 // Simple request logging
@@ -115,8 +120,26 @@ async function main() {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    console.error('[Express Error Handler]', {
+      status,
+      message,
+      stack: err.stack,
+      url: _req.url,
+      method: _req.method
+    });
+
+    // Only send response if headers haven't been sent
+    if (!res.headersSent) {
+      res.status(status).json({ 
+        error: message,
+        ...(process.env.NODE_ENV === 'development' && { details: err.stack })
+      });
+    }
+    
+    // Log error but don't throw (throwing would crash the process)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Express Error Handler] Full error:', err);
+    }
   });
 
   // VITE COMPLETELY REMOVED - PURE EXPRESS API SERVER ONLY

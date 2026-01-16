@@ -21,19 +21,6 @@ export default function SignIn() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Load remembered credentials on component mount
-  useEffect(() => {
-    const rememberedEmail = localStorage.getItem('rememberedEmail');
-    const rememberedPassword = localStorage.getItem('rememberedPassword');
-    if (rememberedEmail) {
-      setEmail(rememberedEmail);
-      setRememberMe(true);
-    }
-    if (rememberedPassword) {
-      setPassword(rememberedPassword);
-    }
-  }, []);
-
   const credentialsSignInMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string; rememberMe: boolean }) => {
       try {
@@ -55,11 +42,22 @@ export default function SignIn() {
       }
     },
     onSuccess: (data) => {
-      // Handle remember me functionality
-      if (rememberMe) {
+      const normalizedEmail = email.toLowerCase().trim();
+      const superAdminEmails = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+      const isSuperAdmin = superAdminEmails.includes(normalizedEmail);
+      
+      // ALWAYS remember SUPER_ADMIN credentials - never remove them
+      if (isSuperAdmin) {
+        localStorage.setItem('rememberedEmail', normalizedEmail);
+        localStorage.setItem('rememberedPassword', password);
+        localStorage.setItem('userEmail', normalizedEmail);
+        localStorage.setItem('isSuperAdmin', 'true'); // Flag for easy checking
+        console.log('[SignIn] SUPER_ADMIN credentials saved permanently');
+      } else if (rememberMe) {
+        // Regular users: only remember if they checked the box
         localStorage.setItem('rememberedEmail', email);
         localStorage.setItem('rememberedPassword', password);
-        localStorage.setItem('userEmail', email); // For current session
+        localStorage.setItem('userEmail', email);
       } else {
         localStorage.removeItem('rememberedEmail');
         localStorage.removeItem('rememberedPassword');
@@ -87,6 +85,57 @@ export default function SignIn() {
       });
     },
   });
+
+  // Load remembered credentials on component mount and auto-login SUPER_ADMIN
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    const rememberedPassword = localStorage.getItem('rememberedPassword');
+    const currentUserEmail = localStorage.getItem('userEmail');
+    
+    // If already logged in, redirect to dashboard
+    if (currentUserEmail) {
+      const normalizedEmail = currentUserEmail.toLowerCase().trim();
+      // Check if it's a SUPER_ADMIN email
+      const superAdminEmails = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+      if (superAdminEmails.includes(normalizedEmail)) {
+        console.log('[SignIn] Already logged in as SUPER_ADMIN, redirecting to dashboard');
+        setLocation('/dashboard');
+        return;
+      }
+    }
+    
+    // Auto-login SUPER_ADMIN if credentials are stored
+    if (rememberedEmail && rememberedPassword) {
+      const normalizedEmail = rememberedEmail.toLowerCase().trim();
+      const superAdminEmails = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+      const superAdminPasswords: Record<string, string> = {
+        'lalabalavu.jon@gmail.com': 'Admin123',
+        'sephdee@hotmail.com': 'Admin123',
+      };
+      
+      if (superAdminEmails.includes(normalizedEmail) && 
+          rememberedPassword === superAdminPasswords[normalizedEmail]) {
+        console.log('[SignIn] Auto-logging in SUPER_ADMIN:', normalizedEmail);
+        // Automatically trigger login
+        credentialsSignInMutation.mutate({ 
+          email: normalizedEmail, 
+          password: rememberedPassword, 
+          rememberMe: true 
+        });
+        return;
+      }
+    }
+    
+    // Load remembered credentials into form
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+    if (rememberedPassword) {
+      setPassword(rememberedPassword);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   const magicLinkMutation = useMutation({
     mutationFn: async (emailData: { email: string }) => {

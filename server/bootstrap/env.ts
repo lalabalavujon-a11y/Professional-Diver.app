@@ -111,3 +111,5 @@ console.log(`📊 CRM Mode: ${CRM_MODE}${GHL_API_KEY ? ' (HighLevel configured)'
 console.log(`🌊 Stormglass API: ${process.env.STORMGLASS_API_KEY ? '✅ Configured' : '❌ Not configured'}`);
 console.log(`🤖 OpenAI API Key: ${process.env.OPENAI_API_KEY ? '✅ Available' : '❌ Not found'}`);
 console.log(`🔍 LangSmith API Key: ${process.env.LANGSMITH_API_KEY ? '✅ Available' : '❌ Not found'}`);
+console.log(`🪙 Gemini API Key: ${process.env.GEMINI_API_KEY ? '✅ Available' : '❌ Not found'}`);
+console.log(`🔄 Gemini fallback to API key: ${process.env.GEMINI_FALLBACK_TO_API_KEY === 'true' ? 'enabled' : 'disabled'}`);

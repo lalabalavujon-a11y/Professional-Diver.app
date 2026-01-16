@@ -42,9 +42,44 @@ import SrsReview from "@/pages/srs-review";
 import AdminSrs from "@/pages/admin-srs";
 import SupportTickets from "@/pages/support-tickets";
 import SupportDocuments from "@/pages/support-documents";
+import ComingSoon from "@/pages/coming-soon";
+import FeatureRouteGuard from "@/components/feature-route-guard";
 
 function Router() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  
+  // Auto-login SUPER_ADMIN on app startup if credentials exist
+  useEffect(() => {
+    // Initialize SUPER_ADMIN credentials if they don't exist (first time setup)
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    const rememberedPassword = localStorage.getItem('rememberedPassword');
+    const superAdminEmail = 'lalabalavu.jon@gmail.com';
+    const superAdminPassword = 'Admin123';
+    
+    if (!rememberedEmail || !rememberedPassword) {
+      // First time - set SUPER_ADMIN credentials
+      console.log('[App] Initializing SUPER_ADMIN credentials');
+      localStorage.setItem('rememberedEmail', superAdminEmail);
+      localStorage.setItem('rememberedPassword', superAdminPassword);
+      localStorage.setItem('userEmail', superAdminEmail);
+      localStorage.setItem('isSuperAdmin', 'true');
+    }
+    
+    // If on signin page and SUPER_ADMIN credentials exist, auto-redirect to dashboard
+    if (location === '/signin' || location === '/login') {
+      const currentUserEmail = localStorage.getItem('userEmail');
+      const isSuperAdmin = localStorage.getItem('isSuperAdmin') === 'true';
+      
+      if (currentUserEmail && isSuperAdmin) {
+        const normalizedEmail = currentUserEmail.toLowerCase().trim();
+        const superAdminEmails = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+        if (superAdminEmails.includes(normalizedEmail)) {
+          console.log('[App] SUPER_ADMIN detected on signin page, redirecting to dashboard');
+          setLocation('/dashboard');
+        }
+      }
+    }
+  }, [location, setLocation]);
   
   // Aggressively scroll to top on route change and initial load
   useEffect(() => {
@@ -114,7 +149,16 @@ function Router() {
   
   return (
     <Switch>
-      <Route path="/" component={EnterpriseHome} />
+      <Route path="/">
+        <FeatureRouteGuard
+          featureId="enterprise_features"
+          featureName="Enterprise Platform"
+          featureDescription="Complete enterprise operations platform for commercial diving operations"
+        >
+          <EnterpriseHome />
+        </FeatureRouteGuard>
+      </Route>
+      <Route path="/coming-soon" component={ComingSoon} />
       <Route path="/training" component={Training} />
       <Route path="/home" component={Home} />
       <Route path="/trial-signup" component={TrialSignup} />
@@ -148,9 +192,33 @@ function Router() {
       <Route path="/learning-path" component={LearningPath} />
       <Route path="/chat/laura" component={ChatLaura} />
       <Route path="/chat/diver-well" component={ChatDiverWell} />
-            <Route path="/operations" component={Operations} />
-            <Route path="/operations-calendar/shared/:token" component={OperationsCalendarShared} />
-            <Route path="/equipment" component={Equipment} />
+      <Route path="/operations">
+        <FeatureRouteGuard
+          featureId="enterprise_features"
+          featureName="Operations Center"
+          featureDescription="Dive operations management and enterprise tools"
+        >
+          <Operations />
+        </FeatureRouteGuard>
+      </Route>
+      <Route path="/operations-calendar/shared/:token">
+        <FeatureRouteGuard
+          featureId="enterprise_features"
+          featureName="Operations Calendar"
+          featureDescription="Shared operations calendar"
+        >
+          <OperationsCalendarShared />
+        </FeatureRouteGuard>
+      </Route>
+      <Route path="/equipment">
+        <FeatureRouteGuard
+          featureId="enterprise_features"
+          featureName="Equipment Management"
+          featureDescription="Equipment tracking and management"
+        >
+          <Equipment />
+        </FeatureRouteGuard>
+      </Route>
       <Route path="/tracks" component={Tracks} />
       <Route path="/terms" component={Terms} />
       <Route component={NotFound} />
