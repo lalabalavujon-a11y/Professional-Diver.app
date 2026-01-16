@@ -140,6 +140,9 @@ export default function RoleBasedNavigation() {
   
   // Get global feature flags (for Enterprise and Network features)
   const { isFeatureEnabled: isGlobalFeatureEnabled } = useGlobalFeatureFlags();
+  
+  // Check if enterprise features are enabled
+  const enterpriseFeaturesEnabled = isGlobalFeatureEnabled('enterprise_features');
 
   // Check for preview mode in URL
   const urlParams = new URLSearchParams(window.location.search);
