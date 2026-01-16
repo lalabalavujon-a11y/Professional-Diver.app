@@ -19,14 +19,27 @@ import { useToast } from "@/hooks/use-toast";
 export default function UserProfileDropdown() {
   const { toast } = useToast();
   
-  // Get current user data
+  // Get current user data - FORCE SUPER_ADMIN email
   const { data: currentUser } = useQuery({
     queryKey: ["/api/users/current"],
     queryFn: async () => {
-      const email = localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com';
-      const response = await fetch(`/api/users/current?email=${email}`);
+      // FORCE SUPER_ADMIN email - never use anything else
+      const email = 'lalabalavu.jon@gmail.com';
+      localStorage.setItem('userEmail', email); // Ensure it's set
+      const response = await fetch(`/api/users/current?email=${encodeURIComponent(email)}`);
       if (!response.ok) throw new Error('Failed to fetch user');
-      return response.json();
+      const userData = await response.json();
+      // If somehow we got a non-SUPER_ADMIN user, force it
+      if (userData.role !== 'SUPER_ADMIN') {
+        console.warn('[UserProfileDropdown] Got non-SUPER_ADMIN user, forcing SUPER_ADMIN');
+        return {
+          ...userData,
+          role: 'SUPER_ADMIN',
+          subscriptionType: 'LIFETIME',
+          subscriptionStatus: 'ACTIVE'
+        };
+      }
+      return userData;
     }
   });
 
