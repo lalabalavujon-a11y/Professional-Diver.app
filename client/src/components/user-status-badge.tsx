@@ -25,7 +25,14 @@ export default function UserStatusBadge({
     total: number;
   }>({ hours: 0, minutes: 0, seconds: 0, total: 0 });
 
+  // Super Admin emails - Jon Lalabalavu's accounts - ALWAYS show Super Admin, never Trial
+  const SUPER_ADMIN_EMAILS = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+  const isSuperAdminAccount = role === 'SUPER_ADMIN' || (userName && SUPER_ADMIN_EMAILS.some(email => userName.toLowerCase().includes(email.toLowerCase())));
+  
   useEffect(() => {
+    // Skip trial countdown for Super Admin
+    if (isSuperAdminAccount) return;
+    
     if ((subscriptionType === 'TRIAL' && trialExpiresAt) || 
         (subscriptionType === 'MONTHLY' || subscriptionType === 'ANNUAL') && subscriptionDate) {
       
@@ -68,8 +75,9 @@ export default function UserStatusBadge({
     }
   }, [subscriptionType, subscriptionDate, trialExpiresAt]);
 
-  // Admin Crown Badge
-  if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+  // Admin Crown Badge - CHECK THIS FIRST, before any subscription type checks
+  // Super Admin should NEVER see trial messages
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN' || isSuperAdminAccount) {
     return (
       <Card className="border-yellow-200 bg-gradient-to-r from-yellow-50 to-amber-50">
         <CardContent className="p-4">
@@ -210,8 +218,8 @@ export default function UserStatusBadge({
     );
   }
 
-  // Trial User Badge with 24hr Countdown
-  if (subscriptionType === 'TRIAL') {
+  // Trial User Badge with 24hr Countdown - NEVER show for Super Admin
+  if (subscriptionType === 'TRIAL' && !isSuperAdminAccount && role !== 'SUPER_ADMIN') {
     const isExpired = timeLeft.total <= 0;
     const isLowTime = timeLeft.total <= 3600000; // 1 hour remaining
 

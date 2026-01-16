@@ -51,10 +51,27 @@ export default function UserProfileDropdown() {
     }
   });
 
-  // Don't show profile dropdown for trial users
-  if (currentUser?.subscriptionType === 'TRIAL') {
+  // Don't show profile dropdown for trial users UNLESS they're super admin
+  // Super Admin should always see the dropdown, even if subscriptionType is TRIAL (shouldn't happen, but just in case)
+  if (currentUser?.subscriptionType === 'TRIAL' && !isSuperAdminEmail(currentUser?.email) && currentUser?.role !== 'SUPER_ADMIN') {
     return null;
   }
+  
+  // Force SUPER_ADMIN display for Jon's emails - ensure role and subscription are correct
+  const displayUser = currentUser ? {
+    ...currentUser,
+    role: isSuperAdminEmail(currentUser.email) ? 'SUPER_ADMIN' : currentUser.role,
+    subscriptionType: isSuperAdminEmail(currentUser.email) ? 'LIFETIME' : currentUser.subscriptionType,
+    subscriptionStatus: isSuperAdminEmail(currentUser.email) ? 'ACTIVE' : currentUser.subscriptionStatus,
+    name: isSuperAdminEmail(currentUser.email) && !currentUser.name ? 'Jon Lalabalavu' : currentUser.name
+  } : {
+    id: 'super-admin-default',
+    email: 'lalabalavu.jon@gmail.com',
+    name: 'Jon Lalabalavu',
+    role: 'SUPER_ADMIN',
+    subscriptionType: 'LIFETIME',
+    subscriptionStatus: 'ACTIVE'
+  };
 
   const handleSignOut = () => {
     localStorage.removeItem('userEmail');
@@ -118,30 +135,30 @@ export default function UserProfileDropdown() {
           className="flex items-center space-x-2 hover:bg-gray-100"
           data-testid="button-user-profile"
         >
-          {currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar ? (
-            <img 
-              src={currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar}
-              alt={currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : 'User')}
-              className="w-8 h-8 rounded-full object-cover border-2 border-slate-200"
-              onError={(e) => {
-                // Fallback to initials if image fails to load
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const fallback = target.nextElementSibling as HTMLElement;
-                if (fallback) fallback.style.display = 'flex';
-              }}
-            />
-          ) : null}
+              {displayUser?.photo || displayUser?.photoUrl || displayUser?.avatar ? (
+                <img 
+                  src={displayUser?.photo || displayUser?.photoUrl || displayUser?.avatar}
+                  alt={displayUser?.name || 'Super Admin'}
+                  className="w-8 h-8 rounded-full object-cover border-2 border-slate-200"
+                  onError={(e) => {
+                    // Fallback to initials if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+              ) : null}
           <div 
-            className={`w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center ${currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar ? 'hidden' : ''}`}
+            className={`w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center ${displayUser?.photo || displayUser?.photoUrl || displayUser?.avatar ? 'hidden' : ''}`}
           >
             <span className="text-primary-700 font-medium text-sm">
-              {getInitials(currentUser?.name || '', currentUser?.email || '')}
+              {getInitials(displayUser?.name || '', displayUser?.email || '')}
             </span>
           </div>
           <div className="hidden md:block text-left">
             <div className="text-sm font-medium text-slate-700">
-              {currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : 'User')}
+              {displayUser?.name || 'Super Admin'}
             </div>
           </div>
         </Button>
@@ -150,10 +167,10 @@ export default function UserProfileDropdown() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-3">
             <div className="flex items-center space-x-3">
-              {currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar ? (
+              {displayUser?.photo || displayUser?.photoUrl || displayUser?.avatar ? (
                 <img 
-                  src={currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar}
-                  alt={currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : 'User')}
+                  src={displayUser?.photo || displayUser?.photoUrl || displayUser?.avatar}
+                  alt={displayUser?.name || 'Super Admin'}
                   className="w-12 h-12 rounded-full object-cover border-2 border-slate-200"
                   onError={(e) => {
                     // Fallback to initials if image fails to load
@@ -165,36 +182,36 @@ export default function UserProfileDropdown() {
                 />
               ) : null}
               <div 
-                className={`w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center ${currentUser?.photo || currentUser?.photoUrl || currentUser?.avatar ? 'hidden' : ''}`}
+                className={`w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center ${displayUser?.photo || displayUser?.photoUrl || displayUser?.avatar ? 'hidden' : ''}`}
               >
                 <span className="text-primary-700 font-medium text-lg">
-                  {getInitials(currentUser?.name || '', currentUser?.email || '')}
+                  {getInitials(displayUser?.name || '', displayUser?.email || '')}
                 </span>
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium leading-none">
-                  {currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : 'User')}
+                  {displayUser?.name || 'Super Admin'}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground mt-1">
-                  {currentUser?.email}
+                  {displayUser?.email}
                 </p>
               </div>
-              {getRoleIcon(currentUser?.role)}
+              {getRoleIcon(displayUser?.role)}
             </div>
             
             {/* Role Badge */}
             <div className="flex justify-center">
-              {getRoleBadge(currentUser?.role, currentUser?.subscriptionType, currentUser?.email)}
+              {getRoleBadge(displayUser?.role, displayUser?.subscriptionType, displayUser?.email)}
             </div>
 
-            {/* Mini Status Badge */}
+            {/* Mini Status Badge - Always SUPER_ADMIN for Jon's emails */}
             <div className="scale-90 origin-left">
               <UserStatusBadge
-                role={currentUser?.role || (isSuperAdminEmail(currentUser?.email) ? 'SUPER_ADMIN' : 'USER')}
-                subscriptionType={currentUser?.subscriptionType || (isSuperAdminEmail(currentUser?.email) ? 'LIFETIME' : 'TRIAL')}
-                subscriptionDate={currentUser?.subscriptionDate}
-                trialExpiresAt={currentUser?.trialExpiresAt}
-                userName={currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : undefined)}
+                role={displayUser?.role || 'SUPER_ADMIN'}
+                subscriptionType={displayUser?.subscriptionType || 'LIFETIME'}
+                subscriptionDate={displayUser?.subscriptionDate}
+                trialExpiresAt={isSuperAdminEmail(displayUser?.email) ? undefined : displayUser?.trialExpiresAt}
+                userName={displayUser?.name || 'Jon Lalabalavu'}
               />
             </div>
           </div>

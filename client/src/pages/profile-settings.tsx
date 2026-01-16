@@ -690,11 +690,11 @@ export default function ProfileSettings() {
                       <p className="text-sm text-slate-500">{currentUser?.email}</p>
                     </div>
                     <UserStatusBadge
-                      role={currentUser?.role || (isSuperAdminEmail(currentUser?.email) ? 'SUPER_ADMIN' : 'USER')}
-                      subscriptionType={currentUser?.subscriptionType || (isSuperAdminEmail(currentUser?.email) ? 'LIFETIME' : 'TRIAL')}
+                      role={isSuperAdminEmail(currentUser?.email) ? 'SUPER_ADMIN' : (currentUser?.role || 'USER')}
+                      subscriptionType={isSuperAdminEmail(currentUser?.email) ? 'LIFETIME' : (currentUser?.subscriptionType || 'TRIAL')}
                       subscriptionDate={currentUser?.subscriptionDate}
-                      trialExpiresAt={currentUser?.trialExpiresAt}
-                      userName={currentUser?.name || (isSuperAdminEmail(currentUser?.email) ? 'Super Admin' : undefined)}
+                      trialExpiresAt={isSuperAdminEmail(currentUser?.email) ? undefined : currentUser?.trialExpiresAt}
+                      userName={isSuperAdminEmail(currentUser?.email) ? (currentUser?.name || 'Jon Lalabalavu') : currentUser?.name}
                     />
                   </div>
                   
