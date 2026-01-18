@@ -128,7 +128,10 @@ export function useAutoGPSSync(options: AutoGPSSyncOptions = {}) {
       
       const response = await fetch('/api/widgets/location', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-email': userEmail, // Add header for backend lookup
+        },
         body: JSON.stringify({
           email: userEmail,
           latitude: position.latitude,
@@ -137,6 +140,12 @@ export function useAutoGPSSync(options: AutoGPSSyncOptions = {}) {
           isCurrentLocation: true,
         }),
       });
+
+      // Don't retry on 404 (user not found) - just log and return
+      if (response.status === 404) {
+        console.warn('User not found for GPS sync, skipping save:', userEmail);
+        return;
+      }
 
       if (response.ok) {
         lastSavedPositionRef.current = {

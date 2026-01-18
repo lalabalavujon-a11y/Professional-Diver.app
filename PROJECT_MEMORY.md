@@ -219,6 +219,12 @@ These tracks are seeded via `scripts/professional-seed.ts`:
    - Issue: `useQuery` was missing `queryFn`, so it never fetched data
    - Fix: Added `queryFn` that fetches from `/api/tracks/:slug`
 
+2. **PDF Lesson Guide not showing** - Fixed PDF.js worker configuration for Vite
+   - Issue: PDF.js worker was using `.mjs` file which Vite tried to resolve as a module, causing "bare specifier" error
+   - Fix: Updated `pdf-ebook-viewer.tsx` to use `.min.js` worker from unpkg CDN (version 5.4.296 matching react-pdf v10)
+   - Location: `client/src/components/pdf-ebook-viewer.tsx` lines 10-18
+   - Also fixed: Added missing `queryFn` to `lesson-detail.tsx` to properly fetch lesson data including `pdfUrl`
+
 ### GPS Location Error
 - Error handling already implemented in `compact-navigation-widget.tsx`
 - Handles: permission denied, unavailable, timeout, browser support

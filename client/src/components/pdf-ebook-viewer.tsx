@@ -7,13 +7,28 @@ import { usePdfBookmarks } from "@/hooks/usePdfBookmarks";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
-// Configure PDF.js worker for react-pdf v10
-// Use unpkg CDN which works reliably with Vite
+// Configure PDF.js worker for react-pdf v10 with Vite compatibility
+// CRITICAL FIX: Use jsdelivr CDN which is more reliable for workers
+// react-pdf v10 uses pdfjs-dist 5.4.296 - use matching version
+// The .min.js version avoids Vite's module resolution issues with .mjs files
 if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
-  // Use full HTTPS URL - this avoids Vite's module resolution
-  // The worker must be loaded as a URL, not as an ES module
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-  console.log('PDF.js worker configured:', pdfjs.GlobalWorkerOptions.workerSrc);
+  try {
+    // Use jsdelivr CDN which is more reliable than unpkg for worker files
+    // Version 5.4.296 matches react-pdf v10's dependency
+    // Using .min.js (not .mjs) prevents Vite from trying to resolve it as a module
+    const workerUrl = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/pdf.worker.min.js';
+    pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+    console.log('✅ PDF.js worker configured:', workerUrl);
+  } catch (error) {
+    console.error('❌ Failed to configure PDF.js worker:', error);
+    // Fallback to Cloudflare CDN
+    try {
+      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      console.log('✅ PDF.js worker fallback configured (Cloudflare CDN)');
+    } catch (fallbackError) {
+      console.error('❌ Failed to configure PDF.js worker fallback:', fallbackError);
+    }
+  }
 }
 
 interface PdfEbookViewerProps {
@@ -31,8 +46,38 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
   const [error, setError] = useState<string | null>(null);
   const [pageWidth, setPageWidth] = useState(800);
   const [pdfData, setPdfData] = useState<Blob | string | null>(null);
+  const [workerReady, setWorkerReady] = useState(false);
   
   const { bookmarks, toggleBookmark, isBookmarked, removeBookmark } = usePdfBookmarks(lessonId);
+
+  // Verify worker is configured on mount and wait for it to be ready
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const checkWorker = () => {
+        const workerSrc = pdfjs.GlobalWorkerOptions.workerSrc;
+        if (workerSrc) {
+          console.log('✅ PDF.js worker is configured:', workerSrc);
+          // Small delay to ensure worker is fully loaded
+          setTimeout(() => {
+            setWorkerReady(true);
+          }, 100);
+        } else {
+          console.error('❌ PDF.js worker is NOT configured!');
+          // Retry after a short delay in case it's still initializing
+          setTimeout(() => {
+            const retryWorkerSrc = pdfjs.GlobalWorkerOptions.workerSrc;
+            if (retryWorkerSrc) {
+              console.log('✅ PDF.js worker configured on retry:', retryWorkerSrc);
+              setWorkerReady(true);
+            } else {
+              setError('PDF viewer worker not initialized. Please refresh the page.');
+            }
+          }, 500);
+        }
+      };
+      checkWorker();
+    }
+  }, []);
 
   // Fetch PDF as blob when URL changes - this helps with CORS and loading issues
   useEffect(() => {
@@ -108,22 +153,31 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
   const onDocumentLoadError = (error: Error) => {
     console.error('PDF load error:', error);
     console.error('PDF URL:', pdfUrl);
+    console.error('Worker source:', pdfjs.GlobalWorkerOptions.workerSrc);
     console.error('Error details:', {
       message: error.message,
       stack: error.stack,
       name: error.name
     });
     
-    // More detailed error message
+    // More detailed error message with specific handling for worker errors
     let errorMessage = 'Failed to load PDF. ';
-    if (error.message.includes('Missing PDF')) {
+    const errorMsg = error.message || '';
+    
+    if (errorMsg.includes('Missing PDF') || errorMsg.includes('not found')) {
       errorMessage += 'PDF file not found. Please verify the file exists.';
-    } else if (error.message.includes('Invalid PDF')) {
+    } else if (errorMsg.includes('Invalid PDF') || errorMsg.includes('format')) {
       errorMessage += 'Invalid PDF format.';
-    } else if (error.message.includes('Network')) {
+    } else if (errorMsg.includes('Network') || errorMsg.includes('fetch')) {
       errorMessage += 'Network error. Please check your connection and try again.';
+    } else if (errorMsg.includes('worker') || errorMsg.includes('specifier') || errorMsg.includes('remapped')) {
+      errorMessage += 'PDF viewer worker error. The worker may not be loading correctly. Please refresh the page.';
+      console.error('Worker error detected. Current worker source:', pdfjs.GlobalWorkerOptions.workerSrc);
+    } else if (errorMsg.includes('CORS') || errorMsg.includes('cross-origin')) {
+      errorMessage += 'CORS error. The PDF server may not allow cross-origin requests.';
     } else {
-      errorMessage += `Error: ${error.message || 'Unknown error'}. Please try again.`;
+      // Show the actual error message for debugging
+      errorMessage += `Error: ${errorMsg || 'Unknown error'}. Please check the browser console for details.`;
     }
     
     setError(errorMessage);
@@ -336,7 +390,14 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
 
           {/* PDF Display */}
           <div className="flex justify-center bg-gray-100 rounded-lg p-4 min-h-[600px]">
-            {pdfData ? (
+            {!workerReady ? (
+              <div className="flex items-center justify-center h-full w-full">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <p className="text-gray-600">Initializing PDF viewer...</p>
+                </div>
+              </div>
+            ) : pdfData ? (
               <Document
                 file={pdfData}
                 onLoadSuccess={onDocumentLoadSuccess}
@@ -352,10 +413,13 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
                 }
                 className="flex justify-center w-full"
                 options={{
-                  cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+                  // Use version 5.4.296 to match react-pdf v10's dependency exactly
+                  cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/cmaps/',
                   cMapPacked: true,
                   httpHeaders: {},
                   withCredentials: false,
+                  workerSrc: pdfjs.GlobalWorkerOptions.workerSrc,
+                  standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/standard_fonts/',
                 }}
                 error={
                   <div className="flex items-center justify-center h-full w-full">
