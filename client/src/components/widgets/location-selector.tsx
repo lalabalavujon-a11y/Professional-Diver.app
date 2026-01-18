@@ -100,13 +100,13 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
         setLocationName(currentLocation.locationName || '');
         setSelectedLocationValue(''); // Reset dropdown selection
       } else {
-        // Reset form if no location
-        console.log('No current location, resetting form');
-        setLatitude('');
-        setLongitude('');
-        setLocationName('');
+        // DEFAULT: Set Port of Southampton if no location is set
+        console.log('No current location, setting default to Port of Southampton');
+        setLatitude('50.863714');
+        setLongitude('-1.425028');
+        setLocationName('Port of Southampton');
         setAddressSearch('');
-        setSelectedLocationValue('');
+        setSelectedLocationValue('port:28'); // Port of Southampton id
       }
     }
   }, [isOpen, currentLocation]);
@@ -425,7 +425,7 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
                   <SelectTrigger id="location-select">
                     <SelectValue placeholder="Select a port or city..." />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[300px]" position="item-aligned">
+                  <SelectContent className="max-h-[300px]" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                     <SelectGroup>
                       <SelectLabel>⚓ Primary Ports</SelectLabel>
                       {locationOptions
