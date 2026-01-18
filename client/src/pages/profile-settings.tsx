@@ -374,7 +374,9 @@ export default function ProfileSettings() {
         title: "Profile Picture Updated",
         description: "Your profile picture has been successfully updated.",
       });
+      // Invalidate ALL queries that might use user data
       queryClient.invalidateQueries({ queryKey: ["/api/users/current"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users/current"] });
       setSelectedFile(null);
       setPreviewUrl(null);
     },
@@ -416,7 +418,9 @@ export default function ProfileSettings() {
         title: "Gravatar Enabled",
         description: "Your profile picture is now using Gravatar.",
       });
+      // Invalidate and refetch to ensure dropdown updates
       queryClient.invalidateQueries({ queryKey: ["/api/users/current"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users/current"] });
     },
     onError: (error: any) => {
       toast({
