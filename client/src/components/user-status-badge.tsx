@@ -26,8 +26,17 @@ export default function UserStatusBadge({
   }>({ hours: 0, minutes: 0, seconds: 0, total: 0 });
 
   // Super Admin emails - Jon Lalabalavu's accounts - ALWAYS show Super Admin, never Trial
+  const SUPER_ADMIN_EMAILS = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+  
+  // Check if userName contains a super admin email OR role is SUPER_ADMIN/ADMIN
+  const isSuperAdminEmail = userName && SUPER_ADMIN_EMAILS.some(email => 
+    userName.toLowerCase().includes(email.toLowerCase()) || 
+    userName.toLowerCase().includes('jon lalabalavu')
+  );
+  
   // Check role FIRST - if SUPER_ADMIN, never show trial
-  const isSuperAdminAccount = role === 'SUPER_ADMIN' || role === 'ADMIN';
+  // ALSO check by email if role might be wrong
+  const isSuperAdminAccount = role === 'SUPER_ADMIN' || role === 'ADMIN' || isSuperAdminEmail;
   
   useEffect(() => {
     // Skip trial countdown for Super Admin
