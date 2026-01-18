@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import { PageHeader, StatCard, PageSection } from "@/components/ui/page-header";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileNotSupported } from "@/components/mobile-not-supported";
 import { DataTable } from "@/components/ui/data-table";
 import { LoadingSpinner, SkeletonTable } from "@/components/ui/loading-states";
 import { EmptyState, ErrorState } from "@/components/ui/empty-states";
@@ -318,6 +320,18 @@ export default function CRMDashboard() {
     }
     return list;
   }, [filterStatus]);
+
+  const isMobile = useIsMobile();
+
+  // Show mobile-not-supported message on mobile devices
+  if (isMobile) {
+    return (
+      <>
+        <RoleBasedNavigation />
+        <MobileNotSupported pageName="CRM Dashboard" />
+      </>
+    );
+  }
 
   if (clientsLoading || statsLoading) {
     return (

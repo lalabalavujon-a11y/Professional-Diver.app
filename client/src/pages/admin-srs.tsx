@@ -75,6 +75,18 @@ export default function AdminSrs() {
     );
   }
 
+  const isMobile = useIsMobile();
+
+  // Show mobile-not-supported message on mobile devices
+  if (isMobile) {
+    return (
+      <>
+        <RoleBasedNavigation />
+        <MobileNotSupported pageName="SRS Admin" />
+      </>
+    );
+  }
+
   const [deckTitle, setDeckTitle] = useState("");
   const [deckDescription, setDeckDescription] = useState("");
   const [selectedDeckId, setSelectedDeckId] = useState<string>("");
