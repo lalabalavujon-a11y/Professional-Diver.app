@@ -1072,7 +1072,7 @@ export default function ProfileSettings() {
                         <SelectTrigger className="w-64">
                           <SelectValue placeholder="Select location..." />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[400px]" position="popper">
+                        <SelectContent className="max-h-[400px]" position="item-aligned">
                           <SelectGroup>
                             {locations.filter(loc => loc.type === 'port-primary').length > 0 && (
                               <>
