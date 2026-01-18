@@ -12,6 +12,15 @@ export default function TrackDetail() {
   const [, params] = useRoute("/tracks/:slug");
   const { data: track, isLoading } = useQuery<TrackWithLessons>({
     queryKey: ["/api/tracks", params?.slug],
+    queryFn: async () => {
+      if (!params?.slug) return null;
+      const response = await fetch(`/api/tracks/${params.slug}`);
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error('Failed to fetch track');
+      }
+      return response.json();
+    },
     enabled: !!params?.slug,
   });
 

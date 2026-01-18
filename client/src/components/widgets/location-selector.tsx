@@ -129,6 +129,7 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-user-email': userEmail, // Add header for backend lookup
         },
         body: JSON.stringify({
           email: userEmail,
@@ -424,9 +425,9 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
                   <SelectTrigger id="location-select">
                     <SelectValue placeholder="Select a port or city..." />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
+                  <SelectContent className="max-h-[300px]" position="item-aligned">
                     <SelectGroup>
-                      <SelectLabel>Primary Ports</SelectLabel>
+                      <SelectLabel>⚓ Primary Ports</SelectLabel>
                       {locationOptions
                         .filter(loc => loc.type === 'port-primary')
                         .map((loc) => (
@@ -436,7 +437,7 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
                         ))}
                     </SelectGroup>
                     <SelectGroup>
-                      <SelectLabel>Secondary Ports</SelectLabel>
+                      <SelectLabel>🚢 Secondary Ports</SelectLabel>
                       {locationOptions
                         .filter(loc => loc.type === 'port-secondary')
                         .map((loc) => (
@@ -446,7 +447,7 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
                         ))}
                     </SelectGroup>
                     <SelectGroup>
-                      <SelectLabel>Cities</SelectLabel>
+                      <SelectLabel>🌍 Cities</SelectLabel>
                       {locationOptions
                         .filter(loc => loc.type === 'city')
                         .map((loc) => (
