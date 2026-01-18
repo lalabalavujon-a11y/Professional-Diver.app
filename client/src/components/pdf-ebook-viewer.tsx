@@ -8,12 +8,11 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
 // Configure PDF.js worker for react-pdf v10 with Vite compatibility
-// CRITICAL FIX: Use CDN URL directly to avoid route-relative path resolution issues
-// The new URL() approach was resolving to /lessons/pdf.worker.mjs when on lesson pages
-// Using a CDN ensures the worker loads from an absolute URL regardless of current route
-if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
-  // Use CDN with version 5.4.296 which matches react-pdf v10's dependency
-  // This is the most reliable approach and avoids Vite path resolution issues
+// CRITICAL FIX: Force set worker to CDN URL to avoid route-relative path resolution issues
+// This must be set BEFORE any PDF.js operations occur
+if (typeof window !== 'undefined') {
+  // Always set to CDN - don't check if already set, force it
+  // Use version 5.4.296 which matches react-pdf v10's dependency
   pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/pdf.worker.min.mjs';
   console.log('✅ PDF.js worker configured (CDN):', pdfjs.GlobalWorkerOptions.workerSrc);
 }
@@ -37,32 +36,32 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
   
   const { bookmarks, toggleBookmark, isBookmarked, removeBookmark } = usePdfBookmarks(lessonId);
 
-  // Verify worker is configured on mount and wait for it to be ready
+  // Force worker configuration on mount and verify it's set
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const checkWorker = () => {
-        const workerSrc = pdfjs.GlobalWorkerOptions.workerSrc;
-        if (workerSrc) {
-          console.log('✅ PDF.js worker is configured:', workerSrc);
-          // Small delay to ensure worker is fully loaded
-          setTimeout(() => {
-            setWorkerReady(true);
-          }, 100);
-        } else {
-          console.error('❌ PDF.js worker is NOT configured!');
-          // Retry after a short delay in case it's still initializing
-          setTimeout(() => {
-            const retryWorkerSrc = pdfjs.GlobalWorkerOptions.workerSrc;
-            if (retryWorkerSrc) {
-              console.log('✅ PDF.js worker configured on retry:', retryWorkerSrc);
-              setWorkerReady(true);
-            } else {
-              setError('PDF viewer worker not initialized. Please refresh the page.');
-            }
-          }, 500);
-        }
-      };
-      checkWorker();
+      // Force set worker again in case it was overridden by react-pdf
+      const workerUrl = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/pdf.worker.min.mjs';
+      pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+      
+      // Verify it's set correctly
+      const currentWorkerSrc = pdfjs.GlobalWorkerOptions.workerSrc;
+      console.log('🔍 PDF.js worker check - Set to:', workerUrl);
+      console.log('🔍 PDF.js worker check - Current:', currentWorkerSrc);
+      
+      if (currentWorkerSrc && (currentWorkerSrc.includes('cdn.jsdelivr.net') || currentWorkerSrc.includes('unpkg.com') || currentWorkerSrc.includes('cdnjs.cloudflare.com'))) {
+        console.log('✅ PDF.js worker is correctly configured:', currentWorkerSrc);
+        // Small delay to ensure worker is fully loaded
+        setTimeout(() => {
+          setWorkerReady(true);
+        }, 300);
+      } else {
+        console.warn('⚠️ PDF.js worker may not be correctly configured. Current:', currentWorkerSrc);
+        // Force set again and proceed anyway
+        pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+        setTimeout(() => {
+          setWorkerReady(true);
+        }, 300);
+      }
     }
   }, []);
 
@@ -138,14 +137,25 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
   };
 
   const onDocumentLoadError = (error: Error) => {
-    console.error('PDF load error:', error);
-    console.error('PDF URL:', pdfUrl);
-    console.error('Worker source:', pdfjs.GlobalWorkerOptions.workerSrc);
-    console.error('Error details:', {
+    const currentWorkerSrc = pdfjs.GlobalWorkerOptions.workerSrc;
+    console.error('❌ PDF load error:', error);
+    console.error('📄 PDF URL:', pdfUrl);
+    console.error('🔧 Worker source:', currentWorkerSrc);
+    console.error('📋 Error details:', {
       message: error.message,
       stack: error.stack,
       name: error.name
     });
+    
+    // Check if worker is incorrectly configured
+    if (currentWorkerSrc && (currentWorkerSrc.includes('/lessons/') || currentWorkerSrc.includes('localhost:3000/lessons'))) {
+      console.error('🚨 WORKER PATH ERROR: Worker is set to incorrect route-relative path!');
+      console.error('   Current:', currentWorkerSrc);
+      console.error('   Should be: CDN URL');
+      // Force fix it
+      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/pdf.worker.min.mjs';
+      console.log('   Fixed to:', pdfjs.GlobalWorkerOptions.workerSrc);
+    }
     
     // More detailed error message with specific handling for worker errors
     let errorMessage = 'Failed to load PDF. ';
@@ -157,9 +167,10 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
       errorMessage += 'Invalid PDF format.';
     } else if (errorMsg.includes('Network') || errorMsg.includes('fetch')) {
       errorMessage += 'Network error. Please check your connection and try again.';
-    } else if (errorMsg.includes('worker') || errorMsg.includes('specifier') || errorMsg.includes('remapped')) {
-      errorMessage += 'PDF viewer worker error. The worker may not be loading correctly. Please refresh the page.';
-      console.error('Worker error detected. Current worker source:', pdfjs.GlobalWorkerOptions.workerSrc);
+    } else if (errorMsg.includes('worker') || errorMsg.includes('specifier') || errorMsg.includes('remapped') || errorMsg.includes('MIME type')) {
+      errorMessage += 'PDF viewer worker error. The worker may not be loading correctly. ';
+      errorMessage += `Worker: ${currentWorkerSrc || 'not set'}. Please refresh the page.`;
+      console.error('🚨 Worker error detected. Current worker source:', currentWorkerSrc);
     } else if (errorMsg.includes('CORS') || errorMsg.includes('cross-origin')) {
       errorMessage += 'CORS error. The PDF server may not allow cross-origin requests.';
     } else {
