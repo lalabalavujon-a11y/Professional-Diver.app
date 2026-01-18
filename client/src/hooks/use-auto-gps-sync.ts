@@ -37,6 +37,7 @@ export function useAutoGPSSync(options: AutoGPSSyncOptions = {}) {
   const lastSavedPositionRef = useRef<{ lat: number; lon: number } | null>(null);
   const retryCountRef = useRef<number>(0);
   const errorShownThisSessionRef = useRef<boolean>(false);
+  const userNotFoundShownRef = useRef<boolean>(false); // Track if we've already shown user not found
   const MAX_RETRIES = 3;
 
   // Calculate distance between two coordinates (Haversine formula)
@@ -141,10 +142,28 @@ export function useAutoGPSSync(options: AutoGPSSyncOptions = {}) {
         }),
       });
 
-      // Don't retry on 404 (user not found) - just log and return
+      // Don't retry on 404 (user not found) - just log and return silently
       if (response.status === 404) {
         console.warn('User not found for GPS sync, skipping save:', userEmail);
+        // Suppress error toast for user not found - this is a backend/user setup issue, not GPS
+        // The location will be saved once user is properly created in the database
         return;
+      }
+      
+      // Check for other error statuses (but don't show toast for user-related errors)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || '';
+        
+        // Suppress error if it's user-related (404, user not found, etc.)
+        if (response.status === 404 || errorMessage.toLowerCase().includes('user not found')) {
+          console.warn('User lookup failed for GPS sync, skipping:', errorMessage);
+          return;
+        }
+        
+        // Only show error toast for actual GPS/service errors, not user setup issues
+        console.error('GPS location save failed:', response.status, errorData);
+        return; // Don't show toast - let the GPS update retry handle actual GPS errors
       }
 
       if (response.ok) {
