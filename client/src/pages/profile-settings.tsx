@@ -104,6 +104,7 @@ export default function ProfileSettings() {
 
   // Display preferences state - load from localStorage or use defaults
   // Support both timezone (legacy) and location (new unified format)
+  // DEFAULT: Port of Southampton (port:28) for Super Admin
   const [location, setLocation] = useState<string>(() => {
     try {
       const stored = localStorage.getItem('userPreferences');
@@ -113,9 +114,11 @@ export default function ProfileSettings() {
         if (prefs.location) return prefs.location;
         if (prefs.timezone) return prefs.timezone;
       }
-      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      // Default to Port of Southampton for Super Admin users
+      return 'port:28'; // Port of Southampton
     } catch {
-      return 'UTC';
+      // Default to Port of Southampton on error
+      return 'port:28';
     }
   });
 
