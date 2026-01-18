@@ -196,9 +196,12 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
       console.log('GPS fields populated - latitude:', position.latitude, 'longitude:', position.longitude);
     } catch (error: any) {
       console.error('GPS error:', error);
+      const errorMessage = error?.message || error?.code || 'Unknown error';
       toast({
-        title: "Location error",
-        description: error.message || 'Failed to get location',
+        title: "GPS Location Error",
+        description: errorMessage === 'Unknown error' 
+          ? 'Please enable location permissions in your browser settings and try again' 
+          : errorMessage,
         variant: "destructive",
       });
     }
