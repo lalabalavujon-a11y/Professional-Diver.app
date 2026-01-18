@@ -4126,7 +4126,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // CRITICAL: Check for SUPER_ADMIN emails FIRST - never create them as USER
       const isSuperAdminEmail = normalizedEmail === 'lalabalavu.jon@gmail.com' || normalizedEmail === 'sephdee@hotmail.com';
       
-      const user = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
+      // Try exact match first, then case-insensitive match
+      let user = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
+      
+      // If no exact match, try case-insensitive (for SQLite compatibility)
+      if (user.length === 0 && env === 'development' && !hasDatabaseUrl) {
+        const allUsers = await db.select().from(usersTable);
+        user = allUsers.filter(u => u.email?.toLowerCase().trim() === normalizedEmail).slice(0, 1);
+      }
+      
       if (user.length > 0) {
         // If user exists but is SUPER_ADMIN email with wrong role, log warning (don't auto-fix to avoid breaking things)
         if (isSuperAdminEmail && user[0].role !== 'SUPER_ADMIN') {
