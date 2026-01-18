@@ -3607,6 +3607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If it's not "gravatar" and not a data URL, normalize object storage URLs
       if (profilePictureURL !== 'gravatar' && !profilePictureURL.startsWith('data:')) {
+        const { ObjectStorageService } = await import("./objectStorage");
         const objectStorageService = new ObjectStorageService();
         normalizedPath = objectStorageService.normalizeObjectEntityPath(profilePictureURL);
       }
