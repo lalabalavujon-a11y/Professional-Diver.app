@@ -145,6 +145,15 @@ export default function LessonDetail() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { data: lesson, isLoading } = useQuery<LessonWithTrackSlug>({
     queryKey: ["/api/lessons", params?.id],
+    queryFn: async () => {
+      if (!params?.id) return null;
+      const response = await fetch(`/api/lessons/${params.id}`);
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error('Failed to fetch lesson');
+      }
+      return response.json();
+    },
     enabled: !!params?.id,
   });
 
