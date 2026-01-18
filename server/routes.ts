@@ -55,6 +55,10 @@ import { registerOpenAIVoiceWsRoutes } from "./voice/openai-live-ws";
 // In-memory store for user profile data (for demo purposes)
 const userProfileStore = new Map<string, any>();
 
+// In-memory stores for passwords and 2FA
+const passwordStore = new Map<string, string>();
+const twoFactorStore = new Map<string, { secret: string; enabled: boolean }>();
+
 // Helper function to generate Gravatar URL
 function getGravatarUrl(email: string, size: number = 200): string {
   const normalizedEmail = email.trim().toLowerCase();
@@ -639,6 +643,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error stack:", error?.stack);
       console.error("Request body:", req.body);
       res.status(500).json({ error: "Authentication failed", details: error?.message || "Unknown error" });
+    }
+  });
+
+  // Password Change Endpoint
+  app.post("/api/auth/change-password", async (req, res) => {
+    try {
+      const { email, currentPassword, newPassword } = req.body;
+
+      if (!email || !currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Email, current password, and new password are required" });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+
+      const normalizedEmail = (email || '').toLowerCase().trim();
+
+      // Check against super admin credentials first
+      const superAdminCredentials: Record<string, string> = {
+        'lalabalavu.jon@gmail.com': 'Admin123',
+        'sephdee@hotmail.com': 'Admin123',
+      };
+
+      const storedPassword = passwordStore.get(normalizedEmail) || superAdminCredentials[normalizedEmail];
+
+      if (!storedPassword || storedPassword !== currentPassword) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      // Update password in store
+      passwordStore.set(normalizedEmail, newPassword);
+
+      // Update super admin credentials if it's a super admin
+      if (superAdminCredentials[normalizedEmail]) {
+        superAdminCredentials[normalizedEmail] = newPassword;
+      }
+
+      res.json({ success: true, message: "Password changed successfully" });
+    } catch (error: any) {
+      console.error("Password change error:", error);
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
+  // 2FA Setup - Generate secret and QR code
+  app.post("/api/auth/2fa/setup", async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const normalizedEmail = (email || '').toLowerCase().trim();
+      
+      // Generate a random secret (base32 encoded, 32 characters)
+      // TOTP secrets are typically base32 encoded
+      const secretBytes = randomBytes(20);
+      // Convert to base32 manually (RFC 4648 base32 alphabet: A-Z, 2-7)
+      const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      let secret = '';
+      for (let i = 0; i < 32; i++) {
+        const byteIndex = i % secretBytes.length;
+        const charIndex = secretBytes[byteIndex] % base32Alphabet.length;
+        secret += base32Alphabet[charIndex];
+      }
+
+      // Store secret (not enabled yet)
+      twoFactorStore.set(normalizedEmail, { secret, enabled: false });
+
+      // Generate QR code data URL
+      // For now, return the secret and manual entry URL
+      // The frontend can use a QR code library to generate the QR code
+      const issuer = 'Professional Diver Training';
+      const accountName = normalizedEmail;
+      const otpAuthUrl = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(accountName)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}`;
+
+      // Generate a simple QR code data URL using a placeholder
+      // In production, you'd use a QR code library like 'qrcode'
+      const qrCodeDataUrl = `data:image/svg+xml;base64,${Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+          <rect width="200" height="200" fill="white"/>
+          <text x="100" y="100" text-anchor="middle" font-family="monospace" font-size="10">QR Code</text>
+          <text x="100" y="120" text-anchor="middle" font-family="monospace" font-size="8">Use authenticator app</text>
+          <text x="100" y="135" text-anchor="middle" font-family="monospace" font-size="8">with secret below</text>
+        </svg>`
+      ).toString('base64')}`;
+
+      res.json({
+        secret,
+        qrCode: qrCodeDataUrl,
+        otpAuthUrl,
+      });
+    } catch (error: any) {
+      console.error("2FA setup error:", error);
+      res.status(500).json({ error: "Failed to setup 2FA" });
+    }
+  });
+
+  // 2FA Verify - Verify token and enable 2FA
+  app.post("/api/auth/2fa/verify", async (req, res) => {
+    try {
+      const { email, token, secret } = req.body;
+
+      if (!email || !token || !secret) {
+        return res.status(400).json({ error: "Email, token, and secret are required" });
+      }
+
+      const normalizedEmail = (email || '').toLowerCase().trim();
+
+      // Verify token (simple TOTP implementation)
+      // In production, use a proper TOTP library like 'otplib'
+      const stored2FA = twoFactorStore.get(normalizedEmail);
+      if (!stored2FA || stored2FA.secret !== secret) {
+        return res.status(400).json({ error: "Invalid 2FA secret" });
+      }
+
+      // For now, accept any 6-digit token for demo purposes
+      // In production, implement proper TOTP verification
+      const tokenStr = token.toString().replace(/\D/g, '');
+      if (tokenStr.length !== 6) {
+        return res.status(400).json({ error: "Token must be 6 digits" });
+      }
+
+      // Enable 2FA
+      twoFactorStore.set(normalizedEmail, { secret, enabled: true });
+
+      res.json({ success: true, message: "2FA enabled successfully" });
+    } catch (error: any) {
+      console.error("2FA verify error:", error);
+      res.status(500).json({ error: "Failed to verify 2FA" });
+    }
+  });
+
+  // 2FA Status - Check if 2FA is enabled
+  app.get("/api/auth/2fa/status", async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const normalizedEmail = (email || '').toLowerCase().trim();
+      const twoFactorData = twoFactorStore.get(normalizedEmail);
+
+      res.json({
+        enabled: twoFactorData?.enabled || false,
+        hasSecret: !!twoFactorData?.secret,
+      });
+    } catch (error: any) {
+      console.error("2FA status error:", error);
+      res.status(500).json({ error: "Failed to get 2FA status" });
     }
   });
 
