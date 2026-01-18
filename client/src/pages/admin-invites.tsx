@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileNotSupported } from "@/components/mobile-not-supported";
 import { Input } from "@/components/ui/input";
 import { 
   Dialog,
@@ -94,6 +96,18 @@ export default function AdminInvites() {
   const handleRevokeInvite = (inviteId: string) => {
     deleteInviteMutation.mutate(inviteId);
   };
+
+  const isMobile = useIsMobile();
+
+  // Show mobile-not-supported message on mobile devices
+  if (isMobile) {
+    return (
+      <>
+        <RoleBasedNavigation />
+        <MobileNotSupported pageName="Admin Invites" />
+      </>
+    );
+  }
 
   return (
     <>

@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileNotSupported } from "@/components/mobile-not-supported";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -279,6 +281,18 @@ export default function AdminBulkUpload() {
 
   const isUploading = bulkUploadMutation.isPending || autoUploadMutation.isPending;
   const allMapped = files.length > 0 && files.every((_, index) => fileMappings.has(index));
+
+  const isMobile = useIsMobile();
+
+  // Show mobile-not-supported message on mobile devices
+  if (isMobile) {
+    return (
+      <>
+        <RoleBasedNavigation />
+        <MobileNotSupported pageName="Bulk Upload" />
+      </>
+    );
+  }
 
   return (
     <>

@@ -4,6 +4,8 @@ import RoleBasedNavigation from "@/components/role-based-navigation";
 import { PageHeader, StatCard, PageSection } from "@/components/ui/page-header";
 import { LoadingSpinner, SkeletonCard } from "@/components/ui/loading-states";
 import { ErrorState } from "@/components/ui/empty-states";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileNotSupported } from "@/components/mobile-not-supported";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -210,6 +212,18 @@ export default function Analytics() {
     if (percentage >= 60) return 'text-warning-600';
     return 'text-error-600';
   };
+
+  const isMobile = useIsMobile();
+
+  // Show mobile-not-supported message on mobile devices
+  if (isMobile) {
+    return (
+      <>
+        <RoleBasedNavigation />
+        <MobileNotSupported pageName="Analytics" />
+      </>
+    );
+  }
 
   return (
     <>

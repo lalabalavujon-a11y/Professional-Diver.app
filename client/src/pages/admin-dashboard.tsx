@@ -26,6 +26,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import type { Invite, Track } from "@shared/schema";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileNotSupported } from "@/components/mobile-not-supported";
 
 type DashboardStats = {
   activeUsers: number;
@@ -194,6 +196,17 @@ export default function AdminDashboard() {
   });
 
   const [location, navigate] = useLocation();
+  const isMobile = useIsMobile();
+
+  // Show mobile-not-supported message on mobile devices
+  if (isMobile) {
+    return (
+      <>
+        <RoleBasedNavigation />
+        <MobileNotSupported pageName="Admin Dashboard" />
+      </>
+    );
+  }
 
   return (
     <>
