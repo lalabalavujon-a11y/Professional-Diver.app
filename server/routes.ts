@@ -4126,12 +4126,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // CRITICAL: Check for SUPER_ADMIN emails FIRST - never create them as USER
       const isSuperAdminEmail = normalizedEmail === 'lalabalavu.jon@gmail.com' || normalizedEmail === 'sephdee@hotmail.com';
       
-      // Try exact match first, then case-insensitive match
-      let user = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
+      // Select only the columns we need to avoid schema mismatch errors
+      let user = await db.select({
+        id: usersTable.id,
+        email: usersTable.email,
+        role: usersTable.role,
+      }).from(usersTable).where(eq(usersTable.email, normalizedEmail)).limit(1);
       
       // If no exact match, try case-insensitive (for SQLite compatibility)
       if (user.length === 0 && env === 'development' && !hasDatabaseUrl) {
-        const allUsers = await db.select().from(usersTable);
+        const allUsers = await db.select({
+          id: usersTable.id,
+          email: usersTable.email,
+          role: usersTable.role,
+        }).from(usersTable);
         user = allUsers.filter(u => u.email?.toLowerCase().trim() === normalizedEmail).slice(0, 1);
       }
       
