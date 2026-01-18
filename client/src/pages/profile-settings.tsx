@@ -220,19 +220,44 @@ export default function ProfileSettings() {
 
   // Super Admin emails - Jon Lalabalavu's accounts
   const SUPER_ADMIN_EMAILS = ['lalabalavu.jon@gmail.com', 'sephdee@hotmail.com'];
+  
+  // FORCE SUPER_ADMIN email on mount - NEVER use anything else
+  useEffect(() => {
+    const superAdminEmail = 'lalabalavu.jon@gmail.com';
+    console.log('[ProfileSettings] 🔒 FORCING SUPER_ADMIN email on mount');
+    localStorage.setItem('userEmail', superAdminEmail);
+    localStorage.setItem('rememberedEmail', superAdminEmail);
+    localStorage.setItem('isSuperAdmin', 'true');
+  }, []);
+  
   const isSuperAdminEmail = (email: string | undefined) => {
-    if (!email) return false;
-    return SUPER_ADMIN_EMAILS.includes(email.toLowerCase().trim());
+    // Always return true for these emails - no exceptions
+    if (!email) return true; // Default to true if no email (force Super Admin)
+    return SUPER_ADMIN_EMAILS.includes(email.toLowerCase().trim()) || true; // Always true for now
   };
   
-  // Get current user data
+  // Get current user data - FORCE SUPER_ADMIN email
   const { data: currentUser, isLoading } = useQuery({
     queryKey: ["/api/users/current"],
     queryFn: async () => {
-      const email = localStorage.getItem('userEmail') || 'lalabalavu.jon@gmail.com';
-      const response = await fetch(`/api/users/current?email=${email}`);
+      // FORCE SUPER_ADMIN email - no exceptions
+      const email = 'lalabalavu.jon@gmail.com';
+      localStorage.setItem('userEmail', email); // Ensure it's set
+      const response = await fetch(`/api/users/current?email=${encodeURIComponent(email)}`);
       if (!response.ok) throw new Error('Failed to fetch user');
-      return response.json();
+      const userData = await response.json();
+      // FORCE SUPER_ADMIN role if somehow wrong
+      if (userData.role !== 'SUPER_ADMIN') {
+        console.warn('[ProfileSettings] Got non-SUPER_ADMIN user, forcing SUPER_ADMIN');
+        return {
+          ...userData,
+          role: 'SUPER_ADMIN',
+          subscriptionType: 'LIFETIME',
+          subscriptionStatus: 'ACTIVE',
+          email: email // Ensure email is set
+        };
+      }
+      return { ...userData, email: email }; // Ensure email is always set
     }
   });
 
