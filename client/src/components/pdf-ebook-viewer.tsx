@@ -8,23 +8,25 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
 // Configure PDF.js worker for react-pdf v10 with Vite compatibility
-// CRITICAL FIX: Use jsdelivr CDN which is more reliable for workers
-// react-pdf v10 uses pdfjs-dist 5.4.296 - use matching version
-// The .min.js version avoids Vite's module resolution issues with .mjs files
+// CRITICAL FIX: Use Vite's new URL() approach to properly handle the worker file
+// This lets Vite bundle the worker correctly and avoids module resolution issues
 if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
   try {
-    // Use jsdelivr CDN which is more reliable than unpkg for worker files
-    // Version 5.4.296 matches react-pdf v10's dependency
-    // Using .min.js (not .mjs) prevents Vite from trying to resolve it as a module
-    const workerUrl = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/pdf.worker.min.js';
-    pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-    console.log('✅ PDF.js worker configured:', workerUrl);
+    // Use new URL() with import.meta.url - this is the recommended way for Vite
+    // This ensures Vite properly handles the worker file and bundles it correctly
+    // The worker is loaded from pdfjs-dist package (react-pdf's dependency)
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString();
+    console.log('✅ PDF.js worker configured using Vite URL:', pdfjs.GlobalWorkerOptions.workerSrc);
   } catch (error) {
-    console.error('❌ Failed to configure PDF.js worker:', error);
-    // Fallback to Cloudflare CDN
+    console.error('❌ Failed to configure PDF.js worker with Vite URL:', error);
+    // Fallback to CDN if Vite URL approach fails
     try {
-      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      console.log('✅ PDF.js worker fallback configured (Cloudflare CDN)');
+      // Use the version that matches react-pdf v10's dependency (5.4.296)
+      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/pdf.worker.min.mjs';
+      console.log('✅ PDF.js worker fallback configured (CDN):', pdfjs.GlobalWorkerOptions.workerSrc);
     } catch (fallbackError) {
       console.error('❌ Failed to configure PDF.js worker fallback:', fallbackError);
     }
@@ -413,12 +415,12 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
                 }
                 className="flex justify-center w-full"
                 options={{
-                  // Use version 5.4.296 to match react-pdf v10's dependency exactly
+                  // Use CDN for cMaps and fonts (these are optional but improve PDF rendering)
+                  // The worker is already configured globally above using Vite's new URL() approach
                   cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/cmaps/',
                   cMapPacked: true,
                   httpHeaders: {},
                   withCredentials: false,
-                  workerSrc: pdfjs.GlobalWorkerOptions.workerSrc,
                   standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/standard_fonts/',
                 }}
                 error={

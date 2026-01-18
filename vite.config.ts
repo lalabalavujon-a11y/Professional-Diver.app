@@ -19,6 +19,9 @@ export default defineConfig({
         ]
       : []),
   ],
+  optimizeDeps: {
+    include: ['pdfjs-dist'],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
