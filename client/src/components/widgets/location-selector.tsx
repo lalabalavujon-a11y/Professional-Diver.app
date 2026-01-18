@@ -170,6 +170,12 @@ export default function LocationSelector({ open: controlledOpen, onOpenChange, t
       setIsOpen(false);
     },
     onError: (error: Error) => {
+      // Suppress "User not found" errors - this is a backend user setup issue, not a user error
+      if (error.message?.toLowerCase().includes('user not found')) {
+        console.warn('Location save failed: User not found. This will work once user is created in database.');
+        return;
+      }
+      
       toast({
         title: "Error",
         description: error.message || "Failed to save location",

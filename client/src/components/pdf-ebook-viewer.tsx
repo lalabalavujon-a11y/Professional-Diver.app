@@ -8,29 +8,14 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
 // Configure PDF.js worker for react-pdf v10 with Vite compatibility
-// CRITICAL FIX: Use Vite's new URL() approach to properly handle the worker file
-// This lets Vite bundle the worker correctly and avoids module resolution issues
+// CRITICAL FIX: Use CDN URL directly to avoid route-relative path resolution issues
+// The new URL() approach was resolving to /lessons/pdf.worker.mjs when on lesson pages
+// Using a CDN ensures the worker loads from an absolute URL regardless of current route
 if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
-  try {
-    // Use new URL() with import.meta.url - this is the recommended way for Vite
-    // This ensures Vite properly handles the worker file and bundles it correctly
-    // The worker is loaded from pdfjs-dist package (react-pdf's dependency)
-    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.min.mjs',
-      import.meta.url
-    ).toString();
-    console.log('✅ PDF.js worker configured using Vite URL:', pdfjs.GlobalWorkerOptions.workerSrc);
-  } catch (error) {
-    console.error('❌ Failed to configure PDF.js worker with Vite URL:', error);
-    // Fallback to CDN if Vite URL approach fails
-    try {
-      // Use the version that matches react-pdf v10's dependency (5.4.296)
-      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/pdf.worker.min.mjs';
-      console.log('✅ PDF.js worker fallback configured (CDN):', pdfjs.GlobalWorkerOptions.workerSrc);
-    } catch (fallbackError) {
-      console.error('❌ Failed to configure PDF.js worker fallback:', fallbackError);
-    }
-  }
+  // Use CDN with version 5.4.296 which matches react-pdf v10's dependency
+  // This is the most reliable approach and avoids Vite path resolution issues
+  pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/pdf.worker.min.mjs';
+  console.log('✅ PDF.js worker configured (CDN):', pdfjs.GlobalWorkerOptions.workerSrc);
 }
 
 interface PdfEbookViewerProps {
