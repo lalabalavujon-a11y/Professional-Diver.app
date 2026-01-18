@@ -63,7 +63,11 @@ export default function UserProfileDropdown() {
     role: isSuperAdminEmail(currentUser.email) ? 'SUPER_ADMIN' : currentUser.role,
     subscriptionType: isSuperAdminEmail(currentUser.email) ? 'LIFETIME' : currentUser.subscriptionType,
     subscriptionStatus: isSuperAdminEmail(currentUser.email) ? 'ACTIVE' : currentUser.subscriptionStatus,
-    name: isSuperAdminEmail(currentUser.email) && !currentUser.name ? 'Jon Lalabalavu' : currentUser.name
+    name: isSuperAdminEmail(currentUser.email) && !currentUser.name ? 'Jon Lalabalavu' : currentUser.name,
+    // Map profilePictureUrl to photo/photoUrl/avatar for compatibility
+    photo: currentUser.profilePictureUrl || currentUser.photo || currentUser.photoUrl || currentUser.avatar,
+    photoUrl: currentUser.profilePictureUrl || currentUser.photoUrl || currentUser.photo || currentUser.avatar,
+    avatar: currentUser.profilePictureUrl || currentUser.avatar || currentUser.photo || currentUser.photoUrl
   } : {
     id: 'super-admin-default',
     email: 'lalabalavu.jon@gmail.com',

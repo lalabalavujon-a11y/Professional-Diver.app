@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -1068,52 +1068,49 @@ export default function ProfileSettings() {
                         <SelectTrigger className="w-64">
                           <SelectValue placeholder="Select location..." />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[400px]">
-                          {/* Primary Ports Section */}
-                          {locations.filter(loc => loc.type === 'port-primary').length > 0 && (
-                            <>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50">
-                                ⚓ Primary Ports
-                              </div>
-                              {locations
-                                .filter(loc => loc.type === 'port-primary')
-                                .map((loc) => (
-                                  <SelectItem key={loc.value} value={loc.value}>
-                                    {loc.label}
-                                  </SelectItem>
-                                ))}
-                            </>
-                          )}
-                          {/* Secondary Ports Section */}
-                          {locations.filter(loc => loc.type === 'port-secondary').length > 0 && (
-                            <>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 mt-1">
-                                🚢 Secondary Ports
-                              </div>
-                              {locations
-                                .filter(loc => loc.type === 'port-secondary')
-                                .map((loc) => (
-                                  <SelectItem key={loc.value} value={loc.value}>
-                                    {loc.label}
-                                  </SelectItem>
-                                ))}
-                            </>
-                          )}
-                          {/* Cities Section */}
-                          {locations.filter(loc => loc.type === 'city').length > 0 && (
-                            <>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 mt-1">
-                                🌍 Cities
-                              </div>
-                              {locations
-                                .filter(loc => loc.type === 'city')
-                                .map((loc) => (
-                                  <SelectItem key={loc.value} value={loc.value}>
-                                    {loc.label}
-                                  </SelectItem>
-                                ))}
-                            </>
-                          )}
+                        <SelectContent className="max-h-[400px]" position="popper">
+                          <SelectGroup>
+                            {locations.filter(loc => loc.type === 'port-primary').length > 0 && (
+                              <>
+                                <SelectLabel>⚓ Primary Ports</SelectLabel>
+                                {locations
+                                  .filter(loc => loc.type === 'port-primary')
+                                  .map((loc) => (
+                                    <SelectItem key={loc.value} value={loc.value}>
+                                      {loc.label}
+                                    </SelectItem>
+                                  ))}
+                              </>
+                            )}
+                          </SelectGroup>
+                          <SelectGroup>
+                            {locations.filter(loc => loc.type === 'port-secondary').length > 0 && (
+                              <>
+                                <SelectLabel>🚢 Secondary Ports</SelectLabel>
+                                {locations
+                                  .filter(loc => loc.type === 'port-secondary')
+                                  .map((loc) => (
+                                    <SelectItem key={loc.value} value={loc.value}>
+                                      {loc.label}
+                                    </SelectItem>
+                                  ))}
+                              </>
+                            )}
+                          </SelectGroup>
+                          <SelectGroup>
+                            {locations.filter(loc => loc.type === 'city').length > 0 && (
+                              <>
+                                <SelectLabel>🌍 Cities</SelectLabel>
+                                {locations
+                                  .filter(loc => loc.type === 'city')
+                                  .map((loc) => (
+                                    <SelectItem key={loc.value} value={loc.value}>
+                                      {loc.label}
+                                    </SelectItem>
+                                  ))}
+                              </>
+                            )}
+                          </SelectGroup>
                         </SelectContent>
                       </Select>
                       <LocationSelector 
