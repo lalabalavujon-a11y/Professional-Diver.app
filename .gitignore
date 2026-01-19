@@ -7,3 +7,4 @@ vite.config.ts.*
 .env
 .env.local# Trigger rebuild
 # Trigger Cloudflare Pages redeploy
+.env.bak*

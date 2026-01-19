@@ -38,7 +38,7 @@ interface Client {
   email: string;
   phone?: string;
   subscription_type: "TRIAL" | "MONTHLY" | "ANNUAL" | "LIFETIME";
-  status: "ACTIVE" | "PAUSED" | "CANCELLED";
+  status: "ACTIVE" | "PAUSED" | "CANCELLED" | "SPONSOR";
   subscription_date: string;
   monthly_revenue: number;
   partner_status?: string;
@@ -63,6 +63,7 @@ export default function CRMDashboard() {
   const [filters, setFilters] = useState<Record<string, any>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   // Fetch clients
   const { data: clients, isLoading: clientsLoading, refetch: refetchClients } = useQuery<Client[]>({
@@ -145,6 +146,7 @@ export default function CRMDashboard() {
         { label: "Active", value: "ACTIVE" },
         { label: "Paused", value: "PAUSED" },
         { label: "Cancelled", value: "CANCELLED" },
+        { label: "Sponsor", value: "SPONSOR" },
       ],
     },
   ];
@@ -321,8 +323,6 @@ export default function CRMDashboard() {
     return list;
   }, [filterStatus]);
 
-  const isMobile = useIsMobile();
-
   // Show mobile-not-supported message on mobile devices
   if (isMobile) {
     return (
@@ -447,6 +447,7 @@ export default function CRMDashboard() {
                   <SelectItem value="ACTIVE">Active</SelectItem>
                   <SelectItem value="PAUSED">Paused</SelectItem>
                   <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                  <SelectItem value="SPONSOR">Sponsor</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -506,6 +507,7 @@ export default function CRMDashboard() {
         {/* View Client Detail Dialog */}
         {viewingClient && (
           <ClientDetailView
+            key={viewingClient.id}
             client={viewingClient}
             isOpen={!!viewingClient}
             onClose={() => {
@@ -645,6 +647,7 @@ function ClientForm({ client, onSubmit, loading }: ClientFormProps) {
             <SelectItem value="ACTIVE">Active</SelectItem>
             <SelectItem value="PAUSED">Paused</SelectItem>
             <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            <SelectItem value="SPONSOR">Sponsor</SelectItem>
           </SelectContent>
         </Select>
       </div>

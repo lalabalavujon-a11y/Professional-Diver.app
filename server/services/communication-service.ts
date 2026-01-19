@@ -7,6 +7,11 @@ import { db } from "../db";
 import { communications, type InsertCommunication } from "@shared/schema-sqlite";
 import { eq, desc, and } from "drizzle-orm";
 import { emailMarketing } from "../email-marketing";
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 export interface CommunicationData {
   clientId: string;
@@ -144,45 +149,93 @@ export class CommunicationService {
    * Log phone call
    */
   async logPhoneCall(data: {
-    clientId: string;
-    direction: "inbound" | "outbound";
-    duration?: number;
-    status: "answered" | "missed" | "failed";
-    notes?: string;
-    phoneNumber?: string;
-    createdBy?: string;
-  }): Promise<any> {
-    return await this.logCommunication({
-      clientId: data.clientId,
-      type: "phone",
-      direction: data.direction,
-      content: data.notes || `${data.direction === "inbound" ? "Incoming" : "Outgoing"} phone call`,
-      status: data.status,
-      duration: data.duration,
-      metadata: {
-        phoneNumber: data.phoneNumber,
-      },
-      createdBy: data.createdBy,
-    });
-  }
+    let communication;
+    let emailSent = false;
 
-  /**
-   * Log SMS
-   */
-  async logSMS(data: {
-    clientId: string;
-    direction: "inbound" | "outbound";
-    content: string;
-    phoneNumber?: string;
-    status?: "sent" | "delivered" | "failed";
-    createdBy?: string;
-  }): Promise<any> {
-    return await this.logCommunication({
-      clientId: data.clientId,
-      type: "sms",
-      direction: data.direction,
-      content: data.content,
-      status: data.status || "sent",
+    try {
+      // Get email configuration
+      const FROM_EMAIL = process.env.EMAIL_FROM || process.env.SENDGRID_FROM_EMAIL || 'noreply@professionaldiver.app';
+      const FROM_NAME = process.env.EMAIL_FROM_NAME || process.env.SENDGRID_FROM_NAME || 'Diver Well Training - Professional Diver App';
+
+      // Convert content to HTML if htmlContent not provided
+      const htmlContent = data.htmlContent || this.textToHtml(data.content);
+
+      // Create HTML email with footer
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+            .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; color: #64748b; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          ${htmlContent}
+          <div class="footer">
+            <p><strong>Professional Diver App</strong></p>
+            <p>jon@professionaldiver.app | +447448320513</p>
+            <p>Diver Well Training - Professional Diver App</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Send email using nodemailer
+      const transporter = this.getEmailTransporter();
+      const mailOptions = {
+        from: `${FROM_NAME} <${FROM_EMAIL}>`,
+        to: data.to,
+        subject: data.subject,
+        text: data.content,
+        html: html
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      emailSent = true;
+
+      // Log successful communication
+      communication = await this.logCommunication({
+        clientId: data.clientId,
+        type: "email",
+        direction: "outbound",
+        subject: data.subject,
+        content: data.content,
+        status: "sent",
+        metadata: {
+          to: data.to,
+          htmlContent: data.htmlContent,
+          messageId: info.messageId,
+        },
+        createdBy: data.createdBy,
+      });
+
+      return communication;
+    } catch (error) {
+      // Log failed communication
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      
+      try {
+        communication = await this.logCommunication({
+          clientId: data.clientId,
+          type: "email",
+          direction: "outbound",
+          subject: data.subject,
+          content: data.content,
+          status: "failed",
+          metadata: {
+            to: data.to,
+            htmlContent: data.htmlContent,
+            error: errorMessage,
+          },
+          createdBy: data.createdBy,
+        });
+      } catch (logError) {
+        console.error('Failed to log communication error:', logError);
+      }
+
+      throw new Error(`Failed to send email: ${errorMessage}`);
       metadata: {
         phoneNumber: data.phoneNumber,
       },
@@ -237,7 +290,107 @@ export class CommunicationService {
    */
   async getCommunicationStats(clientId: string): Promise<{
     total: number;
-    byType: Record<string, number>;
+   * Send WhatsApp message and log it
+   */
+  async sendWhatsApp(data: {
+    clientId: string;
+    to: string; // Phone number in format: +[country][number]
+    content: string;
+    createdBy?: string;
+  }): Promise<any> {
+    let communication;
+
+    try {
+      const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+      const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+
+      if (!WHATSAPP_PHONE_NUMBER_ID || !WHATSAPP_ACCESS_TOKEN) {
+        throw new Error('WhatsApp Business API credentials not configured. Set WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_ACCESS_TOKEN in environment variables.');
+      }
+
+      // Format phone number
+      let formattedPhone = data.to.replace(/[^\d+]/g, '');
+      if (!formattedPhone.startsWith('+')) {
+        formattedPhone = '+' + formattedPhone;
+      }
+      
+      // Handle UK numbers: Remove leading 0 after +44
+      // Example: +4407448320513 → +447448320513
+      if (formattedPhone.startsWith('+44') && formattedPhone.length > 3 && formattedPhone[3] === '0') {
+        formattedPhone = '+44' + formattedPhone.substring(4);
+      }
+
+      // Send message via WhatsApp Business API
+      const response = await fetch(
+        `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: formattedPhone,
+            type: 'text',
+            text: {
+              body: data.content
+            }
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`WhatsApp API error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
+      }
+
+      const result = await response.json();
+      const messageId = result.messages?.[0]?.id;
+
+      // Log successful communication
+      communication = await this.logCommunication({
+        clientId: data.clientId,
+        type: "whatsapp",
+        direction: "outbound",
+        content: data.content,
+        status: "sent",
+        metadata: {
+          to: formattedPhone,
+          messageId: messageId,
+          whatsappPhoneNumberId: WHATSAPP_PHONE_NUMBER_ID
+        },
+        createdBy: data.createdBy,
+      });
+
+      return communication;
+    } catch (error) {
+      // Log failed communication
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      
+      try {
+        communication = await this.logCommunication({
+          clientId: data.clientId,
+          type: "whatsapp",
+          direction: "outbound",
+          content: data.content,
+          status: "failed",
+          metadata: {
+            to: data.to,
+            error: errorMessage,
+          },
+          createdBy: data.createdBy,
+        });
+      } catch (logError) {
+        console.error('Failed to log communication error:', logError);
+      }
+
+      throw new Error(`Failed to send WhatsApp message: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Log WhatsApp message (for inbound messages)
     byDirection: Record<string, number>;
     lastCommunication?: Date;
   }> {

@@ -48,6 +48,13 @@ const TAG_COLORS = [
   { name: "Gray", value: "#6b7280" },
 ];
 
+const PRESET_TAGS = [
+  { name: "Sponsor", color: "#8b5cf6" }, // Purple for sponsors
+  { name: "VIP", color: "#f97316" }, // Orange for VIP
+  { name: "Enterprise", color: "#6366f1" }, // Indigo for enterprise
+  { name: "Training", color: "#10b981" }, // Green for training
+];
+
 export default function TagManager({ clientId, onTagsChange }: TagManagerProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newTagName, setNewTagName] = useState("");

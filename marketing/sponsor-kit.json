@@ -1,0 +1,224 @@
+{
+  "title": "Professional Diver Training — Sponsor Kit",
+  "issueDate": "January 2026",
+  "contact": {
+    "email": "1pull@professionaldiver.app",
+    "whatsapp": "+447448320513",
+    "website": "https://professionaldiver.app",
+    "partnerInquiry": "https://professionaldiver.app/partner-inquiry",
+    "location": "Southampton, United Kingdom"
+  },
+  "platform": {
+    "name": "Professional Diver Training",
+    "tagline": "Brand-neutral commercial diving education platform",
+    "disciplines": [
+      "NDT (Non-Destructive Testing)",
+      "LST (Life Support Technician)",
+      "ALST (Assistant Life Support Technician)",
+      "DMT (Dive Medical Technician)",
+      "Commercial Supervisor",
+      "Saturation Diving",
+      "Underwater Welding",
+      "Hyperbaric Operations",
+      "Air Diver Certification"
+    ],
+    "statistics": {
+      "activeUsers": 127,
+      "trainingTracks": 9,
+      "lessons": 23,
+      "completions": 89
+    }
+  },
+  "tiers": [
+    {
+      "name": "Bronze",
+      "subtitle": "Visibility Partner",
+      "monthlyFee": 450,
+      "minimumTerm": "6-12 months",
+      "includes": [
+        "Logo on homepage partner strip + click-through",
+        "Listed on \"Partners\" page",
+        "Quarterly performance report (clicks + impressions)",
+        "UTM-tracked links"
+      ],
+      "bestFor": "Equipment suppliers, regional contractors, service providers"
+    },
+    {
+      "name": "Silver",
+      "subtitle": "Traffic Partner",
+      "monthlyFee": 950,
+      "minimumTerm": "6-12 months",
+      "includes": [
+        "Better homepage placement",
+        "Rotating in-app tile (or \"Featured Partner\" section)",
+        "1 trackable CTA/month (discount code or landing page)",
+        "Monthly report"
+      ],
+      "bestFor": "Equipment manufacturers, training providers, insurance companies"
+    },
+    {
+      "name": "Gold",
+      "subtitle": "Lead + Authority",
+      "monthlyFee": 2250,
+      "minimumTerm": "6-12 months",
+      "includes": [
+        "Premium homepage placement (limited slots)",
+        "In-app tile + dedicated partner block/category placement",
+        "1 activation/month (drill-of-week, short article, mini-module, webinar mention)",
+        "Monthly report + quarterly strategy call"
+      ],
+      "bestFor": "Major equipment brands, large contractors, industry leaders"
+    },
+    {
+      "name": "Title / Founding",
+      "subtitle": "Category King",
+      "monthlyFee": 4500,
+      "minimumTerm": "6-12 months",
+      "includes": [
+        "\"Powered by\" placement + category exclusivity",
+        "2 activations/month",
+        "Priority roadmap input for sponsor placements",
+        "First position branding"
+      ],
+      "bestFor": "Market leaders seeking category dominance"
+    }
+  ],
+  "addOns": [
+    {
+      "name": "Category Exclusivity",
+      "price": "+35% of base tier price",
+      "description": "Exclusive category rights (e.g., \"Exclusive Dive Computer Partner\")"
+    },
+    {
+      "name": "Extra Activation",
+      "price": "+£350–£750 per activation",
+      "description": "Additional email/push/webinar mentions, co-branded content pieces"
+    },
+    {
+      "name": "Recruitment Campaign",
+      "price": "+£500–£1,500/month",
+      "description": "Job posting placements, recruitment-focused CTAs, access to candidate pipeline"
+    }
+  ],
+  "foundingPartnerOffer": {
+    "monthlyFee": 750,
+    "term": "90 days",
+    "limit": 10,
+    "includes": [
+      "Homepage logo placement + click-through",
+      "Dedicated tracked sponsor link (UTM)",
+      "One \"Featured Partner\" post/mention during pilot",
+      "Monthly report (impressions/clicks/CTR + recommendations)"
+    ],
+    "conversion": "If it performs → convert to 6–12 month Silver/Gold at founder-locked pricing"
+  },
+  "placements": {
+    "website": [
+      {
+        "name": "Homepage Partner Strip",
+        "location": "Above footer on landing page",
+        "format": "Logo grid with hover effects",
+        "tracking": "Impression + click tracking"
+      },
+      {
+        "name": "Above-the-Fold \"Trusted by\" Section",
+        "location": "Hero section area",
+        "format": "Premium logo display",
+        "tracking": "Impression + click tracking",
+        "tier": "Gold+ only"
+      },
+      {
+        "name": "Partner Directory Page",
+        "location": "Dedicated /partners page",
+        "format": "Full sponsor profiles with logos, descriptions",
+        "tracking": "Impression + click tracking"
+      },
+      {
+        "name": "Resource Pages",
+        "location": "Category-specific resource pages",
+        "format": "Sponsor tiles in relevant sections",
+        "tracking": "Impression + click tracking"
+      }
+    ],
+    "inApp": [
+      {
+        "name": "Home Screen Sponsor Tile",
+        "location": "User dashboard/home page",
+        "format": "Featured partner card",
+        "tracking": "Impression + click tracking"
+      },
+      {
+        "name": "Featured Partner Sections",
+        "location": "Various in-app locations",
+        "format": "Sponsor spotlight cards",
+        "tracking": "Impression + click tracking"
+      },
+      {
+        "name": "Category-Specific Resource Pages",
+        "location": "Discipline-specific pages",
+        "format": "Relevant sponsor placements",
+        "tracking": "Impression + click tracking"
+      }
+    ],
+    "contentActivations": [
+      "Sponsored \"Skill Drill of the Week\"",
+      "Co-Branded Mini Training Modules",
+      "Webinar / Live Q&A Mentions",
+      "Discount Codes + Tracked Offers"
+    ]
+  },
+  "reporting": {
+    "monthlyReports": [
+      "Total impressions (homepage, in-app, resource pages)",
+      "Total clicks (by placement type)",
+      "Click-through rate (CTR)",
+      "CTA conversions (if applicable)",
+      "Top performing placements",
+      "Recommendations for optimization"
+    ],
+    "tracking": [
+      "UTM parameters on all sponsor links",
+      "GA4 event tracking",
+      "Server-side event logging",
+      "Real-time analytics dashboard"
+    ],
+    "delivery": {
+      "format": "PDF or HTML email",
+      "frequency": "Monthly (or quarterly for Bronze)",
+      "method": "Email to sponsor contact + admin dashboard view"
+    }
+  },
+  "onboarding": {
+    "steps": [
+      {
+        "step": 1,
+        "name": "Discovery Call",
+        "duration": "15 minutes",
+        "description": "Discuss goals, review tier options, answer questions, customize package"
+      },
+      {
+        "step": 2,
+        "name": "Proposal & Agreement",
+        "description": "Receive customized proposal, review sponsor agreement, sign agreement, set start date"
+      },
+      {
+        "step": 3,
+        "name": "Asset Collection",
+        "duration": "5-7 days",
+        "description": "Provide logo (SVG/PNG), share brand guidelines, submit landing URL, provide CTA text, share promo code"
+      },
+      {
+        "step": 4,
+        "name": "Setup & Configuration",
+        "duration": "3-5 days",
+        "description": "Create UTM-tracked links, configure placements, set up tracking, test all placements"
+      },
+      {
+        "step": 5,
+        "name": "Go Live",
+        "description": "Launch placements, verify tracking, send confirmation, begin reporting schedule"
+      }
+    ],
+    "totalTimeline": "10-15 business days from agreement to go-live"
+  }
+}
