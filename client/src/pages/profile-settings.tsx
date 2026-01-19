@@ -43,6 +43,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import UserStatusBadge from "@/components/user-status-badge";
 import RoleBasedNavigation from "@/components/role-based-navigation";
+import GptAccessCard from "@/components/gpt-access-card";
 import { z } from "zod";
 import { timezones } from "@/utils/timezones";
 import { fetchPorts, combineLocations, timezonesToLocations, getLocationDetails, type PortLocation } from "@/utils/locations";
@@ -746,6 +747,9 @@ export default function ProfileSettings() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* GPT Access Card */}
+              <GptAccessCard />
             </div>
 
             {/* Profile Information Form */}

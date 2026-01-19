@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,9 @@ import { Bookmark, ChevronLeft, ChevronRight, Maximize2, Minimize2, Download, Fi
 import { usePdfBookmarks } from "@/hooks/usePdfBookmarks";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
+
+// Memoized Page component for better performance
+const MemoizedPage = memo(Page);
 
 // Configure PDF.js worker for react-pdf v10 with Vite compatibility
 // CRITICAL FIX: Force set worker to CDN URL to avoid route-relative path resolution issues
@@ -31,8 +34,9 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pageWidth, setPageWidth] = useState(800);
-  const [pdfData, setPdfData] = useState<Blob | string | null>(null);
+  const [pdfData, setPdfData] = useState<string | null>(null); // Use string (URL) only - avoids ArrayBuffer issues
   const [workerReady, setWorkerReady] = useState(false);
+  const [pageLoading, setPageLoading] = useState(false); // Track page transition loading
   
   const { bookmarks, toggleBookmark, isBookmarked, removeBookmark } = usePdfBookmarks(lessonId);
 
@@ -65,7 +69,8 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
     }
   }, []);
 
-  // Fetch PDF as blob when URL changes - this helps with CORS and loading issues
+  // Use PDF URL directly - react-pdf handles fetching internally
+  // This avoids ArrayBuffer detachment issues that occur when manually fetching blobs
   useEffect(() => {
     console.log('PdfEbookViewer mounted/updated with pdfUrl:', pdfUrl);
     if (!pdfUrl) {
@@ -81,37 +86,10 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
     setNumPages(null);
     setPageNumber(1);
     
-    // Try fetching as blob first, fallback to direct URL
-    const fetchPdf = async () => {
-      try {
-        console.log('Fetching PDF from:', pdfUrl);
-        const response = await fetch(pdfUrl);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        // Check if response is actually a PDF
-        const contentType = response.headers.get('content-type');
-        console.log('PDF Content-Type:', contentType);
-        
-        if (contentType && contentType.includes('application/pdf')) {
-          const blob = await response.blob();
-          console.log('PDF blob created, size:', blob.size);
-          setPdfData(blob);
-        } else {
-          // If not a blob, try using the URL directly
-          console.log('Content-Type not PDF, using URL directly');
-          setPdfData(pdfUrl);
-        }
-      } catch (err: any) {
-        console.error('Error fetching PDF:', err);
-        // Fallback to using URL directly
-        console.log('Falling back to direct URL');
-        setPdfData(pdfUrl);
-      }
-    };
-
-    fetchPdf();
+    // Use URL directly - react-pdf will handle fetching and avoid ArrayBuffer issues
+    // This is the recommended approach and prevents "detached ArrayBuffer" errors
+    console.log('Using PDF URL directly:', pdfUrl);
+    setPdfData(pdfUrl);
   }, [pdfUrl]);
 
   // Calculate page width based on container and scale
@@ -129,12 +107,18 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
     return () => window.removeEventListener('resize', updatePageWidth);
   }, [scale]);
 
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+  const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
     console.log('PDF loaded successfully, pages:', numPages);
     setNumPages(numPages);
     setLoading(false);
     setError(null);
-  };
+    setPageLoading(false);
+  }, []);
+
+  // Handle page load success to clear loading state
+  const onPageLoadSuccess = useCallback(() => {
+    setPageLoading(false);
+  }, []);
 
   const onDocumentLoadError = (error: Error) => {
     const currentWorkerSrc = pdfjs.GlobalWorkerOptions.workerSrc;
@@ -202,7 +186,7 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
     toggleBookmark(pageNumber);
   };
 
-  const handleDownload = () => {
+  const handleDownload = useCallback(() => {
     const link = document.createElement('a');
     link.href = pdfUrl;
     link.download = `${lessonTitle.replace(/\s+/g, '-')}.pdf`;
@@ -210,7 +194,7 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, [pdfUrl, lessonTitle]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -228,7 +212,7 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [pageNumber, numPages]);
+  }, [goToPrevPage, goToNextPage]);
 
   // Touch/swipe support
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -397,6 +381,7 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
               </div>
             ) : pdfData ? (
               <Document
+                key={pdfUrl} // Force re-render when URL changes to avoid stale data
                 file={pdfData}
                 onLoadSuccess={onDocumentLoadSuccess}
                 onLoadError={onDocumentLoadError}
@@ -418,6 +403,10 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
                   httpHeaders: {},
                   withCredentials: false,
                   standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/standard_fonts/',
+                  // Performance optimizations
+                  disableAutoFetch: false,
+                  disableStream: false,
+                  disableRange: false,
                 }}
                 error={
                   <div className="flex items-center justify-center h-full w-full">
@@ -431,13 +420,55 @@ export default function PdfEbookViewer({ pdfUrl, lessonTitle, lessonId }: PdfEbo
                 }
               >
                 {numPages && numPages > 0 ? (
-                  <Page
-                    pageNumber={pageNumber}
-                    width={pageWidth}
-                    renderTextLayer={true}
-                    renderAnnotationLayer={true}
-                    className="shadow-lg"
-                  />
+                  <div className="relative">
+                    {/* Main page with loading overlay */}
+                    {pageLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10 rounded-lg">
+                        <div className="text-center">
+                          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                          <p className="text-gray-600 text-sm">Loading page {pageNumber}...</p>
+                        </div>
+                      </div>
+                    )}
+                    <MemoizedPage
+                      pageNumber={pageNumber}
+                      width={pageWidth}
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
+                      className="shadow-lg"
+                      onLoadSuccess={onPageLoadSuccess}
+                      loading={
+                        <div className="flex items-center justify-center h-full min-h-[600px]">
+                          <div className="text-center">
+                            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                            <p className="text-gray-600 text-sm">Rendering page {pageNumber}...</p>
+                          </div>
+                        </div>
+                      }
+                    />
+                    
+                    {/* Preload adjacent pages for faster transitions (hidden) */}
+                    {pageNumber > 1 && (
+                      <div className="hidden">
+                        <MemoizedPage
+                          pageNumber={pageNumber - 1}
+                          width={pageWidth}
+                          renderTextLayer={false}
+                          renderAnnotationLayer={false}
+                        />
+                      </div>
+                    )}
+                    {numPages > pageNumber && (
+                      <div className="hidden">
+                        <MemoizedPage
+                          pageNumber={pageNumber + 1}
+                          width={pageWidth}
+                          renderTextLayer={false}
+                          renderAnnotationLayer={false}
+                        />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">

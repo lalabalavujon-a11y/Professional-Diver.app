@@ -35,46 +35,61 @@ function getOpenAIClient(): OpenAI {
 }
 
 /**
- * Generate a comprehensive 15-20 minute podcast script from lesson content
- * Uses GPT to create an engaging, educational narrative
+ * Generate a comprehensive podcast script from content (lesson content or PDF text)
+ * Uses GPT to create an engaging, educational narrative optimized for revision lessons
+ * CRITICAL: Maintains brand neutrality - no brand names, company names, or proprietary systems
  */
 async function generatePodcastScript(
-  lessonContent: string,
+  content: string, // Can be lesson content or PDF-extracted text
   lessonTitle: string,
-  trackTitle?: string
+  trackTitle?: string,
+  isFromPdf: boolean = false // Indicates if content came from PDF
 ): Promise<string> {
-  const systemPrompt = `You are a professional diving education podcast host. Create a comprehensive, engaging podcast script that is 15-25 minutes long when read aloud.
+  const systemPrompt = `You are Diver Well, the professional diving education podcast host for Diver Well Training, creating comprehensive revision lesson podcasts. Create an engaging, detailed podcast script that thoroughly covers ALL aspects of the content.
 
-CRITICAL: The script MUST be approximately 2,500-3,500 words (NOT shorter). This is essential for a proper 15-25 minute podcast.
+CRITICAL REQUIREMENTS:
+1. BRAND NEUTRALITY: Do NOT mention any brand names, company names, proprietary systems, or commercial products. Use generic industry-standard terminology only.
+2. COMPREHENSIVENESS: This is a REVISION lesson - cover EVERY concept, detail, and aspect from the content. Leave nothing out.
+3. LENGTH: The script MUST be 3,000-4,500 words to ensure 20-30 minutes of comprehensive coverage for revision.
+4. DEPTH: Expand on technical terms, provide detailed explanations, include practical examples for each concept.
+5. REVISION FOCUS: Structure as a complete review that helps students master all material.
 
 The script should:
 - Be conversational and engaging, as if teaching a student one-on-one
-- Cover ALL key concepts from the lesson content thoroughly and in detail
-- Include practical examples and real-world applications for each concept
-- Expand on technical terms with clear explanations
+- Cover ALL concepts from the content thoroughly and in exhaustive detail
+- Include multiple practical examples and real-world applications for EACH concept
+- Expand on technical terms with comprehensive explanations
 - Use natural transitions between topics
-- Be appropriate for professional diving industry training
+- Be appropriate for professional diving industry training (brand-neutral)
 - Maintain a professional yet approachable tone
-- Be detailed enough to fill 15-25 minutes of speaking time
+- Be detailed enough to fill 20-30 minutes of speaking time for complete revision
 
 Format the script as plain text suitable for text-to-speech (no markdown, no special formatting, no music cues, no sound effects). Write in a natural speaking style.`;
 
-  const userPrompt = `Create a comprehensive 15-25 minute podcast script for this lesson. The script must be approximately 2,500-3,000 words and MUST NOT exceed 3,500 characters when formatted for text-to-speech.
+  const contentSource = isFromPdf 
+    ? 'PDF Content (extracted from lesson PDF):' 
+    : 'Lesson Content:';
+    
+  const userPrompt = `Create a comprehensive 20-30 minute REVISION podcast script. The script must be 3,000-4,500 words to ensure complete coverage of all material.
 
 Lesson Title: ${lessonTitle}
 ${trackTitle ? `Track: ${trackTitle}` : ''}
+${isFromPdf ? 'Content Source: PDF (comprehensive revision format)' : ''}
 
-Lesson Content:
-${lessonContent.substring(0, 6000)}${lessonContent.length > 6000 ? '...' : ''}
+${contentSource}
+${content.substring(0, 8000)}${content.length > 8000 ? '...' : ''}
 
-IMPORTANT: 
+CRITICAL INSTRUCTIONS:
+- This is a REVISION lesson - cover EVERY aspect comprehensively
 - Write in a natural, conversational speaking style
-- Cover all key concepts thoroughly
-- Include practical examples
-- Keep the total character count under 3,500 characters (including spaces)
+- Cover ALL concepts, details, and examples thoroughly
+- Include practical examples for each concept
+- NO brand names, company names, or proprietary systems (use generic terms)
+- Target 3,000-4,500 words for comprehensive 20-30 minute revision
 - No markdown, no formatting, just plain conversational text
+- Ensure complete coverage - nothing should be skipped
 
-Generate the podcast script now:`;
+Generate the comprehensive revision podcast script now:`;
 
   try {
     // Use cheaper gpt-3.5-turbo model to reduce costs
@@ -86,7 +101,7 @@ Generate the podcast script now:`;
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,
-      max_tokens: 3000, // Reduced to ensure scripts fit TTS 4096 char limit
+      max_tokens: 4000, // Increased for comprehensive revision podcasts (20-30 minutes)
     });
 
     let script = completion.choices[0]?.message?.content || '';
@@ -102,19 +117,12 @@ Generate the podcast script now:`;
       .replace(/\n{3,}/g, '\n\n') // Normalize newlines
       .trim();
 
-    // If still too long, truncate intelligently
-    if (script.length > 3500) {
-      const truncated = script.substring(0, 3400);
-      const lastSentence = Math.max(
-        truncated.lastIndexOf('.'),
-        truncated.lastIndexOf('!'),
-        truncated.lastIndexOf('?')
-      );
-      if (lastSentence > 3000) {
-        script = script.substring(0, lastSentence + 1);
-      } else {
-        script = truncated;
-      }
+    // For revision podcasts, we need longer scripts (but TTS has 4096 char limit)
+    // If too long, we'll need to split into multiple TTS calls (handled in generateLessonPodcast)
+    // For now, keep full script - splitting will be handled in the calling function
+    if (script.length > 4000) {
+      // For very long scripts, we'll need to handle splitting in the TTS conversion
+      console.warn(`Script is ${script.length} characters - may need splitting for TTS`);
     }
 
     return script;
@@ -144,68 +152,142 @@ export async function generateLessonPodcast({
 
   // Generate comprehensive podcast script
   let podcastScript: string;
+  const isFromPdf = lessonContent.includes('PDF') || lessonContent.length > 10000; // Heuristic: PDF text is usually longer
   if (useGPT) {
-    console.log(`  📝 Generating podcast script with GPT for: ${lessonTitle}`);
-    podcastScript = await generatePodcastScript(lessonContent, lessonTitle, trackTitle);
+    console.log(`  📝 Generating podcast script with GPT for: ${lessonTitle}${isFromPdf ? ' (from PDF content)' : ''}`);
+    podcastScript = await generatePodcastScript(lessonContent, lessonTitle, trackTitle, isFromPdf);
   } else {
     console.log(`  📝 Generating podcast script (GPT-free, cost-effective) for: ${lessonTitle}`);
     podcastScript = expandContentForPodcast(lessonContent, lessonTitle);
   }
   
-  // Check script length (aim for 2,250-3,750 words for 15-25 minutes)
-  const wordCount = podcastScript.split(/\s+/).length;
-  console.log(`  📊 Script word count: ${wordCount} (target: 2,250-3,750 for 15-25 min)`);
+  // Check script length (aim for 3,000-4,500 words for 20-30 minute revision podcasts)
+  const wordCount = podcastScript.split(/\s+/).filter(w => w.length > 0).length;
+  console.log(`  📊 Script word count: ${wordCount} (target: 3,000-4,500 for 20-30 min revision)`);
 
   // Generate speech from script
   // Use tts-1 (standard) instead of tts-1-hd to reduce costs
   // tts-1 is 3x cheaper and still produces good quality
-  // TTS API has a 4096 character limit, so we need to handle long scripts
+  // TTS API has a 4096 character limit, so we need to handle long scripts by splitting
   console.log(`  🎙️ Converting to speech...`);
   
-  // TTS API limit is 4096 characters - truncate if needed
+  // TTS API limit is 4096 characters - for comprehensive revision podcasts, we may need to split
   const maxChars = 4096;
-  let scriptForTTS = podcastScript;
+  const audioChunks: Buffer[] = [];
+  let finalBuffer: Buffer;
   
-  if (scriptForTTS.length > maxChars) {
-    console.warn(`  ⚠️ Script too long (${scriptForTTS.length} chars), truncating to ${maxChars}...`);
-    // Try to truncate at a sentence boundary
-    const truncated = scriptForTTS.substring(0, maxChars - 100);
-    const lastPeriod = truncated.lastIndexOf('.');
-    const lastExclamation = truncated.lastIndexOf('!');
-    const lastQuestion = truncated.lastIndexOf('?');
-    const lastSentenceEnd = Math.max(lastPeriod, lastExclamation, lastQuestion);
+  if (podcastScript.length > maxChars) {
+    console.log(`  📝 Script is ${podcastScript.length} chars - splitting into ${Math.ceil(podcastScript.length / maxChars)} parts for TTS`);
     
-    if (lastSentenceEnd > maxChars * 0.8) {
-      // If we found a sentence end in the last 20%, use it
-      scriptForTTS = scriptForTTS.substring(0, lastSentenceEnd + 1);
-    } else {
-      // Otherwise just truncate
-      scriptForTTS = scriptForTTS.substring(0, maxChars);
+    // Split script into chunks at sentence boundaries
+    const chunks: string[] = [];
+    let currentChunk = '';
+    
+    const sentences = podcastScript.split(/([.!?]+\s+)/);
+    
+    for (let i = 0; i < sentences.length; i += 2) {
+      const sentence = sentences[i] + (sentences[i + 1] || '');
+      
+      if ((currentChunk + sentence).length <= maxChars) {
+        currentChunk += sentence;
+      } else {
+        if (currentChunk) {
+          chunks.push(currentChunk.trim());
+        }
+        currentChunk = sentence;
+      }
     }
+    if (currentChunk.trim()) {
+      chunks.push(currentChunk.trim());
+    }
+    
+    console.log(`  📝 Split into ${chunks.length} chunks for TTS`);
+    
+    // Generate audio for each chunk and concatenate
+    const openai = getOpenAIClient();
+    for (let i = 0; i < chunks.length; i++) {
+      console.log(`  🎙️ Generating audio chunk ${i + 1}/${chunks.length}...`);
+      const response = await openai.audio.speech.create({
+        model: 'tts-1',
+        voice,
+        input: chunks[i],
+        format: 'mp3',
+        speed: 1.0,
+      });
+      
+      const chunkBuffer = Buffer.from(await response.arrayBuffer());
+      audioChunks.push(chunkBuffer);
+    }
+    
+    // Concatenate all audio chunks
+    finalBuffer = Buffer.concat(audioChunks);
+  } else {
+    // Single TTS call for shorter scripts
+    const openai = getOpenAIClient();
+    const response = await openai.audio.speech.create({
+      model: 'tts-1', // Standard quality - 3x cheaper than tts-1-hd
+      voice,
+      input: podcastScript,
+      format: 'mp3',
+      speed: 1.0, // Normal speaking speed
+    });
+
+    // The OpenAI SDK returns a web Response; use arrayBuffer -> stream to file
+    finalBuffer = Buffer.from(await response.arrayBuffer());
   }
   
-  const openai = getOpenAIClient();
-  const response = await openai.audio.speech.create({
-    model: 'tts-1', // Standard quality - 3x cheaper than tts-1-hd
-    voice,
-    input: scriptForTTS,
-    format: 'mp3',
-    speed: 1.0, // Normal speaking speed
-  });
-
-  // The OpenAI SDK returns a web Response; use arrayBuffer -> stream to file
-  const buffer = Buffer.from(await response.arrayBuffer());
-  await fs.writeFile(targetPath, buffer);
+  // Write final audio file
+  await fs.writeFile(targetPath, finalBuffer);
 
   // Estimate duration (average speaking rate is ~150 words per minute)
+  // For revision podcasts, we want comprehensive coverage
   const estimatedDuration = Math.round((wordCount / 150) * 60);
 
-  console.log(`  ✓ Podcast generated: ${(buffer.length / 1024 / 1024).toFixed(2)} MB, ~${Math.round(estimatedDuration / 60)} minutes`);
+  console.log(`  ✓ Podcast generated: ${(finalBuffer.length / 1024 / 1024).toFixed(2)} MB, ~${Math.round(estimatedDuration / 60)} minutes (${wordCount} words)`);
 
   return {
     filePath: targetPath,
     durationSeconds: estimatedDuration,
   };
+}
+
+/**
+ * Generate podcast from PDF content
+ * Extracts text from PDF first, then generates comprehensive revision podcast
+ */
+export async function generatePodcastFromPdf({
+  pdfUrl,
+  lessonTitle,
+  trackSlug,
+  trackTitle,
+  voice = 'alloy',
+  outputDir = 'uploads/podcasts',
+}: {
+  pdfUrl: string;
+  lessonTitle: string;
+  trackSlug: string;
+  trackTitle?: string;
+  voice?: string;
+  outputDir?: string;
+}): Promise<PodcastResult> {
+  // Import PDF text extractor
+  const { extractTextFromPdf } = await import('./pdf-text-extractor.js');
+  
+  console.log(`📄 Extracting text from PDF: ${pdfUrl}`);
+  const pdfText = await extractTextFromPdf(pdfUrl);
+  
+  console.log(`📝 PDF text extracted: ${pdfText.split(/\s+/).filter(w => w.length > 0).length} words`);
+  
+  // Generate podcast from PDF text
+  return generateLessonPodcast({
+    lessonContent: pdfText, // Use PDF-extracted text
+    lessonTitle,
+    trackSlug,
+    trackTitle,
+    voice,
+    outputDir,
+    useGPT: true, // Always use GPT for PDF-based podcasts to ensure quality
+  });
 }
 
 /**
@@ -280,7 +362,7 @@ function expandContentForPodcast(content: string, lessonTitle: string): string {
   }
   
   // Add comprehensive conclusion
-  const conclusion = `\n\nThat concludes our comprehensive lesson on ${lessonTitle}. We've covered the essential concepts, practical applications, industry standards, and real-world considerations. Remember to review this material regularly, practice these skills in controlled environments before applying them in the field, and always prioritize safety above all else. Thank you for your attention, and remember: knowledge combined with experience creates true competence in professional diving. Stay safe, stay current, and keep learning.`;
+  const conclusion = `\n\nThat concludes our comprehensive lesson on ${lessonTitle}. We've covered the essential concepts, practical applications, industry standards, and real-world considerations. Remember to review this material regularly, practice these skills in controlled environments before applying them in the field, and always prioritize safety above all else. This is Diver Well, signing off. Remember: knowledge combined with experience creates true competence in professional diving. Stay safe, stay current, and keep learning.`;
   
   return intro + expanded + conclusion;
 }

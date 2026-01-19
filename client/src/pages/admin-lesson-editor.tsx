@@ -11,10 +11,113 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, Save, Eye, Hash, Link, Bold, Italic, Upload, X, Volume2, ExternalLink, FileText, UploadCloud } from "lucide-react";
+import { useGenerationNotifications } from "@/hooks/use-generation-notifications";
+import { ChevronLeft, Save, Eye, Hash, Link, Bold, Italic, Upload, X, Volume2, ExternalLink, FileText, UploadCloud, RefreshCw } from "lucide-react";
 import { Link as RouterLink } from "wouter";
 import EnhancedMarkdownEditor from "@/components/enhanced-markdown-editor";
-import type { Lesson, Track } from "@shared/schema";
+import type { Lesson, Track, ContentGenerationLog } from "@shared/schema";
+
+// Generation History Component
+function GenerationHistorySection({ lessonId }: { lessonId: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { data: historyData, isLoading } = useQuery<{ history: ContentGenerationLog[] }>({
+    queryKey: ["/api/content/generation-history", lessonId],
+    queryFn: async () => {
+      const response = await fetch(`/api/content/generation-history/${lessonId}`);
+      if (!response.ok) return { history: [] };
+      return response.json();
+    },
+    enabled: isExpanded, // Only fetch when expanded
+  });
+
+  const history = historyData?.history || [];
+
+  const formatDate = (date: string | Date | null) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleString();
+  };
+
+  const getStatusBadge = (status: string) => {
+    const colors = {
+      completed: 'bg-green-100 text-green-800',
+      failed: 'bg-red-100 text-red-800',
+      processing: 'bg-blue-100 text-blue-800',
+      pending: 'bg-yellow-100 text-yellow-800',
+    };
+    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  return (
+    <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center justify-between w-full text-left"
+      >
+        <div className="flex items-center gap-2">
+          <FileText className="w-5 h-5 text-slate-600" />
+          <Label className="text-sm font-medium text-slate-700">
+            Generation History
+          </Label>
+        </div>
+        <span className="text-xs text-slate-500">
+          {isExpanded ? '▼' : '▶'}
+        </span>
+      </button>
+
+      {isExpanded && (
+        <div className="mt-3 space-y-2">
+          {isLoading ? (
+            <p className="text-sm text-slate-500">Loading history...</p>
+          ) : history.length === 0 ? (
+            <p className="text-sm text-slate-500">No generation history yet.</p>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {history.map((log) => (
+                <div
+                  key={log.id}
+                  className="p-3 bg-white rounded border border-gray-200 text-sm"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadge(log.status)}`}>
+                        {log.status}
+                      </span>
+                      <span className="text-xs text-slate-600">
+                        {log.contentType.toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      {formatDate(log.startedAt)}
+                    </span>
+                  </div>
+                  {log.generatedUrl && (
+                    <a
+                      href={log.generatedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      View {log.contentType === 'pdf' ? 'PDF' : 'Podcast'}
+                    </a>
+                  )}
+                  {log.errorMessage && (
+                    <p className="text-xs text-red-600 mt-1">{log.errorMessage}</p>
+                  )}
+                  {log.durationSeconds && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      Duration: {Math.floor(log.durationSeconds / 60)}:{(log.durationSeconds % 60).toString().padStart(2, '0')}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminLessonEditor() {
   const [, params] = useRoute("/admin/lessons/:id");
@@ -28,8 +131,17 @@ export default function AdminLessonEditor() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isUploadingPodcast, setIsUploadingPodcast] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfGenerationProgress, setPdfGenerationProgress] = useState<string | null>(null);
+  const [pdfGenerationError, setPdfGenerationError] = useState<string | null>(null);
+  const [isGeneratingPodcast, setIsGeneratingPodcast] = useState(false);
+  const [podcastGenerationProgress, setPodcastGenerationProgress] = useState<string | null>(null);
+  const [podcastGenerationError, setPodcastGenerationError] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Enable generation notifications
+  useGenerationNotifications();
 
   const { data: lesson, isLoading } = useQuery<Lesson>({
     queryKey: ["/api/lessons", params?.id],
@@ -76,6 +188,161 @@ export default function AdminLessonEditor() {
       });
     },
   });
+
+  // PDF Generation Mutation
+  const generatePdfMutation = useMutation({
+    mutationFn: async () => {
+      if (!params?.id) {
+        throw new Error('Lesson ID is required');
+      }
+      setPdfGenerationProgress('Initializing PDF generation...');
+      const response = await apiRequest("POST", `/api/content/generate-pdf/${params.id}`);
+      return response;
+    },
+    onSuccess: (data) => {
+      const newPdfUrl = data.pdfUrl;
+      setPdfUrl(newPdfUrl);
+      setPdfGenerationProgress(null);
+      setPdfGenerationError(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/lessons", params?.id] });
+      toast({
+        title: "PDF Generated Successfully!",
+        description: "The PDF has been generated and saved to the lesson.",
+      });
+    },
+    onError: (error: any) => {
+      console.error('PDF generation error:', error);
+      setPdfGenerationProgress(null);
+      const errorMessage = error?.error || error?.message || error?.details || "Failed to generate PDF. Please try again.";
+      setPdfGenerationError(errorMessage);
+      toast({
+        title: "PDF Generation Failed",
+        description: typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage),
+        variant: "destructive",
+      });
+    },
+    onMutate: () => {
+      setIsGeneratingPdf(true);
+      setPdfGenerationError(null);
+      setPdfGenerationProgress('Generating PDF with Gamma API...');
+    },
+    onSettled: () => {
+      setIsGeneratingPdf(false);
+    },
+  });
+
+  const generatePodcastMutation = useMutation({
+    mutationFn: async () => {
+      if (!params?.id) {
+        throw new Error('Lesson ID is required');
+      }
+      setPodcastGenerationProgress('Extracting text from PDF...');
+      const response = await apiRequest("POST", `/api/content/generate-podcast/${params.id}`);
+      return response;
+    },
+    onSuccess: (data) => {
+      const newPodcastUrl = data.podcastUrl;
+      const newDuration = data.durationSeconds;
+      setPodcastUrl(newPodcastUrl);
+      setPodcastDuration(newDuration);
+      setPodcastGenerationProgress(null);
+      setPodcastGenerationError(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/lessons", params?.id] });
+      toast({
+        title: "Podcast Generated Successfully!",
+        description: `The podcast has been generated from PDF content${newDuration ? ` (${Math.round(newDuration / 60)} minutes)` : ''} and saved to the lesson.`,
+      });
+    },
+    onError: (error: any) => {
+      console.error('Podcast generation error:', error);
+      setPodcastGenerationProgress(null);
+      const errorMessage = error?.error || error?.message || error?.details || "Failed to generate podcast. Please try again.";
+      setPodcastGenerationError(errorMessage);
+      toast({
+        title: "Podcast Generation Failed",
+        description: typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage),
+        variant: "destructive",
+      });
+    },
+    onMutate: () => {
+      setIsGeneratingPodcast(true);
+      setPodcastGenerationError(null);
+      setPodcastGenerationProgress('Extracting text from PDF...');
+    },
+    onSettled: () => {
+      setIsGeneratingPodcast(false);
+    },
+  });
+
+  const handleGeneratePdf = async () => {
+    if (!params?.id) {
+      toast({
+        title: "Error",
+        description: "Lesson ID is required to generate PDF.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If PDF exists, show confirmation
+    if (pdfUrl) {
+      const confirmed = window.confirm(
+        "This will replace the existing PDF. The current PDF will be removed and a new one will be generated from the lesson content. Continue?"
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    // Update progress messages during generation
+    setPdfGenerationProgress('Generating PDF with Gamma API... (this may take a few minutes)');
+    
+    try {
+      generatePdfMutation.mutate();
+    } catch (error) {
+      console.error('Error starting PDF generation:', error);
+    }
+  };
+
+  const handleGeneratePodcast = async () => {
+    if (!params?.id) {
+      toast({
+        title: "Error",
+        description: "Lesson ID is required to generate podcast.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if PDF exists (required for podcast generation)
+    if (!pdfUrl) {
+      toast({
+        title: "PDF Required",
+        description: "A PDF is required to generate a podcast. PDFs are derived from lesson content. Please generate the PDF first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If podcast exists, show confirmation
+    if (podcastUrl) {
+      const confirmed = window.confirm(
+        "This will replace the existing podcast. The current podcast will be removed and a new one will be generated from the PDF content. Continue?"
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    // Update progress messages during generation
+    setPodcastGenerationProgress('Generating podcast from PDF content... (this may take several minutes)');
+    
+    try {
+      generatePodcastMutation.mutate();
+    } catch (error) {
+      console.error('Error starting podcast generation:', error);
+    }
+  };
 
   const handleSave = () => {
     updateLessonMutation.mutate({
@@ -547,13 +814,13 @@ export default function AdminLessonEditor() {
                 </div>
                 
                 {podcastUrl ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-white rounded border border-gray-200">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-1">
                         <Volume2 className="w-5 h-5 text-blue-600" />
-                        <div>
-                          <p className="text-sm font-medium text-slate-900">Podcast Uploaded</p>
-                          <p className="text-xs text-slate-500">{podcastUrl}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900">Podcast Available</p>
+                          <p className="text-xs text-slate-500 truncate">{podcastUrl}</p>
                           {podcastDuration && (
                             <p className="text-xs text-slate-500">
                               Duration: {Math.floor(podcastDuration / 60)}:{(podcastDuration % 60).toString().padStart(2, '0')}
@@ -561,30 +828,131 @@ export default function AdminLessonEditor() {
                           )}
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setPodcastUrl(null);
-                          setPodcastDuration(undefined);
-                        }}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={podcastUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setPodcastUrl(null);
+                            setPodcastDuration(undefined);
+                          }}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
+                    
+                    {/* Regenerate Podcast Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleGeneratePodcast}
+                      disabled={isGeneratingPodcast || isGeneratingPdf || isUploadingPodcast}
+                      className="w-full"
+                    >
+                      {isGeneratingPodcast ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          {podcastGenerationProgress || 'Generating...'}
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Regenerate Podcast from PDF
+                        </>
+                      )}
+                    </Button>
+                    
+                    {podcastGenerationError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                        <p className="font-medium">Error: {podcastGenerationError}</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleGeneratePodcast}
+                          className="mt-2 text-red-700 hover:text-red-800"
+                        >
+                          Try Again
+                        </Button>
+                      </div>
+                    )}
+                    
+                    <div className="pt-2 border-t border-gray-200">
+                      <p className="text-xs text-slate-500 mb-2">Or upload manually:</p>
                       <Input
                         type="number"
                         placeholder="Duration in seconds (optional)"
                         value={podcastDuration || ''}
                         onChange={(e) => setPodcastDuration(e.target.value ? parseInt(e.target.value) : undefined)}
-                        className="flex-1"
+                        className="w-full"
                       />
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
+                    {/* Generate Podcast from PDF Button */}
+                    {pdfUrl ? (
+                      <Button
+                        type="button"
+                        variant="default"
+                        onClick={handleGeneratePodcast}
+                        disabled={isGeneratingPodcast || isGeneratingPdf || isUploadingPodcast}
+                        className="w-full"
+                      >
+                        {isGeneratingPodcast ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            {podcastGenerationProgress || 'Generating podcast from PDF...'}
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="w-4 h-4 mr-2" />
+                            Generate Podcast from PDF
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                        <p className="font-medium">PDF Required</p>
+                        <p className="text-xs mt-1">A PDF is required to generate a podcast. PDFs are derived from lesson content. Please generate the PDF first.</p>
+                      </div>
+                    )}
+                    
+                    {podcastGenerationError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                        <p className="font-medium">Error: {podcastGenerationError}</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleGeneratePodcast}
+                          className="mt-2 text-red-700 hover:text-red-800"
+                          disabled={!pdfUrl}
+                        >
+                          Try Again
+                        </Button>
+                      </div>
+                    )}
+                    
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300"></div>
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-gray-50 px-2 text-slate-500">Or</span>
+                      </div>
+                    </div>
+                    
                     <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
                       <div className="flex flex-col items-center justify-center">
                         {isUploadingPodcast ? (
@@ -605,7 +973,7 @@ export default function AdminLessonEditor() {
                         className="hidden"
                         accept="audio/mpeg,audio/mp3,audio/wav,audio/m4a,audio/mp4,audio/x-m4a,audio/ogg,audio/aac,audio/webm,.mp3,.wav,.m4a,.ogg,.aac,.mp4"
                         onChange={handlePodcastFileChange}
-                        disabled={isUploadingPodcast}
+                        disabled={isUploadingPodcast || isGeneratingPodcast}
                       />
                     </label>
                     <p className="text-xs text-slate-500">
@@ -625,29 +993,141 @@ export default function AdminLessonEditor() {
                 </div>
                 
                 {pdfUrl ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-white rounded border border-gray-200">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-1">
                         <FileText className="w-5 h-5 text-red-600" />
-                        <div>
-                          <p className="text-sm font-medium text-slate-900">PDF Uploaded</p>
-                          <p className="text-xs text-slate-500">{pdfUrl}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900">PDF Available</p>
+                          <p className="text-xs text-slate-500 truncate">{pdfUrl}</p>
+                          <a
+                            href={pdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            View PDF
+                          </a>
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setPdfUrl(null);
-                        }}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGeneratePdf}
+                          disabled={isGeneratingPdf || isUploadingPdf}
+                          className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                          title="Regenerate PDF from current lesson content using Gamma API"
+                        >
+                          <RefreshCw className={`w-4 h-4 mr-1 ${isGeneratingPdf ? 'animate-spin' : ''}`} />
+                          {isGeneratingPdf ? 'Generating...' : 'Regenerate PDF'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setPdfUrl(null);
+                          }}
+                          disabled={isGeneratingPdf}
+                          title="Remove PDF"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
+                    
+                    {/* PDF Preview */}
+                    {pdfUrl && (
+                      <div className="border border-gray-200 rounded-lg bg-white p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-medium text-slate-700">PDF Preview</h4>
+                          <a
+                            href={pdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            View Full PDF
+                          </a>
+                        </div>
+                        <div className="border border-gray-200 rounded overflow-hidden" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                          <PdfEbookViewer 
+                            pdfUrl={pdfUrl} 
+                            lessonTitle={title || lesson?.title || 'PDF Preview'}
+                            lessonId={params?.id || ''}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Progress Indicator */}
+                    {isGeneratingPdf && pdfGenerationProgress && (
+                      <div className="p-3 bg-blue-50 rounded border border-blue-200">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                          <p className="text-sm text-blue-700">{pdfGenerationProgress}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Error Display */}
+                    {pdfGenerationError && !isGeneratingPdf && (
+                      <div className="p-3 bg-red-50 rounded border border-red-200">
+                        <div className="flex items-start gap-2">
+                          <p className="text-sm text-red-700 flex-1">{pdfGenerationError}</p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPdfGenerationError(null)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGeneratePdf}
+                          className="mt-2 text-red-600 border-red-300 hover:bg-red-50"
+                        >
+                          Try Again
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
+                    {/* Generate PDF Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleGeneratePdf}
+                      disabled={isGeneratingPdf || isUploadingPdf || !content.trim()}
+                      className="w-full text-blue-600 border-blue-300 hover:bg-blue-50"
+                      title="Generate PDF from lesson content using Gamma API"
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${isGeneratingPdf ? 'animate-spin' : ''}`} />
+                      {isGeneratingPdf ? 'Generating PDF...' : 'Generate PDF from Content'}
+                    </Button>
+                    
+                    {!content.trim() && (
+                      <p className="text-xs text-amber-600 text-center">
+                        ⚠️ Lesson content is required to generate PDF
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 border-t border-gray-300"></div>
+                      <span className="text-xs text-slate-500">OR</span>
+                      <div className="flex-1 border-t border-gray-300"></div>
+                    </div>
+                    
+                    {/* Manual Upload Area */}
                     <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-red-400 hover:bg-red-50 transition-colors">
                       <div className="flex flex-col items-center justify-center">
                         {isUploadingPdf ? (
@@ -668,12 +1148,48 @@ export default function AdminLessonEditor() {
                         className="hidden"
                         accept="application/pdf,.pdf"
                         onChange={handlePdfFileChange}
-                        disabled={isUploadingPdf}
+                        disabled={isUploadingPdf || isGeneratingPdf}
                       />
                     </label>
                     <p className="text-xs text-slate-500">
                       Supported format: PDF (Max 50MB)
                     </p>
+                    
+                    {/* Progress Indicator for Generation */}
+                    {isGeneratingPdf && pdfGenerationProgress && (
+                      <div className="p-3 bg-blue-50 rounded border border-blue-200">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                          <p className="text-sm text-blue-700">{pdfGenerationProgress}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Error Display */}
+                    {pdfGenerationError && !isGeneratingPdf && (
+                      <div className="p-3 bg-red-50 rounded border border-red-200">
+                        <div className="flex items-start gap-2">
+                          <p className="text-sm text-red-700 flex-1">{pdfGenerationError}</p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPdfGenerationError(null)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGeneratePdf}
+                          className="mt-2 text-red-600 border-red-300 hover:bg-red-50"
+                        >
+                          Try Again
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -708,6 +1224,11 @@ export default function AdminLessonEditor() {
                   </a>
                 )}
               </div>
+
+              {/* Generation History */}
+              {params?.id && (
+                <GenerationHistorySection lessonId={params.id} />
+              )}
 
               {/* Enhanced Content Editor */}
               <div>

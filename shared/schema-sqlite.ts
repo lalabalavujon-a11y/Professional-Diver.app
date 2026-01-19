@@ -498,6 +498,19 @@ export const documentationVersions = sqliteTable("documentation_versions", {
   createdBy: text("created_by").notNull(), // 'laura' | 'admin' | 'system'
 });
 
+// GPT Access Tokens Table
+export const gptAccessTokens = sqliteTable("gpt_access_tokens", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  isRevoked: integer("is_revoked", { mode: "boolean" }).default(false).notNull(),
+  revokedAt: integer("revoked_at", { mode: "timestamp" }),
+  revokedReason: text("revoked_reason"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   accounts: many(accounts),
@@ -520,6 +533,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   calendarShareLinks: many(calendarShareLinks),
   calendarSyncCredentials: many(calendarSyncCredentials),
   featureOverrides: many(userFeatureOverrides),
+  gptAccessTokens: many(gptAccessTokens),
 }));
 
 export const tracksRelations = relations(tracks, ({ one, many }) => ({
@@ -995,3 +1009,7 @@ export type DocumentationChange = typeof documentationChanges.$inferSelect;
 export type InsertDocumentationChange = z.infer<typeof insertDocumentationChangeSchema>;
 export type DocumentationVersion = typeof documentationVersions.$inferSelect;
 export type InsertDocumentationVersion = z.infer<typeof insertDocumentationVersionSchema>;
+export type GptAccessToken = typeof gptAccessTokens.$inferSelect;
+export type InsertGptAccessToken = z.infer<typeof insertGptAccessTokenSchema>;
+export type ContentGenerationLog = typeof contentGenerationLogs.$inferSelect;
+export type InsertContentGenerationLog = typeof contentGenerationLogs.$inferInsert;
