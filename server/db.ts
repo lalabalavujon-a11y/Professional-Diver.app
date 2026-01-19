@@ -5,6 +5,8 @@ import { existsSync, mkdirSync } from 'fs';
 import { createRequire } from "module";
 import * as schema from "@shared/schema";
 import * as sqliteSchema from "@shared/schema-sqlite";
+import * as sponsorSchema from "@shared/sponsor-schema";
+import * as sponsorSqliteSchema from "@shared/sponsor-schema-sqlite";
 
 neonConfig.webSocketConstructor = ws;
 

@@ -427,6 +427,31 @@ export default function AdminDashboard() {
           )}
         </PageSection>
 
+        {/* Sponsor Management - Only visible to SUPER_ADMIN */}
+        {isSuperAdmin && (
+          <PageSection
+            title="Sponsor Management"
+            description="Manage partnerships and sponsorships"
+            actions={
+              <Link href="/admin/sponsors">
+                <Button variant="outline" size="sm">
+                  <Eye className="w-4 h-4 mr-2" />
+                  Manage Sponsors
+                </Button>
+              </Link>
+            }
+          >
+            <div className="text-sm text-slate-600">
+              <p>Manage sponsor partnerships, placements, and track performance analytics.</p>
+              <Link href="/admin/sponsors">
+                <Button variant="ghost" size="sm" className="mt-2">
+                  Go to Sponsor Management
+                </Button>
+              </Link>
+            </div>
+          </PageSection>
+        )}
+
         {/* CRM Management - Only visible to SUPER_ADMIN */}
         {isSuperAdmin && (
           <PageSection

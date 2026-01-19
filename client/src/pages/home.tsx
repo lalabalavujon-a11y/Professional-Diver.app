@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import HeroSection from "@/components/hero-section";
 import TrackCard from "@/components/track-card";
+import SponsorTile from "@/components/sponsors/sponsor-tile";
 import { LayoutDashboard, List } from "lucide-react";
 import type { Track } from "@shared/schema";
 
@@ -15,7 +16,14 @@ export default function Home() {
       <RoleBasedNavigation />
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        <HeroSection />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+          <div className="lg:col-span-3">
+            <HeroSection />
+          </div>
+          <div className="lg:col-span-1">
+            <SponsorTile placementType="IN_APP_TILE" />
+          </div>
+        </div>
         
         <section id="tracks" className="mb-8 sm:mb-12">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
