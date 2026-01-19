@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Footer from "@/components/footer";
 import LauraAssistant from "@/components/laura-assistant";
+import SponsorStrip from "@/components/sponsors/sponsor-strip";
 import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
 
 export default function Landing() {
@@ -293,6 +294,9 @@ export default function Landing() {
           </Link>
         </div>
       </section>
+
+      {/* Partner Strip */}
+      <SponsorStrip placementType="HOMEPAGE_STRIP" className="bg-slate-50 border-t border-slate-200" />
 
       {/* Footer */}
       <Footer />

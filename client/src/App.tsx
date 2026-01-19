@@ -40,9 +40,12 @@ import ProfessionalExams from "@/pages/professional-exams";
 import ExamInterface from "@/pages/exam-interface";
 import SrsReview from "@/pages/srs-review";
 import AdminSrs from "@/pages/admin-srs";
+import SponsorManagement from "@/pages/admin/sponsor-management";
 import SupportTickets from "@/pages/support-tickets";
 import SupportDocuments from "@/pages/support-documents";
 import ComingSoon from "@/pages/coming-soon";
+import PartnerInquiry from "@/pages/partner-inquiry";
+import Partners from "@/pages/partners";
 import FeatureRouteGuard from "@/components/feature-route-guard";
 
 function Router() {
@@ -176,6 +179,7 @@ function Router() {
       <Route path="/admin/lessons/:id" component={AdminLessonEditor} />
       <Route path="/admin/bulk-upload" component={AdminBulkUpload} />
       <Route path="/admin/srs" component={AdminSrs} />
+      <Route path="/admin/sponsors" component={SponsorManagement} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/crm" component={CRMDashboard} />
       <Route path="/privacy" component={Privacy} />
@@ -221,6 +225,8 @@ function Router() {
       </Route>
       <Route path="/tracks" component={Tracks} />
       <Route path="/terms" component={Terms} />
+      <Route path="/partner-inquiry" component={PartnerInquiry} />
+      <Route path="/partners" component={Partners} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,4 +1,5 @@
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, Handshake } from "lucide-react";
+import { Link } from "wouter";
 import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
 
 export default function Footer() {
@@ -42,6 +43,14 @@ export default function Footer() {
               <div className="flex items-center space-x-2 text-sm text-slate-300">
                 <MapPin className="w-4 h-4" />
                 <span>Southampton, United Kingdom</span>
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-700">
+                <Link href="/partner-inquiry">
+                  <div className="flex items-center space-x-2 text-sm text-slate-300 hover:text-white cursor-pointer transition-colors">
+                    <Handshake className="w-4 h-4" />
+                    <span>Partner with Us</span>
+                  </div>
+                </Link>
               </div>
             </div>
           </div>

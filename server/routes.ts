@@ -30,6 +30,7 @@ import { registerSrsRoutes } from "./srs-routes";
 import { registerEquipmentRoutes } from "./routes/equipment-routes";
 import { registerOperationsCalendarRoutes } from "./routes/operations-calendar-routes";
 import { registerCallingRoutes } from "./routes/calling-routes";
+import { registerSponsorRoutes } from "./sponsor-routes";
 import { getWeatherData, timezoneToCoordinates as weatherTimezoneToCoordinates } from "./weather-service";
 import { getTideData, timezoneToCoordinates as tidesTimezoneToCoordinates, clearTidesCache } from "./tides-service";
 import { getPorts, getPortsNearLocation } from "./ports-service";
@@ -152,6 +153,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Calling routes
   registerCallingRoutes(app);
+
+  // Sponsor routes
+  registerSponsorRoutes(app);
 
   // Serve uploaded files statically with CORS headers for PDF files
   const path = await import('path');
