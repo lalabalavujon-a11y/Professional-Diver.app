@@ -119,7 +119,7 @@ Learning & Content:
 - POST /api/users/:userId/progress - Update user progress
 
 AI Tutors & Learning Paths:
-- POST /api/ai-tutor/chat - Chat with discipline-specific AI tutor (Sarah/NDT, Maria/LST, Elena/ALST, James/DMT, David/Commercial Supervisor, Marcus/Saturation, Lisa/Underwater Welding, Michael/Hyperbaric/Air Diving)
+- POST /api/ai-tutor/chat - Chat with discipline-specific AI tutor (Diver Well/NDT, Diver Well/LST, Diver Well/ALST, Diver Well/DMT, Diver Well/Commercial Supervisor, Diver Well/Saturation, Diver Well/Underwater Welding, Diver Well/Hyperbaric/Air Diving)
 - GET /api/ai-tutor/tutors - Get available tutors
 - POST /api/ai-tutor/learning-path - Generate learning path
 - GET /api/learning-path/suggestions - Get learning path suggestions
@@ -250,16 +250,16 @@ AI SYSTEMS:
    - Voice communication available
    - API: /api/diver-well/*
 
-3. AI Tutors (9 discipline experts, first name only):
-   - Sarah (NDT) - Non-Destructive Testing and Inspection
-   - Maria (LST) - Life Support Technician
-   - Elena (ALST) - Assistant Life Support Technician
-   - James (DMT) - Dive Medical Technician
-   - David (Commercial Supervisor) - Commercial Dive Supervisor
-   - Marcus (Saturation) - Saturation Diving Systems
-   - Lisa (Welding) - Underwater Welding Operations
-   - Michael (Hyperbaric) - Hyperbaric Operations
-   - Michael (Air Diving) - Air Diver Certification / Diving Physics
+3. AI Tutors (9 discipline experts, unified as Diver Well):
+   - Diver Well (NDT) - Non-Destructive Testing and Inspection
+   - Diver Well (LST) - Life Support Technician
+   - Diver Well (ALST) - Assistant Life Support Technician
+   - Diver Well (DMT) - Dive Medical Technician
+   - Diver Well (Commercial Supervisor) - Commercial Dive Supervisor
+   - Diver Well (Saturation) - Saturation Diving Systems
+   - Diver Well (Welding) - Underwater Welding Operations
+   - Diver Well (Hyperbaric) - Hyperbaric Operations
+   - Diver Well (Air Diving) - Air Diver Certification / Diving Physics
    - All use OpenAI GPT-4o via LangChain with comprehensive system prompts
    - API: /api/ai-tutor/chat with discipline parameter
 
@@ -278,7 +278,7 @@ Progress Tracking Issues:
 
 AI Tutor Issues:
 - "AI tutor not responding" - Check OpenAI API key, verify /api/ai-tutor/chat endpoint, check fallback responses in code, verify discipline parameter correct
-- "Wrong tutor responding" - Verify discipline parameter matches track slug (e.g., "underwater-welding" → Lisa)
+- "Wrong tutor responding" - Verify discipline parameter matches track slug (e.g., "underwater-welding" → Diver Well)
 - "Response too generic" - This may indicate OpenAI API unavailable, check system prompts are enhanced
 
 Payment/Billing Issues:

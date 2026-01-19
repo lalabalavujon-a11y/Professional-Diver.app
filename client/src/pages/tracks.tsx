@@ -192,7 +192,7 @@ export default function Tracks() {
               <div className="flex items-center">
                 <BookOpen className="w-8 h-8 text-blue-600 mr-3" />
                 <div>
-                  <p className="text-2xl font-bold text-slate-900">{mockTracks.length}</p>
+                  <p className="text-2xl font-bold text-slate-900">{tracks.length}</p>
                   <p className="text-sm text-slate-600">Total Tracks</p>
                 </div>
               </div>
@@ -205,7 +205,7 @@ export default function Tracks() {
                 <Users className="w-8 h-8 text-green-600 mr-3" />
                 <div>
                   <p className="text-2xl font-bold text-slate-900">
-                    {mockTracks.reduce((sum, track) => sum + track.students, 0).toLocaleString()}
+                    {tracks.reduce((sum, track) => sum + (track.students || 0), 0).toLocaleString()}
                   </p>
                   <p className="text-sm text-slate-600">Active Students</p>
                 </div>
@@ -219,7 +219,7 @@ export default function Tracks() {
                 <Award className="w-8 h-8 text-purple-600 mr-3" />
                 <div>
                   <p className="text-2xl font-bold text-slate-900">
-                    {mockTracks.reduce((sum, track) => sum + track.lessons, 0)}
+                    {tracks.reduce((sum, track) => sum + (track.lessons || 0), 0)}
                   </p>
                   <p className="text-sm text-slate-600">Total Lessons</p>
                 </div>

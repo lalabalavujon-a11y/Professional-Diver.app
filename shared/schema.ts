@@ -231,6 +231,24 @@ export const learningPaths = pgTable("learning_paths", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const contentGenerationLogs = pgTable("content_generation_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  lessonId: varchar("lesson_id").references(() => lessons.id, { onDelete: "set null" }),
+  trackId: varchar("track_id").references(() => tracks.id, { onDelete: "set null" }),
+  contentType: varchar("content_type").notNull(), // 'pdf' | 'podcast'
+  status: varchar("status").notNull(), // 'pending' | 'processing' | 'completed' | 'failed'
+  sourceType: varchar("source_type"), // 'lesson_content' | 'pdf_content' | 'gamma_template'
+  sourceUrl: text("source_url"), // PDF URL if podcast from PDF
+  generatedUrl: text("generated_url"), // Result PDF/podcast URL
+  errorMessage: text("error_message"),
+  durationSeconds: integer("duration_seconds"),
+  fileSizeBytes: integer("file_size_bytes"),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  metadata: json("metadata"), // Additional info (word count, page count, etc.)
+});
+
 export const widgetLocations = pgTable("widget_locations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

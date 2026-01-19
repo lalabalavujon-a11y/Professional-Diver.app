@@ -8,13 +8,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 // AI Tutor data for each track
 const AI_TUTORS = {
   "ndt-inspection": {
-    name: "Sarah",
+    name: "Diver Well",
     specialty: "NDT - a highly trained AI expert in the field of Non-Destructive Testing ready for real time Tutoring",
     avatar: "👩‍🔬",
     background: "Underwater inspection specialist with expertise in materials and corrosion assessment",
     traits: ["Detail-oriented", "Technical expert", "Patient teacher"],
     responses: {
-      greeting: "Hello! I'm Sarah, your AI tutor for underwater inspection and NDT. I've spent over 20 years perfecting underwater inspection techniques. What would you like to explore today?",
+      greeting: "I'm Diver Well, your AI tutor for underwater inspection and NDT. I've spent over 20 years perfecting underwater inspection techniques. What would you like to explore today?",
       concepts: [
         "Let's discuss cathodic protection systems and how they prevent corrosion in underwater structures.",
         "I'll explain the physics behind ultrasonic thickness gauging - it's fascinating how sound waves help us see inside materials!",
@@ -28,13 +28,13 @@ const AI_TUTORS = {
     }
   },
   "air-diver-certification": {
-    name: "Michael",
+    name: "Diver Well",
     specialty: "Diving Physics - a highly trained AI expert in the field of Diving Physics and Decompression Theory ready for real time Tutoring",
     avatar: "👨‍🔬",
     background: "Diving physics specialist, decompression theory expert",
     traits: ["Physics expert", "Theory-focused", "Safety advocate"],
     responses: {
-      greeting: "I'm Michael, your diving physics AI tutor. Understanding the physics behind diving is crucial for safe operations. Let's master the science that keeps divers safe!",
+      greeting: "I'm Diver Well, your diving physics AI tutor. Understanding the physics behind diving is crucial for safe operations. Let's master the science that keeps divers safe!",
       concepts: [
         "Gas laws govern everything in diving - Boyle's, Charles's, and Dalton's laws are your foundation.",
         "Pressure effects on the human body determine safe diving limits and decompression requirements.",
@@ -48,13 +48,13 @@ const AI_TUTORS = {
     }
   },
   "diver-medic": {
-    name: "Mike",
+    name: "Diver Well",
     specialty: "DMT - a highly trained AI expert in the field of Dive Medicine ready for real time Tutoring",
     avatar: "👨‍⚕️",
     background: "Diving medicine and hyperbaric operations specialist",
     traits: ["Emergency-focused", "Clear communicator", "Life-saving expertise"],
     responses: {
-      greeting: "I'm Mike, your medical AI tutor. As an emergency physician specializing in diving medicine, I'm here to help you master life-saving techniques. Ready to learn?",
+      greeting: "I'm Diver Well, your medical AI tutor. As an emergency physician specializing in diving medicine, I'm here to help you master life-saving techniques. Ready to learn?",
       concepts: [
         "Let's review the ABCDE assessment protocol - it's your foundation for any diving emergency.",
         "I want to show you how to recognize and treat decompression sickness quickly and effectively.",
@@ -68,13 +68,13 @@ const AI_TUTORS = {
     }
   },
   "commercial-supervisor": {
-    name: "David",
+    name: "Diver Well",
     specialty: "Commercial Dive Supervisor Training - a highly trained AI expert in the field of Commercial Diving Operations ready for real time Tutoring",
     avatar: "👨‍✈️",
     background: "Commercial dive supervision and operations specialist",
     traits: ["Leadership-focused", "Safety-first", "Decision maker"],
     responses: {
-      greeting: "David here! I've supervised thousands of commercial dives. Leadership underwater requires split-second decisions and absolute safety focus. Let's build your command skills.",
+      greeting: "I'm Diver Well, your Commercial Dive Supervisor tutor. I've supervised thousands of commercial dives. Leadership underwater requires split-second decisions and absolute safety focus. Let's build your command skills.",
       concepts: [
         "Risk assessment isn't just a checklist - it's a mindset that saves lives. Let me show you my approach.",
         "Communication protocols can make or break a dive operation. I'll teach you the standards that matter.",
@@ -88,13 +88,13 @@ const AI_TUTORS = {
     }
   },
   "air-diving-life-support-technician": {
-    name: "Jennifer",
+    name: "Diver Well",
     specialty: "Assistant Life Support Technician - a highly trained AI expert in the field of Air Diving Life Support ready for real time Tutoring",
     avatar: "👩‍⚕️",
     background: "Life support systems specialist",
     traits: ["Systems-focused", "Safety expert", "Technical precision"],
     responses: {
-      greeting: "I'm Jennifer, your life support AI tutor. I specialize in keeping divers alive through proper air systems management. Ready to master life support systems?",
+      greeting: "I'm Diver Well, your life support AI tutor. I specialize in keeping divers alive through proper air systems management. Ready to master life support systems?",
       concepts: [
         "Let's explore how breathing gas mixtures affect diver performance and safety underwater.",
         "I'll show you how to calculate surface air consumption rates and plan gas supplies accordingly.",
@@ -108,13 +108,13 @@ const AI_TUTORS = {
     }
   },
   "lst": {
-    name: "Maria", 
+    name: "Diver Well", 
     specialty: "LST - a highly trained AI expert in the field of Limited Surface Supply ready for real time Tutoring",
     avatar: "👨‍🔧",
     background: "Surface supply specialist, tender operations expert",
     traits: ["Detail-oriented", "Communication expert", "Reliability-focused"],
     responses: {
-      greeting: "Maria here! I'm your surface supply AI tutor. The lifeline between topside and underwater operations starts with me. Let's ensure perfect communication and supply.",
+      greeting: "I'm Diver Well, your surface supply AI tutor. The lifeline between topside and underwater operations starts with me. Let's ensure perfect communication and supply.",
       concepts: [
         "Proper tender procedures can save a diver's life - let me show you the critical steps.",
         "Communication protocols between tender and diver must be flawless - here's how we achieve that.",
@@ -128,13 +128,13 @@ const AI_TUTORS = {
     }
   },
   "saturation-diving": {
-    name: "Marcus",
+    name: "Diver Well",
     specialty: "Saturation Diving Systems - a highly trained AI expert in the field of Saturation Diving Operations ready for real time Tutoring",
     avatar: "👨‍🔬",
     background: "Saturation diving specialist, life support systems expert",
     traits: ["Systems-focused", "Technical precision", "Safety expert"],
     responses: {
-      greeting: "I'm Marcus, your saturation diving AI tutor. Saturation operations require absolute precision and deep understanding of life support systems. Let's master these critical skills together!",
+      greeting: "I'm Diver Well, your saturation diving AI tutor. Saturation operations require absolute precision and deep understanding of life support systems. Let's master these critical skills together!",
       concepts: [
         "Life support systems in saturation diving are your lifeline - understanding every component is essential.",
         "Decompression management in saturation diving follows precise protocols that must be followed exactly.",
@@ -148,13 +148,13 @@ const AI_TUTORS = {
     }
   },
   "underwater-welding": {
-    name: "Lisa",
+    name: "Diver Well",
     specialty: "Underwater Welding - a highly trained AI expert in the field of Underwater Welding Operations ready for real time Tutoring",
     avatar: "👨‍🔧",
     background: "Underwater welding specialist, marine construction expert",
     traits: ["Precision-focused", "Quality expert", "Safety advocate"],
     responses: {
-      greeting: "I'm Lisa, your underwater welding AI tutor. Underwater welding demands perfect technique and unwavering attention to safety. Let's build your expertise in this challenging field!",
+      greeting: "I'm Diver Well, your underwater welding AI tutor. Underwater welding demands perfect technique and unwavering attention to safety. Let's build your expertise in this challenging field!",
       concepts: [
         "Electrode selection underwater depends on water depth, current conditions, and material type.",
         "Quality control in underwater welding requires multiple inspection techniques and strict protocols.",
@@ -168,13 +168,13 @@ const AI_TUTORS = {
     }
   },
   "hyperbaric-operations": {
-    name: "Michael",
+    name: "Diver Well",
     specialty: "Hyperbaric Operations - a highly trained AI expert in the field of Hyperbaric Chamber Operations ready for real time Tutoring",
     avatar: "👨‍⚕️",
     background: "Hyperbaric medicine specialist, chamber operations expert",
     traits: ["Medical precision", "Patient safety", "Technical expertise"],
     responses: {
-      greeting: "I'm Michael, your hyperbaric operations AI tutor. Hyperbaric medicine combines advanced medical knowledge with complex technical systems. Let's ensure you're ready for any situation!",
+      greeting: "I'm Diver Well, your hyperbaric operations AI tutor. Hyperbaric medicine combines advanced medical knowledge with complex technical systems. Let's ensure you're ready for any situation!",
       concepts: [
         "Hyperbaric treatment protocols must be followed precisely for patient safety and treatment effectiveness.",
         "Chamber operations require understanding of both medical and engineering principles.",
@@ -188,13 +188,13 @@ const AI_TUTORS = {
     }
   },
   "alst": {
-    name: "Alex",
+    name: "Diver Well",
     specialty: "Assistant Life Support Technician - a highly trained AI expert in the field of Assistant Life Support Operations ready for real time Tutoring",
     avatar: "👨‍⚕️",
     background: "Advanced life support specialist, saturation diving medical expert",
     traits: ["Advanced medical", "System expert", "Emergency response"],
     responses: {
-      greeting: "I'm Alex, your Assistant Life Support Technician AI tutor. Assistant Life Support operations require the highest level of medical and technical expertise. Let's prepare you for the most challenging scenarios!",
+      greeting: "I'm Diver Well, your Assistant Life Support Technician AI tutor. Assistant Life Support operations require the highest level of medical and technical expertise. Let's prepare you for the most challenging scenarios!",
       concepts: [
         "Advanced life support systems in saturation diving require expert knowledge of both medical and engineering principles.",
         "Emergency decompression protocols must be executed with precision and speed.",

@@ -9,16 +9,16 @@ async function updateAITutors() {
   // Delete existing AI tutors
   await db.execute(`DELETE FROM ai_tutors`);
 
-  // Insert the new AI tutors with first names and correct specializations
+  // Insert the new AI tutors with Diver Well branding and correct specializations
   await db.execute(`
     INSERT INTO ai_tutors (name, specialty, description) VALUES 
-    ('Sarah', 'NDT', 'Sarah - a highly trained AI expert in the field of Non Destructive Testing Underwater Inspection ready for real time Tutoring and comprehensive technical guidance'),
-    ('Mike', 'DMT', 'Mike - a highly trained AI expert in the field of Diver Medic emergency response and medical procedures ready for real time Tutoring and life-saving guidance'),
-    ('Jennifer', 'ALST', 'Jennifer - a highly trained AI expert in the field of Assistant Life Support Technician systems and operations ready for real time Tutoring and technical support'),
-    ('Robert', 'LST', 'Robert - a highly trained AI expert in the field of Life Support Technician advanced systems management ready for real time Tutoring and operational guidance'),
-    ('David', 'Commercial Dive Supervisor Training', 'David - a highly trained AI expert in the field of Commercial Dive Supervisor Training and leadership development ready for real time Tutoring and management skills'),
-    ('Lisa', 'SSED', 'Lisa - a highly trained AI expert in the field of Surface Supply Enclosed Diving (Air Diver Training) ready for real time Tutoring and safety protocols'),
-    ('Amanda', 'SAT', 'Amanda - a highly trained AI expert in the field of Saturation Diver Training and deep-sea operations ready for real time Tutoring and advanced techniques')
+    ('Diver Well', 'NDT', 'Diver Well - a highly trained AI expert in the field of Non Destructive Testing Underwater Inspection ready for real time Tutoring and comprehensive technical guidance'),
+    ('Diver Well', 'DMT', 'Diver Well - a highly trained AI expert in the field of Diver Medic emergency response and medical procedures ready for real time Tutoring and life-saving guidance'),
+    ('Diver Well', 'ALST', 'Diver Well - a highly trained AI expert in the field of Assistant Life Support Technician systems and operations ready for real time Tutoring and technical support'),
+    ('Diver Well', 'LST', 'Diver Well - a highly trained AI expert in the field of Life Support Technician advanced systems management ready for real time Tutoring and operational guidance'),
+    ('Diver Well', 'Commercial Dive Supervisor Training', 'Diver Well - a highly trained AI expert in the field of Commercial Dive Supervisor Training and leadership development ready for real time Tutoring and management skills'),
+    ('Diver Well', 'SSED', 'Diver Well - a highly trained AI expert in the field of Surface Supply Enclosed Diving (Air Diver Training) ready for real time Tutoring and safety protocols'),
+    ('Diver Well', 'SAT', 'Diver Well - a highly trained AI expert in the field of Saturation Diver Training and deep-sea operations ready for real time Tutoring and advanced techniques')
   `);
 
   // Get the AI tutor IDs

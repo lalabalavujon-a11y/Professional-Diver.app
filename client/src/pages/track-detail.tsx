@@ -1,15 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Track, Lesson } from "@shared/schema";
 
 type TrackWithLessons = Track & { lessons: Lesson[] };
 
 export default function TrackDetail() {
   const [, params] = useRoute("/tracks/:slug");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  
   const { data: track, isLoading } = useQuery<TrackWithLessons>({
     queryKey: ["/api/tracks", params?.slug],
     queryFn: async () => {
@@ -23,6 +30,53 @@ export default function TrackDetail() {
     },
     enabled: !!params?.slug,
   });
+
+  const regeneratePdfsMutation = useMutation({
+    mutationFn: async () => {
+      if (!params?.slug) throw new Error('Track slug is required');
+      return apiRequest("POST", `/api/content/regenerate-track-pdfs/${params.slug}`);
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "PDF Regeneration Started",
+        description: `Regenerating PDFs for ${data.lessonCount} lessons. Progress will be shown in real-time.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/tracks", params?.slug] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Regeneration Failed",
+        description: error?.error || error?.message || "Failed to start PDF regeneration",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsRegenerating(false);
+    },
+  });
+
+  const handleRegenerateAllPdfs = async () => {
+    if (!track) return;
+    
+    const lessonCount = track.lessons?.length || 0;
+    if (lessonCount === 0) {
+      toast({
+        title: "No Lessons",
+        description: "This track has no lessons to regenerate PDFs for.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `This will regenerate PDFs for all ${lessonCount} lessons in this track. This may take several minutes. Continue?`
+    );
+    
+    if (!confirmed) return;
+
+    setIsRegenerating(true);
+    regeneratePdfsMutation.mutate();
+  };
 
   if (isLoading) {
     return (
@@ -81,6 +135,30 @@ export default function TrackDetail() {
             <p className="mt-2 text-slate-600" data-testid="text-track-summary">
               {track.summary}
             </p>
+          )}
+          
+          {/* Admin: Regenerate All PDFs Button */}
+          {track.lessons && track.lessons.length > 0 && (
+            <div className="mt-4">
+              <Button
+                onClick={handleRegenerateAllPdfs}
+                disabled={isRegenerating}
+                variant="outline"
+                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+              >
+                {isRegenerating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Regenerating PDFs...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Regenerate All PDFs ({track.lessons.length} lessons)
+                  </>
+                )}
+              </Button>
+            </div>
           )}
         </div>
 

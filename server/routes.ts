@@ -9,6 +9,7 @@ import { crmAdapter } from "./crm-adapter";
 import { userLifecycleService } from "./user-lifecycle-service";
 import { partnerService } from "./partner-service";
 import { userManagement } from "./user-management";
+import { gptAccessService } from "./gpt-access-service";
 import * as featureService from "./feature-service";
 import { getAllFeatures, FEATURE_REGISTRY } from "./feature-registry";
 import { resolveUserPermissions } from "./feature-service";
@@ -47,6 +48,9 @@ import {
   generateTrackContent,
   generatePdf,
   generatePodcast,
+  batchGeneratePdfs,
+  regenerateTrackPdfs,
+  getGenerationHistory,
   validateLessonContent,
   getReviewQueue,
 } from "./api/content-generation";
@@ -2897,6 +2901,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/content/generate-track/:trackSlug", generateTrackContent);
   app.post("/api/content/generate-pdf/:lessonId", generatePdf);
   app.post("/api/content/generate-podcast/:lessonId", generatePodcast);
+  app.post("/api/content/batch-generate-pdfs", batchGeneratePdfs);
+  app.post("/api/content/regenerate-track-pdfs/:trackSlug", regenerateTrackPdfs);
+  app.get("/api/content/generation-history/:lessonId", getGenerationHistory);
   app.get("/api/content/validation/:lessonId", validateLessonContent);
   app.get("/api/content/review-queue", getReviewQueue);
 
@@ -3807,6 +3814,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error stack:", error.stack);
       // Return empty permissions object instead of nested structure
       res.json({});
+    }
+  });
+
+  // GPT Access routes
+  app.get("/api/gpt-access/token", async (req, res) => {
+    try {
+      const email = req.query.email as string || req.headers['x-user-email'] as string;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Get user from database
+      const userResult = await db
+        .select()
+        .from(usersSQLite)
+        .where(eq(usersSQLite.email, email.toLowerCase().trim()))
+        .limit(1);
+
+      if (userResult.length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const user = userResult[0];
+
+      // Check if user already has an active token
+      const activeToken = await gptAccessService.getUserActiveToken(user.id);
+      
+      if (activeToken) {
+        return res.json({
+          token: activeToken.token,
+          expiresAt: activeToken.expiresAt,
+          accessLink: activeToken.accessLink,
+        });
+      }
+
+      // Generate new token
+      const tokenData = await gptAccessService.generateAccessToken(user.id);
+      
+      res.json({
+        token: tokenData.token,
+        expiresAt: tokenData.expiresAt,
+        accessLink: tokenData.accessLink,
+      });
+    } catch (error: any) {
+      console.error("Error generating GPT access token:", error);
+      if (error.message === "User does not have an active subscription") {
+        return res.status(403).json({ error: error.message });
+      }
+      res.status(500).json({ error: "Failed to generate access token" });
+    }
+  });
+
+  app.get("/api/gpt-access/link", async (req, res) => {
+    try {
+      const email = req.query.email as string || req.headers['x-user-email'] as string;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Get user from database
+      const userResult = await db
+        .select()
+        .from(usersSQLite)
+        .where(eq(usersSQLite.email, email.toLowerCase().trim()))
+        .limit(1);
+
+      if (userResult.length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const user = userResult[0];
+
+      // Get or generate token
+      let activeToken = await gptAccessService.getUserActiveToken(user.id);
+      
+      if (!activeToken) {
+        // Generate new token if none exists
+        const tokenData = await gptAccessService.generateAccessToken(user.id);
+        activeToken = {
+          token: tokenData.token,
+          expiresAt: tokenData.expiresAt,
+          accessLink: tokenData.accessLink,
+        };
+      }
+
+      res.json({
+        accessLink: activeToken.accessLink,
+        expiresAt: activeToken.expiresAt,
+      });
+    } catch (error: any) {
+      console.error("Error getting GPT access link:", error);
+      if (error.message === "User does not have an active subscription") {
+        return res.status(403).json({ error: error.message });
+      }
+      res.status(500).json({ error: "Failed to get access link" });
+    }
+  });
+
+  app.post("/api/gpt-access/revoke", async (req, res) => {
+    try {
+      const email = req.query.email as string || req.headers['x-user-email'] as string;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Get user from database
+      const userResult = await db
+        .select()
+        .from(usersSQLite)
+        .where(eq(usersSQLite.email, email.toLowerCase().trim()))
+        .limit(1);
+
+      if (userResult.length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const user = userResult[0];
+
+      // Revoke all tokens for user
+      await gptAccessService.revokeUserTokens(user.id, "User requested revocation");
+      
+      res.json({ success: true, message: "Access tokens revoked" });
+    } catch (error: any) {
+      console.error("Error revoking GPT access tokens:", error);
+      res.status(500).json({ error: "Failed to revoke access tokens" });
+    }
+  });
+
+  // Public endpoint for token validation (used by GPT)
+  app.get("/api/gpt-access/validate/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      if (!token) {
+        return res.status(400).json({ valid: false, message: "Token is required" });
+      }
+
+      const validation = await gptAccessService.validateToken(token);
+      
+      if (validation.valid) {
+        return res.json({ valid: true, message: "Access granted" });
+      } else {
+        return res.status(401).json({ valid: false, message: validation.reason || "Access denied" });
+      }
+    } catch (error: any) {
+      console.error("Error validating GPT access token:", error);
+      res.status(500).json({ valid: false, message: "Validation error" });
     }
   });
 

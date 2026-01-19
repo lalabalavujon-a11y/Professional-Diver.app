@@ -194,14 +194,14 @@ const documentationSections: DocumentationSection[] = [
     subsections: [
       {
         title: 'Available Tutors',
-        content: 'Sarah (NDT) - Non-Destructive Testing and Inspection\nMaria (LST) - Life Support Technician\nElena (ALST) - Assistant Life Support Technician\nJames (DMT) - Dive Medical Technician\nDavid - Commercial Dive Supervisor\nMarcus - Saturation Diving Systems\nLisa - Underwater Welding Operations\nMichael (Hyperbaric) - Hyperbaric Operations\nMichael (Air Diving) - Air Diver Certification / Diving Physics'
+        content: 'Diver Well (NDT) - Non-Destructive Testing and Inspection\nDiver Well (LST) - Life Support Technician\nDiver Well (ALST) - Assistant Life Support Technician\nDiver Well (DMT) - Dive Medical Technician\nDiver Well - Commercial Dive Supervisor\nDiver Well - Saturation Diving Systems\nDiver Well - Underwater Welding Operations\nDiver Well (Hyperbaric) - Hyperbaric Operations\nDiver Well (Air Diving) - Air Diver Certification / Diving Physics'
       },
       {
         title: 'Using AI Tutors',
         content: 'AI tutors are automatically available when viewing lessons in their respective tracks. You can ask questions about course content, get explanations, request examples, and receive personalized guidance. Each tutor has comprehensive knowledge of their discipline.'
       }
     ],
-    keywords: ['ai tutors', 'tutors', 'sarah', 'maria', 'elena', 'james', 'david', 'marcus', 'lisa', 'michael', 'help'],
+    keywords: ['ai tutors', 'tutors', 'diver well', 'help'],
     relatedLinks: [
       { label: 'Training Tracks', href: '/tracks' }
     ]

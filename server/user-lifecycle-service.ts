@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { crmService } from "./crm-service";
 import { crmAdapter } from "./crm-adapter";
+import { gptAccessService } from "./gpt-access-service";
 
 /**
  * User Lifecycle Service
@@ -148,6 +149,19 @@ export class UserLifecycleService {
       const client = await crmService.getClientByUserId(userId);
       if (client) {
         await crmAdapter.updateClient(client.id, { status });
+      }
+
+      // Revoke GPT access if subscription is not active
+      if (status !== "ACTIVE") {
+        try {
+          await gptAccessService.revokeUserTokens(
+            userId,
+            `Subscription status changed to ${status}`
+          );
+        } catch (error) {
+          // Log error but don't fail the entire operation
+          console.error("Error revoking GPT access tokens:", error);
+        }
       }
     } catch (error) {
       console.error("Error updating subscription status:", error);

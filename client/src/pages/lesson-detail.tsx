@@ -157,6 +157,25 @@ export default function LessonDetail() {
     enabled: !!params?.id,
   });
 
+  // Fetch track data to get total lesson count
+  const trackSlug = lesson?.trackSlug || (lesson as any)?.trackSlug;
+  const { data: track } = useQuery({
+    queryKey: ["/api/tracks", trackSlug],
+    queryFn: async () => {
+      if (!trackSlug) return null;
+      const response = await fetch(`/api/tracks/${trackSlug}`);
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error('Failed to fetch track');
+      }
+      return response.json();
+    },
+    enabled: !!trackSlug,
+  });
+
+  // Calculate total lessons count
+  const totalLessons = track?.lessons?.length || 12; // Default to 12 if track data not available
+
   const handleBackClick = () => {
     console.log('Back button clicked, lesson:', lesson);
     console.log('trackSlug:', lesson?.trackSlug);
@@ -247,7 +266,7 @@ export default function LessonDetail() {
                     {lesson.title}
                   </h2>
                   <p className="text-sm text-slate-500" data-testid="text-lesson-meta">
-                    Lesson {lesson.order || 1} of 5
+                    Lesson {lesson.order || 1} of {totalLessons}
                   </p>
                 </div>
               </div>

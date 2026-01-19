@@ -1,0 +1,168 @@
+{
+  "exportDate": "2026-01-18T23:50:03.607Z",
+  "totalFiles": 10,
+  "files": [
+    {
+      "category": "01-foundation",
+      "fileName": "air-diver-certification.md",
+      "filePath": "01-foundation/air-diver-certification.md",
+      "size": "26.1 KB",
+      "sizeBytes": 26681,
+      "title": "Air Diver Certification",
+      "description": "Foundation course for air diving skills, physics, and basic operations",
+      "uploadOrder": 1
+    },
+    {
+      "category": "01-foundation",
+      "fileName": "alst.md",
+      "filePath": "01-foundation/alst.md",
+      "size": "22.5 KB",
+      "sizeBytes": 23019,
+      "title": "Assistant Life Support Technician (ALST)",
+      "description": "Foundation life support systems and assistant operations",
+      "uploadOrder": 2
+    },
+    {
+      "category": "02-specialized",
+      "fileName": "lst.md",
+      "filePath": "02-specialized/lst.md",
+      "size": "28.0 KB",
+      "sizeBytes": 28722,
+      "title": "Life Support Technician (LST)",
+      "description": "Advanced life support systems for commercial diving operations",
+      "uploadOrder": 3
+    },
+    {
+      "category": "02-specialized",
+      "fileName": "ndt-inspection.md",
+      "filePath": "02-specialized/ndt-inspection.md",
+      "size": "28.5 KB",
+      "sizeBytes": 29217,
+      "title": "Inspection & Non-Destructive Testing (NDT)",
+      "description": "Underwater inspection techniques, NDT methods, and documentation",
+      "uploadOrder": 4
+    },
+    {
+      "category": "02-specialized",
+      "fileName": "diver-medic.md",
+      "filePath": "02-specialized/diver-medic.md",
+      "size": "23.6 KB",
+      "sizeBytes": 24148,
+      "title": "Diver Medic Technician (DMT)",
+      "description": "Emergency medical response, ABCDE protocols, and diving medicine",
+      "uploadOrder": 5
+    },
+    {
+      "category": "03-advanced",
+      "fileName": "saturation-diving.md",
+      "filePath": "03-advanced/saturation-diving.md",
+      "size": "26.7 KB",
+      "sizeBytes": 27340,
+      "title": "Saturation Diver Training",
+      "description": "Saturation diving systems, chamber operations, and deep-sea procedures",
+      "uploadOrder": 6
+    },
+    {
+      "category": "03-advanced",
+      "fileName": "hyperbaric-operations.md",
+      "filePath": "03-advanced/hyperbaric-operations.md",
+      "size": "53.1 KB",
+      "sizeBytes": 54361,
+      "title": "Hyperbaric Chamber Operations",
+      "description": "Hyperbaric medicine, treatment protocols, and chamber management",
+      "uploadOrder": 7
+    },
+    {
+      "category": "03-advanced",
+      "fileName": "underwater-welding.md",
+      "filePath": "03-advanced/underwater-welding.md",
+      "size": "56.7 KB",
+      "sizeBytes": 58057,
+      "title": "Advanced Underwater Welding",
+      "description": "Underwater welding techniques, electrode selection, and quality control",
+      "uploadOrder": 8
+    },
+    {
+      "category": "03-advanced",
+      "fileName": "commercial-supervisor.md",
+      "filePath": "03-advanced/commercial-supervisor.md",
+      "size": "21.8 KB",
+      "sizeBytes": 22299,
+      "title": "Commercial Dive Supervisor",
+      "description": "Leadership, dive planning, risk assessment, and operations management",
+      "uploadOrder": 9
+    },
+    {
+      "category": "04-supplementary",
+      "fileName": "supplementary-kb-content.md",
+      "filePath": "04-supplementary/supplementary-kb-content.md",
+      "size": "8.5 KB",
+      "sizeBytes": 8680,
+      "title": "Supplementary Knowledge Base Content",
+      "description": "CSWIP inspection protocols (3.1U/3.2U/3.4U) and DMT SAFE/ABCDE/ATOMFC protocols",
+      "uploadOrder": 10
+    }
+  ],
+  "uploadSequence": [
+    {
+      "order": 1,
+      "category": "01-foundation",
+      "fileName": "air-diver-certification.md",
+      "title": "Air Diver Certification"
+    },
+    {
+      "order": 2,
+      "category": "01-foundation",
+      "fileName": "alst.md",
+      "title": "Assistant Life Support Technician (ALST)"
+    },
+    {
+      "order": 3,
+      "category": "02-specialized",
+      "fileName": "lst.md",
+      "title": "Life Support Technician (LST)"
+    },
+    {
+      "order": 4,
+      "category": "02-specialized",
+      "fileName": "ndt-inspection.md",
+      "title": "Inspection & Non-Destructive Testing (NDT)"
+    },
+    {
+      "order": 5,
+      "category": "02-specialized",
+      "fileName": "diver-medic.md",
+      "title": "Diver Medic Technician (DMT)"
+    },
+    {
+      "order": 6,
+      "category": "03-advanced",
+      "fileName": "saturation-diving.md",
+      "title": "Saturation Diver Training"
+    },
+    {
+      "order": 7,
+      "category": "03-advanced",
+      "fileName": "hyperbaric-operations.md",
+      "title": "Hyperbaric Chamber Operations"
+    },
+    {
+      "order": 8,
+      "category": "03-advanced",
+      "fileName": "underwater-welding.md",
+      "title": "Advanced Underwater Welding"
+    },
+    {
+      "order": 9,
+      "category": "03-advanced",
+      "fileName": "commercial-supervisor.md",
+      "title": "Commercial Dive Supervisor"
+    },
+    {
+      "order": 10,
+      "category": "04-supplementary",
+      "fileName": "supplementary-kb-content.md",
+      "title": "Supplementary Knowledge Base Content"
+    }
+  ]
+}

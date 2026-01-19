@@ -116,6 +116,10 @@ async function main() {
   
   const httpServer = await registerRoutes(app);
 
+  // Initialize WebSocket server for real-time generation progress
+  const { initializeWebSocketServer } = await import('./websocket-server');
+  initializeWebSocketServer(httpServer);
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
