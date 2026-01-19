@@ -158,7 +158,7 @@ export const clients = sqliteTable("clients", {
   email: text("email").notNull().unique(),
   phone: text("phone"), // Phone number for communications
   subscriptionType: text("subscription_type", { enum: ["TRIAL", "MONTHLY", "ANNUAL", "LIFETIME"] }).default("TRIAL").notNull(),
-  status: text("status", { enum: ["ACTIVE", "PAUSED", "CANCELLED"] }).default("ACTIVE").notNull(),
+  status: text("status", { enum: ["ACTIVE", "PAUSED", "CANCELLED", "SPONSOR"] }).default("ACTIVE").notNull(),
   subscriptionDate: integer("subscription_date", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
   monthlyRevenue: integer("monthly_revenue").default(0), // in cents
   partnerStatus: text("partner_status", { enum: ["NONE", "PENDING", "ACTIVE", "INACTIVE"] }).default("NONE").notNull(),

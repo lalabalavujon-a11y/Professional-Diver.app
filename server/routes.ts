@@ -2471,8 +2471,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      // Get SQLite instance for raw SQL execution
+      const sqlite = (db as any).sqlite;
+      if (!sqlite) {
+        // Not SQLite, skip table creation
+        return;
+      }
+
       // Create client_tags table
-      await db.execute(`
+      sqlite.exec(`
         CREATE TABLE IF NOT EXISTS client_tags (
           id text PRIMARY KEY NOT NULL,
           client_id text NOT NULL,
@@ -2486,7 +2493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `);
 
       // Create communications table
-      await db.execute(`
+      sqlite.exec(`
         CREATE TABLE IF NOT EXISTS communications (
           id text PRIMARY KEY NOT NULL,
           client_id text NOT NULL,
@@ -2506,7 +2513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Add phone column to clients table if it doesn't exist
       try {
-        await db.execute(`ALTER TABLE clients ADD COLUMN phone text;`);
+        sqlite.exec(`ALTER TABLE clients ADD COLUMN phone text;`);
       } catch (e: any) {
         // Column might already exist, ignore error
         if (!e.message?.includes('duplicate column')) {
@@ -2515,9 +2522,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create indexes for better performance
-      await db.execute(`CREATE INDEX IF NOT EXISTS idx_client_tags_client_id ON client_tags(client_id);`);
-      await db.execute(`CREATE INDEX IF NOT EXISTS idx_communications_client_id ON communications(client_id);`);
-      await db.execute(`CREATE INDEX IF NOT EXISTS idx_communications_created_at ON communications(created_at DESC);`);
+      sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_client_tags_client_id ON client_tags(client_id);`);
+      sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_communications_client_id ON communications(client_id);`);
+      sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_communications_created_at ON communications(created_at DESC);`);
     } catch (error) {
       console.error('Error ensuring CRM tables:', error);
       // Don't throw - allow server to continue
@@ -2663,14 +2670,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdBy,
         });
       } else if (type === "whatsapp") {
-        communication = await communicationService.logWhatsApp({
-          clientId: req.params.id,
-          direction,
-          content,
-          phoneNumber: req.body.phoneNumber,
-          status,
-          createdBy,
-        });
+        if (direction === "outbound") {
+          // Send WhatsApp message
+          communication = await communicationService.sendWhatsApp({
+            clientId: req.params.id,
+            to: req.body.to || req.body.phoneNumber,
+            content,
+            createdBy,
+          });
+        } else {
+          // Log inbound WhatsApp message
+          communication = await communicationService.logWhatsApp({
+            clientId: req.params.id,
+            direction,
+            content,
+            phoneNumber: req.body.phoneNumber,
+            status: status || "sent",
+            createdBy,
+          });
+        }
       } else if (type === "note") {
         communication = await communicationService.addNote({
           clientId: req.params.id,
@@ -2798,6 +2816,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('HighLevel tag webhook error:', error);
       res.status(500).json({ error: "Failed to process webhook" });
+    }
+  });
+
+  // Email webhook routes
+  app.post("/api/webhooks/email/inbound", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { emailReceiverService } = await import("./services/email-receiver-service");
+      // For future webhook support (e.g., SendGrid Inbound Parse)
+      // For now, this endpoint can trigger manual polling
+      await emailReceiverService.pollForNewEmails();
+      res.json({ success: true, message: "Email polling triggered" });
+    } catch (error) {
+      console.error('Email webhook error:', error);
+      res.status(500).json({ error: "Failed to process email webhook" });
+    }
+  });
+
+  app.get("/api/admin/email/receive", async (req, res) => {
+    try {
+      await ensureCrmTables();
+      const { emailReceiverService } = await import("./services/email-receiver-service");
+      await emailReceiverService.pollForNewEmails();
+      res.json({ success: true, message: "Email polling completed" });
+    } catch (error) {
+      console.error('Manual email polling error:', error);
+      res.status(500).json({ error: "Failed to poll emails" });
+    }
+  });
+
+  // WhatsApp webhook routes
+  app.get("/api/webhooks/whatsapp/inbound", async (req, res) => {
+    try {
+      // Webhook verification (GET request from Meta)
+      const mode = req.query['hub.mode'] as string;
+      const token = req.query['hub.verify_token'] as string;
+      const challenge = req.query['hub.challenge'] as string;
+
+      const { whatsappReceiverService } = await import("./services/whatsapp-receiver-service");
+      const result = whatsappReceiverService.handleVerification(mode, token, challenge);
+
+      if (result) {
+        res.status(200).send(result);
+      } else {
+        res.status(403).send('Forbidden');
+      }
+    } catch (error) {
+      console.error('WhatsApp webhook verification error:', error);
+      res.status(500).json({ error: "Failed to verify webhook" });
+    }
+  });
+
+  // WhatsApp webhook needs raw body for signature verification
+  app.post("/api/webhooks/whatsapp/inbound", express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+      await ensureCrmTables();
+
+      // Parse body from raw buffer
+      const body = JSON.parse(req.body.toString());
+      
+      // Verify webhook signature if provided
+      const signature = req.headers['x-hub-signature-256'] as string;
+      if (signature && process.env.WHATSAPP_APP_SECRET) {
+        const { whatsappReceiverService } = await import("./services/whatsapp-receiver-service");
+        const rawBody = req.body.toString();
+        const signatureHash = signature.replace('sha256=', '');
+        if (!whatsappReceiverService.verifyWebhookSignature(rawBody, signatureHash)) {
+          console.error('❌ Invalid WhatsApp webhook signature');
+          return res.status(403).json({ error: "Invalid webhook signature" });
+        }
+      }
+
+      const { whatsappReceiverService } = await import("./services/whatsapp-receiver-service");
+      await whatsappReceiverService.processWebhook(body);
+
+      // Return 200 OK immediately (Meta requires quick response)
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('WhatsApp webhook processing error:', error);
+      // Still return 200 to prevent Meta from retrying
+      res.status(200).json({ success: false, error: "Failed to process webhook" });
     }
   });
 
@@ -7353,6 +7452,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   } catch (error) {
     console.error('⚠️ Warning: Failed to initialize documentation monitoring services:', error);
     // Continue startup even if monitoring fails
+  }
+
+  // Initialize email polling service
+  try {
+    const { emailReceiverService } = await import("./services/email-receiver-service");
+    // Check if IMAP credentials are configured
+    const IMAP_USER = process.env.IMAP_USER || process.env.SMTP_USER;
+    const IMAP_PASSWORD = process.env.IMAP_PASSWORD || process.env.SMTP_PASSWORD;
+    
+    if (IMAP_USER && IMAP_PASSWORD) {
+      // Start polling in background after a short delay
+      setTimeout(() => {
+        emailReceiverService.startPolling();
+        console.log('✅ Email polling service started');
+      }, 5000); // Wait 5 seconds after server starts
+    } else {
+      console.log('⚠️ Email polling disabled: IMAP credentials not configured');
+    }
+  } catch (error) {
+    console.error('⚠️ Warning: Failed to initialize email polling service:', error);
+    // Continue startup even if email polling fails
   }
 
   return httpServer;

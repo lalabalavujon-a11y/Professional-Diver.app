@@ -1,6 +1,9 @@
 import { crmService } from "./crm-service";
 import { highlevelService } from "./highlevel-service";
 import { db } from "./db";
+import { clients } from "@shared/schema-sqlite";
+import { nanoid } from "nanoid";
+import { eq } from "drizzle-orm";
 
 /**
  * CRM Adapter
@@ -45,10 +48,10 @@ export class CRMAdapter {
 
         if (highlevelContactId) {
           // Update local client with HighLevel contact ID
-          await db.execute(
-            'UPDATE clients SET highlevel_contact_id = $1 WHERE id = $2',
-            [highlevelContactId, localClient.id]
-          );
+          await db
+            .update(clients)
+            .set({ highlevelContactId: highlevelContactId as any })
+            .where(eq(clients.id, localClient.id));
           localClient.highlevel_contact_id = highlevelContactId;
         }
       } catch (error) {
@@ -114,13 +117,16 @@ export class CRMAdapter {
    */
   async deleteClient(clientId: string): Promise<void> {
     // Get client before deletion to check for HighLevel contact ID
-    const clientResult = await db.execute(
-      'SELECT * FROM clients WHERE id = $1',
-      [clientId]
-    );
+    const clientResult = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.id, clientId))
+      .limit(1);
 
     // Delete from local CRM
-    await db.execute('DELETE FROM clients WHERE id = $1', [clientId]);
+    await db
+      .delete(clients)
+      .where(eq(clients.id, clientId));
 
     // Optionally delete from HighLevel if available
     if (
@@ -131,7 +137,7 @@ export class CRMAdapter {
         // Note: HighLevel API may not support direct deletion
         // You might want to archive or tag as deleted instead
         console.log(
-          `HighLevel contact ${clientResult.rows[0].highlevel_contact_id} should be archived/deleted manually`
+          `HighLevel contact ${clientResult[0].highlevel_contact_id} should be archived/deleted manually`
         );
       } catch (error) {
         console.error("Error handling HighLevel deletion (non-fatal):", error);

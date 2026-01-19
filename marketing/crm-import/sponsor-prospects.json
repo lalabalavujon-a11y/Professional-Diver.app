@@ -1,0 +1,443 @@
+[
+  {
+    "company": "ABCO Divers Ltd",
+    "category": "contractor",
+    "website": "https://www.abco-divers.co.uk/",
+    "source": "ADC-UK",
+    "notes": "UK commercial diving contractor"
+  },
+  {
+    "company": "Aberdeen Marine Ltd",
+    "category": "contractor",
+    "website": "https://www.aberdeenmarine.co.uk/",
+    "source": "ADC-UK",
+    "notes": "UK marine services"
+  },
+  {
+    "company": "Aegean Diving Services Ltd",
+    "category": "contractor",
+    "website": "https://www.aegeandiving.com/",
+    "source": "ADC-UK",
+    "notes": "UK diving services"
+  },
+  {
+    "company": "Geomarine Limited",
+    "category": "contractor",
+    "website": "https://www.geomarine.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine services"
+  },
+  {
+    "company": "Grampian Diving Services",
+    "category": "contractor",
+    "website": "https://www.grampiandiving.com/",
+    "source": "ADC-UK",
+    "notes": "UK diving contractor"
+  },
+  {
+    "company": "GreenC Marine Ltd",
+    "category": "contractor",
+    "website": "https://www.greencmarine.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine services"
+  },
+  {
+    "company": "GW Marine Systems Ltd",
+    "category": "contractor",
+    "website": "https://www.gwmarine.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine systems"
+  },
+  {
+    "company": "Herbosch-Kiere UK Ltd",
+    "category": "contractor",
+    "website": "https://www.herbosch-kiere.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine construction"
+  },
+  {
+    "company": "Hull Diving Services Co",
+    "category": "contractor",
+    "website": "https://www.hulldiving.co.uk/",
+    "source": "ADC-UK",
+    "notes": "UK diving services"
+  },
+  {
+    "company": "Hulltec Ltd",
+    "category": "contractor",
+    "website": "https://www.hulltec.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine technology"
+  },
+  {
+    "company": "KBS Maritime Ltd",
+    "category": "contractor",
+    "website": "https://www.kbsmaritime.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Maritime services"
+  },
+  {
+    "company": "Kew Diving Services Ltd",
+    "category": "contractor",
+    "website": "https://www.kewdiving.co.uk/",
+    "source": "ADC-UK",
+    "notes": "UK diving contractor"
+  },
+  {
+    "company": "Leask Marine Ltd",
+    "category": "contractor",
+    "website": "https://www.leaskmarine.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine services"
+  },
+  {
+    "company": "Lochs Diving Services Ltd",
+    "category": "contractor",
+    "website": "https://www.lochsdiving.co.uk/",
+    "source": "ADC-UK",
+    "notes": "UK diving services"
+  },
+  {
+    "company": "Malakoff Ltd",
+    "category": "contractor",
+    "website": "https://www.malakoff.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine services"
+  },
+  {
+    "company": "Marine and Civil Diving Services Ltd",
+    "category": "contractor",
+    "website": "https://www.marineandcivil.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine & civil"
+  },
+  {
+    "company": "MCS Subsea Ltd",
+    "category": "contractor",
+    "website": "https://www.mcssubsea.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Subsea services"
+  },
+  {
+    "company": "Millennium Marine Contractors Ltd",
+    "category": "contractor",
+    "website": "https://www.millenniummarine.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine contractors"
+  },
+  {
+    "company": "MMC Diving Services",
+    "category": "contractor",
+    "website": "https://www.mmcdiving.co.uk/",
+    "source": "ADC-UK",
+    "notes": "UK diving services"
+  },
+  {
+    "company": "MMP Marine & Inspection",
+    "category": "contractor",
+    "website": "https://www.mmpmarine.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine inspection"
+  },
+  {
+    "company": "MSDS Marine Ltd",
+    "category": "contractor",
+    "website": "https://www.msdsmarine.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine services"
+  },
+  {
+    "company": "Norfolk Marine Ltd",
+    "category": "contractor",
+    "website": "https://www.norfolkmarine.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine services"
+  },
+  {
+    "company": "North West Marine Ltd",
+    "category": "contractor",
+    "website": "https://www.northwestmarine.co.uk/",
+    "source": "ADC-UK",
+    "notes": "Marine services"
+  },
+  {
+    "company": "Northern Divers (Eng) Ltd",
+    "category": "contractor",
+    "website": "https://www.northerndivers.co.uk/",
+    "source": "ADC-UK",
+    "notes": "UK diving contractor"
+  },
+  {
+    "company": "Quay Diving Services Ltd",
+    "category": "contractor",
+    "website": "https://www.quaydiving.co.uk/",
+    "source": "ADC-UK",
+    "notes": "UK diving services"
+  },
+  {
+    "company": "RED7 Diving",
+    "category": "contractor",
+    "website": "https://www.red7diving.com/",
+    "source": "Seaplant",
+    "notes": "UK diving contractor"
+  },
+  {
+    "company": "Associated Diving Services",
+    "category": "contractor",
+    "website": "https://www.associateddiving.co.uk/",
+    "source": "Seaplant",
+    "notes": "UK diving services"
+  },
+  {
+    "company": "Hydrex Underwater Technology",
+    "category": "contractor",
+    "website": "https://www.hydrex.be/",
+    "source": "Seaplant",
+    "notes": "Underwater technology"
+  },
+  {
+    "company": "Sub Aqua Diving Services (UK) Ltd",
+    "category": "contractor",
+    "website": "https://www.subaqua.co.uk/",
+    "source": "Seaplant",
+    "notes": "UK diving services"
+  },
+  {
+    "company": "Kirby Morgan",
+    "category": "helmets",
+    "website": "https://www.kirbymorgan.com/",
+    "source": "Industry",
+    "notes": "Dive helmet manufacturer"
+  },
+  {
+    "company": "Divex",
+    "category": "helmets",
+    "website": "https://www.divex.com/",
+    "source": "Industry",
+    "notes": "Dive equipment manufacturer"
+  },
+  {
+    "company": "OMS",
+    "category": "suits",
+    "website": "https://www.omsdive.com/",
+    "source": "Industry",
+    "notes": "Dive suit manufacturer"
+  },
+  {
+    "company": "Viking",
+    "category": "suits",
+    "website": "https://www.vikingdive.com/",
+    "source": "Industry",
+    "notes": "Dive suit manufacturer"
+  },
+  {
+    "company": "Santi",
+    "category": "suits",
+    "website": "https://www.santi.pl/",
+    "source": "Industry",
+    "notes": "Dive suit manufacturer"
+  },
+  {
+    "company": "DUI",
+    "category": "suits",
+    "website": "https://www.dui-online.com/",
+    "source": "Industry",
+    "notes": "Dive suit manufacturer"
+  },
+  {
+    "company": "Shearwater Research",
+    "category": "computers",
+    "website": "https://www.shearwater.com/",
+    "source": "Industry",
+    "notes": "Dive computer manufacturer"
+  },
+  {
+    "company": "Suunto",
+    "category": "computers",
+    "website": "https://www.suunto.com/",
+    "source": "Industry",
+    "notes": "Dive computer manufacturer"
+  },
+  {
+    "company": "Garmin",
+    "category": "computers",
+    "website": "https://www.garmin.com/",
+    "source": "Industry",
+    "notes": "Dive computer manufacturer"
+  },
+  {
+    "company": "DAN Europe",
+    "category": "insurance",
+    "website": "https://www.daneurope.org/",
+    "source": "Industry",
+    "notes": "Dive insurance provider"
+  },
+  {
+    "company": "Dive Assure",
+    "category": "insurance",
+    "website": "https://www.diveassure.com/",
+    "source": "Industry",
+    "notes": "Dive insurance provider"
+  },
+  {
+    "company": "Divers Alert Network",
+    "category": "insurance",
+    "website": "https://www.diversalertnetwork.org/",
+    "source": "Industry",
+    "notes": "Dive insurance provider"
+  },
+  {
+    "company": "HSE Commercial Diving",
+    "category": "training",
+    "website": "https://www.hse.gov.uk/diving/",
+    "source": "Industry",
+    "notes": "UK commercial diving training"
+  },
+  {
+    "company": "IMCA",
+    "category": "training",
+    "website": "https://www.imca-int.com/",
+    "source": "Industry",
+    "notes": "International Marine Contractors Association"
+  },
+  {
+    "company": "ADCI",
+    "category": "training",
+    "website": "https://www.adc-int.org/",
+    "source": "Industry",
+    "notes": "Association of Diving Contractors International"
+  },
+  {
+    "company": "Divers Institute of Technology",
+    "category": "training",
+    "website": "https://www.diversinstitute.edu/",
+    "source": "Industry",
+    "notes": "Commercial diving school"
+  },
+  {
+    "company": "Commercial Diving Academy",
+    "category": "training",
+    "website": "https://www.commercialdivingacademy.com/",
+    "source": "Industry",
+    "notes": "Commercial diving training"
+  },
+  {
+    "company": "Underwater Centre",
+    "category": "training",
+    "website": "https://www.theunderwatercentre.com/",
+    "source": "Industry",
+    "notes": "Commercial diving training"
+  },
+  {
+    "company": "Apeks",
+    "category": "tools",
+    "website": "https://www.apeksdiving.com/",
+    "source": "Industry",
+    "notes": "Dive equipment manufacturer"
+  },
+  {
+    "company": "Scubapro",
+    "category": "tools",
+    "website": "https://www.scubapro.com/",
+    "source": "Industry",
+    "notes": "Dive equipment manufacturer"
+  },
+  {
+    "company": "Aqua Lung",
+    "category": "tools",
+    "website": "https://www.aqualung.com/",
+    "source": "Industry",
+    "notes": "Dive equipment manufacturer"
+  },
+  {
+    "company": "Mares",
+    "category": "tools",
+    "website": "https://www.mares.com/",
+    "source": "Industry",
+    "notes": "Dive equipment manufacturer"
+  },
+  {
+    "company": "Cressi",
+    "category": "tools",
+    "website": "https://www.cressi.com/",
+    "source": "Industry",
+    "notes": "Dive equipment manufacturer"
+  },
+  {
+    "company": "Hollis",
+    "category": "tools",
+    "website": "https://www.hollis.com/",
+    "source": "Industry",
+    "notes": "Dive equipment manufacturer"
+  },
+  {
+    "company": "Fourth Element",
+    "category": "suits",
+    "website": "https://www.fourthelement.com/",
+    "source": "Industry",
+    "notes": "Dive suit manufacturer"
+  },
+  {
+    "company": "Waterproof",
+    "category": "suits",
+    "website": "https://www.waterproof.eu/",
+    "source": "Industry",
+    "notes": "Dive suit manufacturer"
+  },
+  {
+    "company": "Oceaneering International",
+    "category": "contractor",
+    "website": "https://www.oceaneering.com/",
+    "source": "IMCA",
+    "notes": "International offshore contractor"
+  },
+  {
+    "company": "TechnipFMC",
+    "category": "contractor",
+    "website": "https://www.technipfmc.com/",
+    "source": "IMCA",
+    "notes": "International offshore contractor"
+  },
+  {
+    "company": "Subsea 7",
+    "category": "contractor",
+    "website": "https://www.subsea7.com/",
+    "source": "IMCA",
+    "notes": "International offshore contractor"
+  },
+  {
+    "company": "Saipem",
+    "category": "contractor",
+    "website": "https://www.saipem.com/",
+    "source": "IMCA",
+    "notes": "International offshore contractor"
+  },
+  {
+    "company": "Helix Energy Solutions",
+    "category": "contractor",
+    "website": "https://www.helixesg.com/",
+    "source": "ADCI",
+    "notes": "International diving contractor"
+  },
+  {
+    "company": "Cal Dive International",
+    "category": "contractor",
+    "website": "https://www.caldive.com/",
+    "source": "ADCI",
+    "notes": "International diving contractor"
+  },
+  {
+    "company": "Nautilus Lifeline",
+    "category": "comms",
+    "website": "https://www.nautiluslifeline.com/",
+    "source": "Industry",
+    "notes": "Dive communication equipment"
+  },
+  {
+    "company": "Oceanic",
+    "category": "computers",
+    "website": "https://www.oceanicworldwide.com/",
+    "source": "Industry",
+    "notes": "Dive computer manufacturer"
+  }
+]
