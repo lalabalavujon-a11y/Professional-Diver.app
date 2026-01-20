@@ -2,7 +2,7 @@
 
 ## Track Summary
 
-AI-guided leadership training with Captain James Mitchell covering dive planning fundamentals, risk assessment methodologies, hazard identification protocols, communication systems, emergency response procedures, and quality assurance for commercial diving operations.
+AI-guided leadership training with Diver Well covering dive planning fundamentals, risk assessment methodologies, hazard identification protocols, communication systems, emergency response procedures, and quality assurance for commercial diving operations.
 
 **Track Slug:** commercial-supervisor
 **Difficulty:** beginner
@@ -38,10 +38,10 @@ This lesson meets the highest industry standards including:
 
 ---
 
-## AI Tutor: David - Commercial Dive Supervisor Specialist
+## AI Tutor: Diver Well - Commercial Dive Supervisor Specialist
 *Expert in dive planning, commercial diving operations, and safety management protocols*
 
-Welcome to dive planning fundamentals training! I'm David, your AI tutor specializing in commercial dive supervision and dive planning. Today we'll cover the fundamental principles of dive planning operations.
+Welcome to dive planning fundamentals training! I'm Diver Well, your AI tutor specializing in commercial dive supervision and dive planning. Today we'll cover the fundamental principles of dive planning operations.
 
 ## Core Dive Planning Principles
 
@@ -80,7 +80,7 @@ Remember: Proper dive planning is essential for safe and successful commercial d
 ## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 2 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover risk assessment & safety for professional diving operations.
+Welcome to Lesson 2 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover risk assessment & safety for professional diving operations.
 
 ## Learning Objectives
 - Master risk assessment & safety principles and techniques
@@ -125,7 +125,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 3 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover team management for professional diving operations.
+Welcome to Lesson 3 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover team management for professional diving operations.
 
 ## Learning Objectives
 - Master team management principles and techniques
@@ -170,7 +170,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 4 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover emergency response for professional diving operations.
+Welcome to Lesson 4 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover emergency response for professional diving operations.
 
 ## Learning Objectives
 - Master emergency response principles and techniques
@@ -215,7 +215,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 5 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover quality assurance for professional diving operations.
+Welcome to Lesson 5 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover quality assurance for professional diving operations.
 
 ## Learning Objectives
 - Master quality assurance principles and techniques
@@ -260,7 +260,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 6 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover project management for professional diving operations.
+Welcome to Lesson 6 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover project management for professional diving operations.
 
 ## Learning Objectives
 - Master project management principles and techniques
@@ -305,7 +305,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 7 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover communication protocols for professional diving operations.
+Welcome to Lesson 7 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover communication protocols for professional diving operations.
 
 ## Learning Objectives
 - Master communication protocols principles and techniques
@@ -350,7 +350,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 8 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover equipment management for professional diving operations.
+Welcome to Lesson 8 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover equipment management for professional diving operations.
 
 ## Learning Objectives
 - Master equipment management principles and techniques
@@ -395,7 +395,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 9 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover regulatory compliance for professional diving operations.
+Welcome to Lesson 9 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover regulatory compliance for professional diving operations.
 
 ## Learning Objectives
 - Master regulatory compliance principles and techniques
@@ -440,7 +440,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 10 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover incident investigation for professional diving operations.
+Welcome to Lesson 10 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover incident investigation for professional diving operations.
 
 ## Learning Objectives
 - Master incident investigation principles and techniques
@@ -485,7 +485,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 11 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover leadership & decision making for professional diving operations.
+Welcome to Lesson 11 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover leadership & decision making for professional diving operations.
 
 ## Learning Objectives
 - Master leadership & decision making principles and techniques

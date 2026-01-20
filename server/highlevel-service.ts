@@ -47,6 +47,9 @@ export class HighLevelService {
     subscriptionType?: string;
     status?: string;
     partnerStatus?: string;
+    calendlyEventUri?: string;
+    lastBookingTime?: string;
+    bookingCount?: number;
   }): Promise<HighLevelContact | null> {
     if (!this.isHighLevelAvailable()) {
       console.log("HighLevel not available, skipping contact creation");
@@ -220,6 +223,21 @@ export class HighLevelService {
       tags.push(`Partner:${clientData.partnerStatus}`);
     }
 
+    // Add Calendly booking tags
+    if (clientData.calendlyEventUri || clientData.bookingCount > 0) {
+      tags.push("Calendly Booking");
+    }
+
+    if (clientData.partnerStatus === "ACTIVE" && clientData.calendlyEventUri) {
+      // Determine if it's a sponsor or partner meeting based on event URI or other indicators
+      const eventUri = clientData.calendlyEventUri?.toLowerCase() || "";
+      if (eventUri.includes("sponsor")) {
+        tags.push("Sponsor Meeting");
+      } else if (eventUri.includes("partner")) {
+        tags.push("Partner Call");
+      }
+    }
+
     return tags;
   }
 
@@ -227,12 +245,27 @@ export class HighLevelService {
    * Build custom fields for HighLevel contact
    */
   private buildCustomFields(clientData: any): Record<string, any> {
-    return {
+    const fields: Record<string, any> = {
       subscriptionType: clientData.subscriptionType || "",
       subscriptionStatus: clientData.status || "",
       partnerStatus: clientData.partnerStatus || "NONE",
       monthlyRevenue: clientData.monthly_revenue || 0,
     };
+
+    // Add Calendly booking fields if available
+    if (clientData.lastBookingTime) {
+      fields.lastBookingTime = clientData.lastBookingTime;
+    }
+
+    if (clientData.bookingCount !== undefined) {
+      fields.bookingCount = clientData.bookingCount;
+    }
+
+    if (clientData.calendlyEventUri) {
+      fields.calendlyEventUri = clientData.calendlyEventUri;
+    }
+
+    return fields;
   }
 }
 

@@ -21,10 +21,10 @@ Essential air diving skills with AI tutor Lisa Thompson including diving physics
 
 # Diving Physics Review
 
-**AI Tutor: Dr. Michael Rodriguez - Diving Physics Specialist**
+**AI Tutor: Diver Well - Diving Physics Specialist**
 *Expert in diving physics and decompression theory with 15+ years in commercial diving operations*
 
-Welcome to diving physics review! I'm Dr. Michael Rodriguez, your specialized AI tutor for diving physics and decompression theory. Let's review the essential physics principles that govern all diving operations.
+Welcome to diving physics review! I'm Diver Well, your specialized AI tutor for diving physics and decompression theory. Let's review the essential physics principles that govern all diving operations.
 
 ## Learning Objectives
 - Master fundamental diving physics principles and gas laws
@@ -185,10 +185,10 @@ This comprehensive review of diving physics provides the foundation for safe, ef
 
 # Diving Physics Fundamentals
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 1 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover diving physics fundamentals for professional diving operations.
+Welcome to Lesson 1 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover diving physics fundamentals for professional diving operations.
 
 ## Learning Objectives
 - Master diving physics fundamentals principles and techniques
@@ -230,10 +230,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Gas Laws & Pressure Effects
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 2 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover gas laws & pressure effects for professional diving operations.
+Welcome to Lesson 2 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover gas laws & pressure effects for professional diving operations.
 
 ## Learning Objectives
 - Master gas laws & pressure effects principles and techniques
@@ -275,10 +275,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Decompression Theory
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 3 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover decompression theory for professional diving operations.
+Welcome to Lesson 3 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover decompression theory for professional diving operations.
 
 ## Learning Objectives
 - Master decompression theory principles and techniques
@@ -320,10 +320,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Safety Calculations
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 4 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover safety calculations for professional diving operations.
+Welcome to Lesson 4 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover safety calculations for professional diving operations.
 
 ## Learning Objectives
 - Master safety calculations principles and techniques
@@ -365,10 +365,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Equipment Physics
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 5 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover equipment physics for professional diving operations.
+Welcome to Lesson 5 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover equipment physics for professional diving operations.
 
 ## Learning Objectives
 - Master equipment physics principles and techniques
@@ -410,10 +410,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Gas Management
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 6 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover gas management for professional diving operations.
+Welcome to Lesson 6 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover gas management for professional diving operations.
 
 ## Learning Objectives
 - Master gas management principles and techniques
@@ -455,10 +455,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Ascent Procedures
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 7 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover ascent procedures for professional diving operations.
+Welcome to Lesson 7 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover ascent procedures for professional diving operations.
 
 ## Learning Objectives
 - Master ascent procedures principles and techniques
@@ -500,10 +500,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Problem Solving
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 8 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover problem solving for professional diving operations.
+Welcome to Lesson 8 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover problem solving for professional diving operations.
 
 ## Learning Objectives
 - Master problem solving principles and techniques
@@ -545,10 +545,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Tool Handling Safety
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 9 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover tool handling safety for professional diving operations.
+Welcome to Lesson 9 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover tool handling safety for professional diving operations.
 
 ## Learning Objectives
 - Master tool handling safety principles and techniques
@@ -590,10 +590,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Communication Protocols
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 10 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover communication protocols for professional diving operations.
+Welcome to Lesson 10 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover communication protocols for professional diving operations.
 
 ## Learning Objectives
 - Master communication protocols principles and techniques
@@ -635,10 +635,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Emergency Procedures
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 11 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover emergency procedures for professional diving operations.
+Welcome to Lesson 11 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover emergency procedures for professional diving operations.
 
 ## Learning Objectives
 - Master emergency procedures principles and techniques
@@ -680,7 +680,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Final Assessment
 
-## AI Tutor: Lisa Thompson - Air Diving Specialist
+## AI Tutor: Diver Well - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
 Welcome to the Final Assessment for Air Diver Certification!

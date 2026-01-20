@@ -120,6 +120,36 @@ async function main() {
   const { initializeWebSocketServer } = await import('./websocket-server');
   initializeWebSocketServer(httpServer);
 
+  // Start calendar agent orchestrator
+  try {
+    const { calendarAgentOrchestrator } = await import('./agents/calendar-agent-orchestrator');
+    calendarAgentOrchestrator.start();
+    console.log('📅 Calendar monitoring agents started');
+  } catch (error) {
+    console.error('Warning: Failed to start calendar agents:', error);
+    // Continue startup - agents are non-critical
+  }
+
+  // Start Enterprise calendar agent orchestrator for Enterprise users
+  try {
+    const { enterpriseCalendarAgentOrchestrator } = await import('./agents/enterprise-calendar-agent-orchestrator');
+    await enterpriseCalendarAgentOrchestrator.initializeAllEnterpriseUsers();
+    console.log('📅 Enterprise calendar agents initialized');
+  } catch (error) {
+    console.error('Warning: Failed to initialize Enterprise calendar agents:', error);
+    // Continue startup - agents are non-critical
+  }
+
+  // Start calendar sync scheduler
+  try {
+    const { calendarSyncScheduler } = await import('./services/calendar-sync-scheduler');
+    calendarSyncScheduler.startPeriodicSync(30); // Sync every 30 minutes
+    console.log('📅 Calendar sync scheduler started (30 minute intervals)');
+  } catch (error) {
+    console.error('Warning: Failed to start calendar sync scheduler:', error);
+    // Continue startup - sync is non-critical
+  }
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

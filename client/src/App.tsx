@@ -23,6 +23,7 @@ import TrialSignup from "@/pages/trial-signup";
 import Privacy from "@/pages/privacy";
 import Contact from "@/pages/contact";
 import AffiliateDashboard from "@/pages/affiliate-dashboard";
+import AffiliateStripeOnboard from "@/pages/affiliate-stripe-onboard";
 import MarkdownEditor from "@/pages/markdown-editor";
 import Invite from "@/pages/invite";
 import SignIn from "@/pages/signin";
@@ -41,6 +42,10 @@ import ExamInterface from "@/pages/exam-interface";
 import SrsReview from "@/pages/srs-review";
 import AdminSrs from "@/pages/admin-srs";
 import SponsorManagement from "@/pages/admin/sponsor-management";
+import UnifiedCalendar from "@/pages/admin/unified-calendar";
+import AdminCalendarSetup from "@/pages/admin/calendar-setup";
+import EnterpriseUnifiedCalendar from "@/pages/enterprise/unified-calendar";
+import EnterpriseCalendarSetup from "@/pages/enterprise/calendar-setup";
 import SupportTickets from "@/pages/support-tickets";
 import SupportDocuments from "@/pages/support-documents";
 import ComingSoon from "@/pages/coming-soon";
@@ -180,6 +185,11 @@ function Router() {
       <Route path="/admin/bulk-upload" component={AdminBulkUpload} />
       <Route path="/admin/srs" component={AdminSrs} />
       <Route path="/admin/sponsors" component={SponsorManagement} />
+      <Route path="/admin/unified-calendar" component={UnifiedCalendar} />
+      <Route path="/admin/calendar/setup" component={AdminCalendarSetup} />
+      <Route path="/enterprise/calendar" component={EnterpriseUnifiedCalendar} />
+      <Route path="/enterprise/unified-calendar" component={EnterpriseUnifiedCalendar} />
+      <Route path="/enterprise/calendar/setup" component={EnterpriseCalendarSetup} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/crm" component={CRMDashboard} />
       <Route path="/privacy" component={Privacy} />
@@ -188,6 +198,8 @@ function Router() {
       <Route path="/support-tickets" component={SupportTickets} />
       <Route path="/support-documents" component={SupportDocuments} />
       <Route path="/affiliate" component={AffiliateDashboard} />
+      <Route path="/affiliate-dashboard" component={AffiliateDashboard} />
+      <Route path="/affiliate/stripe-onboard" component={AffiliateStripeOnboard} />
       <Route path="/markdown-editor" component={MarkdownEditor} />
       <Route path="/invite/:token" component={Invite} />
       <Route path="/signin" component={SignIn} />

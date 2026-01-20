@@ -38,7 +38,7 @@ This lesson meets the highest industry standards including:
 
 ---
 
-## AI Tutor: Maria - LST Advanced Life Support Systems Specialist
+## AI Tutor: Diver Well - LST Advanced Life Support Systems Specialist
 *Expert in advanced life support systems, diving safety, and emergency response protocols*
 
 Welcome to advanced life support systems training! I'm Maria, your AI tutor specializing in LST advanced life support systems and diving safety. Today we'll cover the fundamental principles of advanced life support system operations.
@@ -99,7 +99,7 @@ This lesson meets the highest industry standards including:
 
 ---
 
-## AI Tutor: Maria - LST System Troubleshooting Specialist
+## AI Tutor: Diver Well - LST System Troubleshooting Specialist
 *Expert in life support system troubleshooting, diagnostics, and problem resolution protocols*
 
 Welcome to system troubleshooting and diagnostics training! I'm Maria, your AI tutor specializing in LST life support system troubleshooting and diagnostics. Today we'll cover the fundamental principles of system troubleshooting operations.
@@ -160,7 +160,7 @@ This lesson meets the highest industry standards including:
 
 ---
 
-## AI Tutor: Maria - LST Emergency Management Specialist
+## AI Tutor: Diver Well - LST Emergency Management Specialist
 *Expert in emergency management, crisis leadership, and diving safety protocols*
 
 Welcome to emergency management and leadership training! I'm Maria, your AI tutor specializing in LST emergency management and crisis leadership. Today we'll cover the fundamental principles of emergency management operations.
@@ -199,10 +199,10 @@ Remember: Effective emergency management requires strong leadership and quick de
 
 # Life Support Fundamentals
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 1 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover life support fundamentals for professional diving operations.
+Welcome to Lesson 1 of Lst! I'm Diver Well, your AI tutor. Today we'll cover life support fundamentals for professional diving operations.
 
 ## Learning Objectives
 - Master life support fundamentals principles and techniques
@@ -244,10 +244,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Equipment Operations
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 4 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover equipment operations for professional diving operations.
+Welcome to Lesson 4 of Lst! I'm Diver Well, your AI tutor. Today we'll cover equipment operations for professional diving operations.
 
 ## Learning Objectives
 - Master equipment operations principles and techniques
@@ -289,10 +289,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Gas Management
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 2 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover gas management for professional diving operations.
+Welcome to Lesson 2 of Lst! I'm Diver Well, your AI tutor. Today we'll cover gas management for professional diving operations.
 
 ## Learning Objectives
 - Master gas management principles and techniques
@@ -334,10 +334,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Safety Systems
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 5 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover safety systems for professional diving operations.
+Welcome to Lesson 5 of Lst! I'm Diver Well, your AI tutor. Today we'll cover safety systems for professional diving operations.
 
 ## Learning Objectives
 - Master safety systems principles and techniques
@@ -379,10 +379,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Emergency Response
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 3 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover emergency response for professional diving operations.
+Welcome to Lesson 3 of Lst! I'm Diver Well, your AI tutor. Today we'll cover emergency response for professional diving operations.
 
 ## Learning Objectives
 - Master emergency response principles and techniques
@@ -424,10 +424,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # System Design
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 6 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover system design for professional diving operations.
+Welcome to Lesson 6 of Lst! I'm Diver Well, your AI tutor. Today we'll cover system design for professional diving operations.
 
 ## Learning Objectives
 - Master system design principles and techniques
@@ -469,10 +469,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Advanced Troubleshooting
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 7 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover advanced troubleshooting for professional diving operations.
+Welcome to Lesson 7 of Lst! I'm Diver Well, your AI tutor. Today we'll cover advanced troubleshooting for professional diving operations.
 
 ## Learning Objectives
 - Master advanced troubleshooting principles and techniques
@@ -514,10 +514,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Team Leadership
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 8 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover team leadership for professional diving operations.
+Welcome to Lesson 8 of Lst! I'm Diver Well, your AI tutor. Today we'll cover team leadership for professional diving operations.
 
 ## Learning Objectives
 - Master team leadership principles and techniques
@@ -559,10 +559,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Quality Control
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 9 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover quality control for professional diving operations.
+Welcome to Lesson 9 of Lst! I'm Diver Well, your AI tutor. Today we'll cover quality control for professional diving operations.
 
 ## Learning Objectives
 - Master quality control principles and techniques
@@ -604,10 +604,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Maintenance Protocols
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 10 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover maintenance protocols for professional diving operations.
+Welcome to Lesson 10 of Lst! I'm Diver Well, your AI tutor. Today we'll cover maintenance protocols for professional diving operations.
 
 ## Learning Objectives
 - Master maintenance protocols principles and techniques
@@ -649,10 +649,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Advanced Operations
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 11 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover advanced operations for professional diving operations.
+Welcome to Lesson 11 of Lst! I'm Diver Well, your AI tutor. Today we'll cover advanced operations for professional diving operations.
 
 ## Learning Objectives
 - Master advanced operations principles and techniques
@@ -694,7 +694,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Final Assessment
 
-## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
+## AI Tutor: Diver Well - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
 Welcome to the Final Assessment for Lst!

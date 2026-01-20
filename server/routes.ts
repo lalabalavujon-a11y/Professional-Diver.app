@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import rateLimit from "express-rate-limit";
 import { storage } from "./storage";
 import { tempStorage } from "./temp-storage";
 import { emailMarketing } from "./email-marketing";
@@ -14,6 +15,7 @@ import * as featureService from "./feature-service";
 import { getAllFeatures, FEATURE_REGISTRY } from "./feature-registry";
 import { resolveUserPermissions } from "./feature-service";
 import { handleHighLevelContactWebhook, handleHighLevelTagWebhook } from "./highlevel-webhooks";
+import { handleCalendlyWebhook } from "./calendly-webhooks";
 import { registerImportRoutes } from "./routes/import-content";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 // import { AILearningPathService } from "./ai-learning-path";
@@ -150,6 +152,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log("📅 About to register Operations Calendar routes...");
   registerOperationsCalendarRoutes(app);
   console.log("📅 Operations Calendar routes registration completed");
+
+  // Unified Calendar routes (Super Admin)
+  console.log("📅 About to register Unified Calendar routes...");
+  registerUnifiedCalendarRoutes(app);
+  console.log("📅 Unified Calendar routes registration completed");
+
+  // Enterprise Calendar routes
+  console.log("📅 About to register Enterprise Calendar routes...");
+  const { registerEnterpriseCalendarRoutes } = await import("./routes/enterprise-calendar-routes");
+  registerEnterpriseCalendarRoutes(app);
+  console.log("📅 Enterprise Calendar routes registration completed");
+
+  // Super Admin Calendar Setup routes
+  console.log("📅 About to register Admin Calendar Setup routes...");
+  const { registerAdminCalendarSetupRoutes } = await import("./routes/admin-calendar-setup-routes");
+  registerAdminCalendarSetupRoutes(app);
+  console.log("📅 Admin Calendar Setup routes registration completed");
 
   // Calling routes
   registerCallingRoutes(app);
@@ -1548,6 +1567,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe Connect Routes
+  app.post('/api/affiliate/stripe-connect/onboard', async (req, res) => {
+    try {
+      const { email, userId, returnUrl } = req.body;
+      
+      if (!email || !userId || !returnUrl) {
+        return res.status(400).json({ error: 'Email, userId, and returnUrl are required' });
+      }
+
+      const result = await affiliateService.initiateStripeConnectOnboarding(userId, email, returnUrl);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error('Stripe Connect onboarding error:', error);
+      res.status(500).json({ error: 'Failed to initiate Stripe Connect onboarding' });
+    }
+  });
+
+  app.get('/api/affiliate/stripe-connect/status', async (req, res) => {
+    try {
+      const { email } = req.query;
+      
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      // Get userId from email (same logic as dashboard)
+      let userId: string;
+      if (email === 'lalabalavu.jon@gmail.com') {
+        userId = 'super-admin-1';
+      } else if (email === 'sephdee@hotmail.com') {
+        userId = 'super-admin-2';
+      } else {
+        userId = email as string;
+      }
+
+      const affiliate = await affiliateService.getAffiliateByUserId(userId);
+      if (!affiliate) {
+        return res.status(404).json({ error: 'Affiliate not found' });
+      }
+
+      const status = await affiliateService.getStripeConnectStatus(affiliate.id);
+      res.json(status);
+    } catch (error) {
+      console.error('Stripe Connect status error:', error);
+      res.status(500).json({ error: 'Failed to get Stripe Connect status' });
+    }
+  });
+
+  app.get('/api/affiliate/payment-methods', async (req, res) => {
+    try {
+      const { email } = req.query;
+      
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      // Get userId from email
+      let userId: string;
+      if (email === 'lalabalavu.jon@gmail.com') {
+        userId = 'super-admin-1';
+      } else if (email === 'sephdee@hotmail.com') {
+        userId = 'super-admin-2';
+      } else {
+        userId = email as string;
+      }
+
+      const affiliate = await affiliateService.getAffiliateByUserId(userId);
+      if (!affiliate) {
+        return res.json({
+          availableMethods: ['PAYPAL', 'BANK_TRANSFER', 'STRIPE_CONNECT'],
+          preferredMethod: 'PAYPAL',
+          stripeConnectStatus: 'NOT_STARTED',
+        });
+      }
+
+      res.json({
+        availableMethods: ['PAYPAL', 'BANK_TRANSFER', 'STRIPE_CONNECT'],
+        preferredMethod: affiliate.preferredPaymentMethod || 'PAYPAL',
+        stripeConnectStatus: affiliate.stripeConnectOnboardingStatus || 'NOT_STARTED',
+        stripeConnectAccountId: affiliate.stripeConnectAccountId || null,
+        paypalEmail: affiliate.paypalEmail || null,
+      });
+    } catch (error) {
+      console.error('Payment methods error:', error);
+      res.status(500).json({ error: 'Failed to get payment methods' });
+    }
+  });
+
+  app.put('/api/affiliate/payment-method', async (req, res) => {
+    try {
+      const { email, preferredMethod, paypalEmail } = req.body;
+      
+      if (!email || !preferredMethod) {
+        return res.status(400).json({ error: 'Email and preferredMethod are required' });
+      }
+
+      // Get userId from email
+      let userId: string;
+      if (email === 'lalabalavu.jon@gmail.com') {
+        userId = 'super-admin-1';
+      } else if (email === 'sephdee@hotmail.com') {
+        userId = 'super-admin-2';
+      } else {
+        userId = email;
+      }
+
+      const affiliate = await affiliateService.getAffiliateByUserId(userId);
+      if (!affiliate) {
+        return res.status(404).json({ error: 'Affiliate not found' });
+      }
+
+      const updates: any = {
+        preferredPaymentMethod: preferredMethod,
+      };
+
+      if (preferredMethod === 'PAYPAL' && paypalEmail) {
+        updates.paypalEmail = paypalEmail;
+      }
+
+      const updated = await affiliateService.updateAffiliate(affiliate.id, updates);
+      res.json({ success: true, affiliate: updated });
+    } catch (error) {
+      console.error('Update payment method error:', error);
+      res.status(500).json({ error: 'Failed to update payment method' });
+    }
+  });
+
+  app.get('/api/affiliate/payout-eligibility', async (req, res) => {
+    try {
+      const { email } = req.query;
+      
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      // Get userId from email
+      let userId: string;
+      if (email === 'lalabalavu.jon@gmail.com') {
+        userId = 'super-admin-1';
+      } else if (email === 'sephdee@hotmail.com') {
+        userId = 'super-admin-2';
+      } else {
+        userId = email as string;
+      }
+
+      const affiliate = await affiliateService.getAffiliateByUserId(userId);
+      if (!affiliate) {
+        return res.status(404).json({ error: 'Affiliate not found' });
+      }
+
+      const eligibility = await affiliateService.getPayoutEligibility(affiliate.id);
+      res.json(eligibility);
+    } catch (error) {
+      console.error('Payout eligibility error:', error);
+      res.status(500).json({ error: 'Failed to check payout eligibility' });
+    }
+  });
+
   // Learning Path AI Routes
   app.post('/api/learning-path/generate', async (req, res) => {
     try {
@@ -2819,6 +2996,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rate limiter for Calendly webhook endpoint
+  const calendlyWebhookRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: "Too many webhook requests from this IP, please try again later.",
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  });
+
+  // Calendly webhook route (requires raw body for signature verification)
+  app.post("/api/webhooks/calendly", calendlyWebhookRateLimiter, express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+      // Store raw body for signature verification
+      (req as any).rawBody = req.body;
+      await handleCalendlyWebhook(req, res);
+    } catch (error) {
+      console.error('Calendly webhook error:', error);
+      res.status(500).json({ error: "Failed to process webhook" });
+    }
+  });
+
   // Email webhook routes
   app.post("/api/webhooks/email/inbound", async (req, res) => {
     try {
@@ -2903,7 +3101,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment webhook handlers - integrate with Stripe/PayPal when payment processing is implemented
   app.post("/api/webhooks/stripe", async (req, res) => {
     try {
-      const event = req.body;
+      // Verify webhook signature if secret is set
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      let event = req.body;
+
+      if (webhookSecret) {
+        const signature = req.headers['stripe-signature'] as string;
+        if (!signature) {
+          return res.status(400).json({ error: 'Missing stripe-signature header' });
+        }
+
+        try {
+          const { stripeConnectService } = await import('./stripe-connect-service');
+          event = stripeConnectService.verifyWebhookSignature(
+            JSON.stringify(req.body),
+            signature,
+            webhookSecret
+          );
+        } catch (error) {
+          console.error('Webhook signature verification failed:', error);
+          return res.status(400).json({ error: 'Invalid webhook signature' });
+        }
+      }
       
       // Handle different Stripe event types
       switch (event.type) {
@@ -2946,6 +3165,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (cancelledUserResult.rows.length > 0) {
             const cancelledUserId = cancelledUserResult.rows[0].id;
             await userLifecycleService.updateSubscriptionStatus(cancelledUserId, 'CANCELLED');
+          }
+          break;
+
+        // Stripe Connect events
+        case 'account.updated':
+          // Handle Connect account status updates
+          const account = event.data.object as any;
+          const accountId = account.id;
+          
+          // Find affiliate by Stripe Connect account ID
+          const affiliateResult = await db.execute(
+            'SELECT * FROM affiliates WHERE stripe_connect_account_id = $1',
+            [accountId]
+          );
+          
+          if (affiliateResult.rows.length > 0) {
+            const affiliateId = affiliateResult.rows[0].id;
+            const { stripeConnectService } = await import('./stripe-connect-service');
+            const onboardingStatus = stripeConnectService.getOnboardingStatus(account);
+            
+            await affiliateService.updateStripeConnectAccount(
+              affiliateId,
+              accountId,
+              onboardingStatus
+            );
+          }
+          break;
+
+        case 'transfer.created':
+          // Log transfer initiation
+          const transfer = event.data.object as any;
+          console.log('Transfer created:', {
+            transferId: transfer.id,
+            amount: transfer.amount,
+            destination: transfer.destination,
+          });
+          break;
+
+        case 'transfer.paid':
+          // Mark commission payment as completed
+          const paidTransfer = event.data.object as any;
+          const transferId = paidTransfer.id;
+          
+          // Find commission payment by transfer ID
+          const paymentResult = await db.execute(
+            'SELECT * FROM commission_payments WHERE payment_reference = $1',
+            [transferId]
+          );
+          
+          if (paymentResult.rows.length > 0) {
+            await db.execute(
+              'UPDATE commission_payments SET payment_status = $1, paid_at = $2 WHERE id = $3',
+              ['COMPLETED', new Date(), paymentResult.rows[0].id]
+            );
+          }
+          break;
+
+        case 'transfer.failed':
+          // Handle failed transfer
+          const failedTransfer = event.data.object as any;
+          const failedTransferId = failedTransfer.id;
+          
+          // Find commission payment by transfer ID
+          const failedPaymentResult = await db.execute(
+            'SELECT * FROM commission_payments WHERE payment_reference = $1',
+            [failedTransferId]
+          );
+          
+          if (failedPaymentResult.rows.length > 0) {
+            await db.execute(
+              'UPDATE commission_payments SET payment_status = $1 WHERE id = $2',
+              ['FAILED', failedPaymentResult.rows[0].id]
+            );
+            
+            // TODO: Send notification to affiliate about failed payout
+            console.error('Transfer failed:', {
+              transferId: failedTransferId,
+              affiliateId: failedPaymentResult.rows[0].affiliate_id,
+              amount: failedTransfer.amount,
+            });
           }
           break;
       }

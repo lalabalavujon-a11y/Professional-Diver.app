@@ -23,7 +23,8 @@ import {
   Calendar,
   AlertTriangle,
   Keyboard,
-  Compass
+  Compass,
+  Settings
 } from "lucide-react";
 import { operationalApps } from "@/pages/operations";
 import { supervisorContainers } from "@/components/dive-supervisor/DiveSupervisorControlApp";
@@ -218,6 +219,8 @@ export default function RoleBasedNavigation() {
     { href: "/operations", label: "Operations", icon: Wrench, featureId: "operations_center" },
     { href: "/markdown-editor", label: "Content Editor", icon: FileText, featureId: "content_editor" },
     { href: "/admin/srs", label: "SRS Admin", icon: Repeat, featureId: "srs_admin" },
+    { href: "/admin/unified-calendar", label: "Unified Calendar", icon: Calendar, featureId: "admin_calendar" },
+    { href: "/admin/calendar/setup", label: "Calendar Setup", icon: Settings, featureId: "admin_calendar_setup" },
   ];
 
   // Filter admin nav items based on feature permissions
@@ -478,6 +481,27 @@ export default function RoleBasedNavigation() {
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
+                          {/* Enterprise Calendar Links */}
+                          {(effectiveRole === 'ENTERPRISE' || effectiveRole === 'SUPER_ADMIN') && (
+                            <>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton asChild isActive={location === "/enterprise/calendar" || location === "/enterprise/unified-calendar"}>
+                                  <Link href="/enterprise/calendar">
+                                    <Calendar className="w-4 h-4" />
+                                    <span>Unified Calendar</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton asChild isActive={location === "/enterprise/calendar/setup"}>
+                                  <Link href="/enterprise/calendar/setup">
+                                    <Settings className="w-4 h-4" />
+                                    <span>Calendar Setup</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            </>
+                          )}
                           {operationalApps.map((app) => {
                             // Get icon component based on app id
                             const getIcon = () => {

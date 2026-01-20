@@ -15,10 +15,12 @@ import {
   ExternalLink, 
   Copy, 
   Target,
-  RefreshCw
+  RefreshCw,
+  CreditCard
 } from "lucide-react";
 import { Link } from "wouter";
 import RoleBasedNavigation from "@/components/role-based-navigation";
+import AffiliatePaymentMethod from "@/components/affiliate-payment-method";
 
 interface DashboardData {
   stats: {
@@ -451,11 +453,12 @@ export default function AffiliateDashboard() {
               <div className="space-y-4">
                 <h4 className="font-semibold text-slate-900">Payment Information</h4>
                 <div className="space-y-2 text-sm text-slate-600">
-                  <p>• Commissions are paid monthly via PayPal or bank transfer</p>
+                  <p>• Commissions are paid monthly via Stripe Connect, PayPal, or bank transfer</p>
                   <p>• Minimum payout threshold: $50</p>
                   <p>• Payments processed on the 1st of each month</p>
                   <p>• Recurring commissions for active subscriptions</p>
                   <p>• Real-time tracking and transparent reporting</p>
+                  <p>• Stripe Connect offers fastest, automatic payouts</p>
                 </div>
               </div>
             </div>

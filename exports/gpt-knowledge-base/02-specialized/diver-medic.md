@@ -36,10 +36,10 @@ This lesson meets the highest industry standards from:
 
 ---
 
-## AI Tutor: Mike - DMT Specialist
+## AI Tutor: Diver Well - DMT Specialist
 *Expert in dive medicine, emergency response, and diving safety protocols*
 
-Welcome to emergency assessment training! I'm Mike, your AI tutor specializing in dive medicine and emergency protocols. Today we'll cover the fundamental principles of the ABCDE assessment approach.
+Welcome to emergency assessment training! I'm Diver Well, your AI tutor specializing in dive medicine and emergency protocols. Today we'll cover the fundamental principles of the ABCDE assessment approach.
 
 ## The ABCDE Approach
 
@@ -85,7 +85,7 @@ Remember: Systematic assessment saves lives in diving emergencies.
 ## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 1 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover scene assessment and safety protocols for professional diving operations.
+Welcome to Lesson 1 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover scene assessment and safety protocols for professional diving operations.
 
 ## Learning Objectives
 - Master scene assessment and safety protocols principles and techniques
@@ -130,7 +130,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 2 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover abcde assessment protocol for professional diving operations.
+Welcome to Lesson 2 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover abcde assessment protocol for professional diving operations.
 
 ## Learning Objectives
 - Master abcde assessment protocol principles and techniques
@@ -175,7 +175,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 3 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover airway management techniques for professional diving operations.
+Welcome to Lesson 3 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover airway management techniques for professional diving operations.
 
 ## Learning Objectives
 - Master airway management techniques principles and techniques
@@ -220,7 +220,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 4 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover breathing support procedures for professional diving operations.
+Welcome to Lesson 4 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover breathing support procedures for professional diving operations.
 
 ## Learning Objectives
 - Master breathing support procedures principles and techniques
@@ -265,7 +265,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 5 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover circulation assessment for professional diving operations.
+Welcome to Lesson 5 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover circulation assessment for professional diving operations.
 
 ## Learning Objectives
 - Master circulation assessment principles and techniques
@@ -310,7 +310,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 6 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover neurological evaluation for professional diving operations.
+Welcome to Lesson 6 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover neurological evaluation for professional diving operations.
 
 ## Learning Objectives
 - Master neurological evaluation principles and techniques
@@ -355,7 +355,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 7 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover diving injuries & treatment for professional diving operations.
+Welcome to Lesson 7 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover diving injuries & treatment for professional diving operations.
 
 ## Learning Objectives
 - Master diving injuries & treatment principles and techniques
@@ -400,7 +400,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 8 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover decompression sickness management for professional diving operations.
+Welcome to Lesson 8 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover decompression sickness management for professional diving operations.
 
 ## Learning Objectives
 - Master decompression sickness management principles and techniques
@@ -445,7 +445,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 9 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover hyperbaric medicine for professional diving operations.
+Welcome to Lesson 9 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover hyperbaric medicine for professional diving operations.
 
 ## Learning Objectives
 - Master hyperbaric medicine principles and techniques
@@ -490,7 +490,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 10 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover emergency medications for professional diving operations.
+Welcome to Lesson 10 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover emergency medications for professional diving operations.
 
 ## Learning Objectives
 - Master emergency medications principles and techniques
@@ -535,7 +535,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 11 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover patient transport & evacuation for professional diving operations.
+Welcome to Lesson 11 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover patient transport & evacuation for professional diving operations.
 
 ## Learning Objectives
 - Master patient transport & evacuation principles and techniques

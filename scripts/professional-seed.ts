@@ -78,7 +78,7 @@ async function professionalSeed() {
     title: "Visual Inspection Fundamentals",
     order: 1,
     content: `# Visual Inspection Fundamentals
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
@@ -483,7 +483,7 @@ This comprehensive corrosion assessment training ensures professional competency
     title: "Scene Assessment and Safety Protocols",
     order: 1,
     content: `# Scene Assessment and Safety Protocols
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
@@ -712,7 +712,7 @@ This comprehensive scene assessment training ensures systematic, professional em
     title: "Dive Planning Fundamentals",
     order: 1,
     content: `# Dive Planning Fundamentals
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
@@ -918,7 +918,7 @@ This comprehensive dive planning training ensures systematic project management 
     title: "Gas Management and Consumption Planning",
     order: 1,
     content: `# Gas Management and Consumption Planning
-## AI Tutor: Lisa Thompson - Professional Air Diving Instructor
+## AI Tutor: Diver Well - Professional Air Diving Instructor
 
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 

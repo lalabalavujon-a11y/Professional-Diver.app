@@ -38,7 +38,7 @@ This lesson meets the highest industry standards including:
 
 ---
 
-## AI Tutor: Alex - Assistant Life Support Technician Specialist
+## AI Tutor: Diver Well - Assistant Life Support Technician Specialist
 *Expert in life support systems, diving safety, and emergency response protocols*
 
 Welcome to life support systems training! I'm Alex, your AI tutor specializing in assistant life support systems and diving safety. Today we'll cover the fundamental principles of life support system operations.
@@ -199,10 +199,10 @@ Remember: Quick and effective emergency response can save lives and prevent equi
 
 # Safety Protocols & Procedures
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 4 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover safety protocols & procedures for professional diving operations.
+Welcome to Lesson 4 of Alst! I'm Diver Well, your AI tutor. Today we'll cover safety protocols & procedures for professional diving operations.
 
 ## Learning Objectives
 - Master safety protocols & procedures principles and techniques
@@ -244,10 +244,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Leadership & Communication
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 5 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover leadership & communication for professional diving operations.
+Welcome to Lesson 5 of Alst! I'm Diver Well, your AI tutor. Today we'll cover leadership & communication for professional diving operations.
 
 ## Learning Objectives
 - Master leadership & communication principles and techniques
@@ -289,10 +289,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Gas Management
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 6 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover gas management for professional diving operations.
+Welcome to Lesson 6 of Alst! I'm Diver Well, your AI tutor. Today we'll cover gas management for professional diving operations.
 
 ## Learning Objectives
 - Master gas management principles and techniques
@@ -334,10 +334,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # System Troubleshooting
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 7 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover system troubleshooting for professional diving operations.
+Welcome to Lesson 7 of Alst! I'm Diver Well, your AI tutor. Today we'll cover system troubleshooting for professional diving operations.
 
 ## Learning Objectives
 - Master system troubleshooting principles and techniques
@@ -379,10 +379,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Environmental Control
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 8 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover environmental control for professional diving operations.
+Welcome to Lesson 8 of Alst! I'm Diver Well, your AI tutor. Today we'll cover environmental control for professional diving operations.
 
 ## Learning Objectives
 - Master environmental control principles and techniques
@@ -424,10 +424,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Team Coordination
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 9 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover team coordination for professional diving operations.
+Welcome to Lesson 9 of Alst! I'm Diver Well, your AI tutor. Today we'll cover team coordination for professional diving operations.
 
 ## Learning Objectives
 - Master team coordination principles and techniques
@@ -469,10 +469,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Advanced Procedures
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 10 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover advanced procedures for professional diving operations.
+Welcome to Lesson 10 of Alst! I'm Diver Well, your AI tutor. Today we'll cover advanced procedures for professional diving operations.
 
 ## Learning Objectives
 - Master advanced procedures principles and techniques
@@ -514,10 +514,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Quality Assurance
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 11 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover quality assurance for professional diving operations.
+Welcome to Lesson 11 of Alst! I'm Diver Well, your AI tutor. Today we'll cover quality assurance for professional diving operations.
 
 ## Learning Objectives
 - Master quality assurance principles and techniques
@@ -559,7 +559,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Final Assessment
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
 Welcome to the Final Assessment for Alst!
