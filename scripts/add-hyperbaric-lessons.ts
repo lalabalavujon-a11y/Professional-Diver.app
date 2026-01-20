@@ -35,10 +35,10 @@ async function addHyperbaricLessons() {
         order: 1,
         content: `# Hyperbaric Chamber Operations & Safety
 
-**AI Tutor: Michael - Hyperbaric Medicine Specialist**
+**AI Tutor: Diver Well - Hyperbaric Medicine Specialist**
 *Expert in Hyperbaric Medicine with 15+ years in chamber operations, treatment protocols, and emergency procedures*
 
-Welcome to professional hyperbaric chamber operations training! I'm Michael, your specialized AI tutor for hyperbaric medicine and chamber operations. Let's master the essential techniques and safety protocols required for commercial hyperbaric operations.
+Welcome to professional hyperbaric chamber operations training! I'm Diver Well, your specialized AI tutor for hyperbaric medicine and chamber operations. Let's master the essential techniques and safety protocols required for commercial hyperbaric operations.
 
 ## Learning Objectives
 - Master fundamental hyperbaric chamber operation principles
@@ -217,7 +217,7 @@ This comprehensive training provides the professional foundation required for sa
         order: 2,
         content: `# Advanced Treatment Protocols & Patient Management
 
-**AI Tutor: Dr. Michael Rodriguez - Advanced Hyperbaric Medicine Specialist**
+**AI Tutor: Diver Well - Advanced Hyperbaric Medicine Specialist**
 
 Building on fundamental skills, this module covers advanced hyperbaric treatment protocols, sophisticated patient management techniques, and complex emergency procedures for commercial hyperbaric operations.
 
@@ -369,7 +369,7 @@ This advanced training ensures professional competency in complex hyperbaric tre
         order: 3,
         content: `# Chamber Maintenance & Equipment Management
 
-**AI Tutor: Dr. Michael Rodriguez - Hyperbaric Equipment Specialist**
+**AI Tutor: Diver Well - Hyperbaric Equipment Specialist**
 
 Professional hyperbaric operations require specialized equipment and comprehensive maintenance procedures. This module covers equipment selection, operation, maintenance, and troubleshooting for commercial hyperbaric chamber operations.
 
@@ -575,7 +575,7 @@ This comprehensive equipment training ensures professional competency in hyperba
         order: 4,
         content: `# Final Assessment & Certification
 
-**AI Tutor: Dr. Michael Rodriguez - Hyperbaric Operations Assessment Specialist**
+**AI Tutor: Diver Well - Hyperbaric Operations Assessment Specialist**
 
 This final module provides comprehensive assessment of hyperbaric operations knowledge and skills, preparing students for professional certification and real-world commercial hyperbaric operations.
 

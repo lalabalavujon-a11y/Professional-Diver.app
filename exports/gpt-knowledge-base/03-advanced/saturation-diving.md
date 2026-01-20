@@ -21,10 +21,10 @@ Specialized AI-assisted training with Commander Robert Hayes for saturation divi
 
 # Saturation System Components
 
-**AI Tutor: Marcus - Saturation Diving Specialist**
+**AI Tutor: Diver Well - Saturation Diving Specialist**
 *Expert in saturation diving systems and life support with 15+ years in commercial saturation operations*
 
-Welcome to saturation diving systems training! I'm Dr. Sarah Chen, your specialized AI tutor for saturation diving operations. Let's explore the complex systems that make extended underwater operations possible.
+Welcome to saturation diving systems training! I'm Diver Well, your specialized AI tutor for saturation diving operations. Let's explore the complex systems that make extended underwater operations possible.
 
 ## Learning Objectives
 - Master saturation diving system components and functions
@@ -197,7 +197,7 @@ This comprehensive training provides the knowledge and skills required for safe,
 ## AI Tutor: Commander David Park - Saturation Diving Expert
 *Expert in saturation diving systems, life support operations, and extended underwater mission management*
 
-Welcome to Lesson 1 of Saturation Diving! I'm Commander David Park, your AI tutor. Today we'll cover life support systems for professional diving operations.
+Welcome to Lesson 1 of Saturation Diving! I'm Diver Well, your AI tutor. Today we'll cover life support systems for professional diving operations.
 
 ## Learning Objectives
 - Master life support systems principles and techniques
@@ -242,7 +242,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Commander David Park - Saturation Diving Expert
 *Expert in saturation diving systems, life support operations, and extended underwater mission management*
 
-Welcome to Lesson 2 of Saturation Diving! I'm Commander David Park, your AI tutor. Today we'll cover decompression management for professional diving operations.
+Welcome to Lesson 2 of Saturation Diving! I'm Diver Well, your AI tutor. Today we'll cover decompression management for professional diving operations.
 
 ## Learning Objectives
 - Master decompression management principles and techniques
@@ -287,7 +287,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Commander David Park - Saturation Diving Expert
 *Expert in saturation diving systems, life support operations, and extended underwater mission management*
 
-Welcome to Lesson 3 of Saturation Diving! I'm Commander David Park, your AI tutor. Today we'll cover human factors for professional diving operations.
+Welcome to Lesson 3 of Saturation Diving! I'm Diver Well, your AI tutor. Today we'll cover human factors for professional diving operations.
 
 ## Learning Objectives
 - Master human factors principles and techniques
@@ -332,7 +332,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Commander David Park - Saturation Diving Expert
 *Expert in saturation diving systems, life support operations, and extended underwater mission management*
 
-Welcome to Lesson 4 of Saturation Diving! I'm Commander David Park, your AI tutor. Today we'll cover emergency procedures for professional diving operations.
+Welcome to Lesson 4 of Saturation Diving! I'm Diver Well, your AI tutor. Today we'll cover emergency procedures for professional diving operations.
 
 ## Learning Objectives
 - Master emergency procedures principles and techniques
@@ -377,7 +377,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Commander David Park - Saturation Diving Expert
 *Expert in saturation diving systems, life support operations, and extended underwater mission management*
 
-Welcome to Lesson 5 of Saturation Diving! I'm Commander David Park, your AI tutor. Today we'll cover system maintenance for professional diving operations.
+Welcome to Lesson 5 of Saturation Diving! I'm Diver Well, your AI tutor. Today we'll cover system maintenance for professional diving operations.
 
 ## Learning Objectives
 - Master system maintenance principles and techniques
@@ -422,7 +422,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Commander David Park - Saturation Diving Expert
 *Expert in saturation diving systems, life support operations, and extended underwater mission management*
 
-Welcome to Lesson 6 of Saturation Diving! I'm Commander David Park, your AI tutor. Today we'll cover gas management for professional diving operations.
+Welcome to Lesson 6 of Saturation Diving! I'm Diver Well, your AI tutor. Today we'll cover gas management for professional diving operations.
 
 ## Learning Objectives
 - Master gas management principles and techniques
@@ -467,7 +467,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Commander David Park - Saturation Diving Expert
 *Expert in saturation diving systems, life support operations, and extended underwater mission management*
 
-Welcome to Lesson 7 of Saturation Diving! I'm Commander David Park, your AI tutor. Today we'll cover chamber operations for professional diving operations.
+Welcome to Lesson 7 of Saturation Diving! I'm Diver Well, your AI tutor. Today we'll cover chamber operations for professional diving operations.
 
 ## Learning Objectives
 - Master chamber operations principles and techniques
@@ -512,7 +512,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Commander David Park - Saturation Diving Expert
 *Expert in saturation diving systems, life support operations, and extended underwater mission management*
 
-Welcome to Lesson 8 of Saturation Diving! I'm Commander David Park, your AI tutor. Today we'll cover medical monitoring for professional diving operations.
+Welcome to Lesson 8 of Saturation Diving! I'm Diver Well, your AI tutor. Today we'll cover medical monitoring for professional diving operations.
 
 ## Learning Objectives
 - Master medical monitoring principles and techniques
@@ -557,7 +557,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Commander David Park - Saturation Diving Expert
 *Expert in saturation diving systems, life support operations, and extended underwater mission management*
 
-Welcome to Lesson 9 of Saturation Diving! I'm Commander David Park, your AI tutor. Today we'll cover team coordination for professional diving operations.
+Welcome to Lesson 9 of Saturation Diving! I'm Diver Well, your AI tutor. Today we'll cover team coordination for professional diving operations.
 
 ## Learning Objectives
 - Master team coordination principles and techniques
@@ -602,7 +602,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Commander David Park - Saturation Diving Expert
 *Expert in saturation diving systems, life support operations, and extended underwater mission management*
 
-Welcome to Lesson 10 of Saturation Diving! I'm Commander David Park, your AI tutor. Today we'll cover advanced procedures for professional diving operations.
+Welcome to Lesson 10 of Saturation Diving! I'm Diver Well, your AI tutor. Today we'll cover advanced procedures for professional diving operations.
 
 ## Learning Objectives
 - Master advanced procedures principles and techniques
@@ -647,7 +647,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Commander David Park - Saturation Diving Expert
 *Expert in saturation diving systems, life support operations, and extended underwater mission management*
 
-Welcome to Lesson 11 of Saturation Diving! I'm Commander David Park, your AI tutor. Today we'll cover safety systems for professional diving operations.
+Welcome to Lesson 11 of Saturation Diving! I'm Diver Well, your AI tutor. Today we'll cover safety systems for professional diving operations.
 
 ## Learning Objectives
 - Master safety systems principles and techniques

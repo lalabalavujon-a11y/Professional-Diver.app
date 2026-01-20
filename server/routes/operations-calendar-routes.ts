@@ -737,13 +737,27 @@ export function registerOperationsCalendarRoutes(app: Express): void {
         return res.status(401).json({ error: "Authentication required" });
       }
       
-      // TODO: Fetch sync credentials from database
-      // For now, return empty status
-      res.json({
+      // Fetch sync credentials from database
+      const credentials = await db
+        .select()
+        .from(calendarSyncCredentials)
+        .where(eq(calendarSyncCredentials.userId, userId));
+
+      const status: Record<string, { connected: boolean; lastSyncAt?: Date; syncDirection?: string }> = {
         google: { connected: false },
         outlook: { connected: false },
         apple: { connected: false },
-      });
+      };
+
+      for (const cred of credentials) {
+        status[cred.provider] = {
+          connected: true,
+          lastSyncAt: cred.lastSyncAt || undefined,
+          syncDirection: cred.syncDirection,
+        };
+      }
+
+      res.json(status);
     } catch (error) {
       console.error("Error fetching sync status:", error);
       res.status(500).json({ error: "Failed to fetch sync status" });
@@ -758,11 +772,76 @@ export function registerOperationsCalendarRoutes(app: Express): void {
         return res.status(401).json({ error: "Authentication required" });
       }
       
-      // TODO: Implement Google OAuth flow
-      res.status(501).json({ error: "Google Calendar sync not yet implemented. Please use iCal export/import." });
+      const googleSync = new GoogleCalendarSync();
+      const authUrl = await googleSync.authenticate(userId);
+      
+      res.redirect(authUrl);
     } catch (error) {
       console.error("Error initiating Google auth:", error);
       res.status(500).json({ error: "Failed to initiate Google authentication" });
+    }
+  });
+
+  // Google Calendar OAuth callback
+  app.get("/api/operations-calendar/google/callback", async (req, res) => {
+    try {
+      const { code, state: userId, error } = req.query;
+
+      if (error) {
+        return res.status(400).json({ error: `OAuth error: ${error}` });
+      }
+
+      if (!code || !userId) {
+        return res.status(400).json({ error: "Missing code or state parameter" });
+      }
+
+      const googleSync = new GoogleCalendarSync();
+      const { refreshToken, accessToken } = await googleSync.handleCallback(
+        code as string,
+        userId as string
+      );
+
+      // Check if credentials already exist
+      const existing = await db
+        .select()
+        .from(calendarSyncCredentials)
+        .where(
+          and(
+            eq(calendarSyncCredentials.userId, userId as string),
+            eq(calendarSyncCredentials.provider, 'google')
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        // Update existing credentials
+        await db
+          .update(calendarSyncCredentials)
+          .set({
+            refreshToken,
+            updatedAt: new Date(),
+          })
+          .where(eq(calendarSyncCredentials.id, existing[0].id));
+      } else {
+        // Create new credentials
+        await db.insert(calendarSyncCredentials).values({
+          id: nanoid(),
+          userId: userId as string,
+          provider: 'google',
+          refreshToken,
+          syncEnabled: true,
+          syncDirection: 'bidirectional',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+
+      // Redirect to success page or return success
+      res.redirect('/operations?google_sync=success');
+    } catch (error) {
+      console.error("Error handling Google OAuth callback:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: `Failed to complete Google authentication: ${errorMessage}` });
     }
   });
 

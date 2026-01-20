@@ -165,6 +165,9 @@ export const clients = sqliteTable("clients", {
   conversionDate: integer("conversion_date", { mode: "timestamp" }), // When user became partner
   highlevelContactId: text("highlevel_contact_id"), // HighLevel contact ID for sync
   notes: text("notes"),
+  calendlyEventUri: text("calendly_event_uri"), // Reference to Calendly event
+  lastBookingTime: integer("last_booking_time", { mode: "timestamp" }), // Most recent booking time
+  bookingCount: integer("booking_count").default(0).notNull(), // Number of bookings
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
@@ -402,8 +405,12 @@ export const calendarShareLinks = sqliteTable("calendar_share_links", {
 export const calendarSyncCredentials = sqliteTable("calendar_sync_credentials", {
   id: text("id").primaryKey().$defaultFn(generateId),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  provider: text("provider", { enum: ["google", "outlook", "apple"] }).notNull(),
-  refreshToken: text("refresh_token").notNull(), // Encrypted
+  provider: text("provider", { enum: ["google", "outlook", "apple", "highlevel", "calendly", "custom"] }).notNull(),
+  refreshToken: text("refresh_token"), // Encrypted - nullable for providers that don't use OAuth
+  calendarId: text("calendar_id"), // Specific calendar ID (e.g., Google Calendar ID, HighLevel Location ID)
+  providerConfig: text("provider_config", { mode: "json" }), // JSON object for provider-specific configuration
+  connectionName: text("connection_name"), // User-friendly name for the connection
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(), // Enable/disable connection
   syncEnabled: integer("sync_enabled", { mode: "boolean" }).default(true).notNull(),
   lastSyncAt: integer("last_sync_at", { mode: "timestamp" }),
   syncDirection: text("sync_direction", { enum: ["bidirectional", "pull", "push"] }).default("bidirectional").notNull(),
@@ -418,6 +425,62 @@ export const externalCalendarEvents = sqliteTable("external_calendar_events", {
   externalEventId: text("external_event_id").notNull(), // ID from Google/Outlook/Apple
   provider: text("provider", { enum: ["google", "outlook", "apple"] }).notNull(),
   syncedAt: integer("synced_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+// Unified Calendar Tables
+export const unifiedCalendarEvents = sqliteTable("unified_calendar_events", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  source: text("source", { enum: ["internal", "calendly", "google", "highlevel"] }).notNull(),
+  sourceId: text("source_id").notNull(),
+  title: text("title").notNull(),
+  startTime: integer("start_time", { mode: "timestamp" }).notNull(),
+  endTime: integer("end_time", { mode: "timestamp" }).notNull(),
+  description: text("description"),
+  location: text("location"),
+  attendees: text("attendees", { mode: "json" }), // JSON array of {email, name}
+  metadata: text("metadata", { mode: "json" }).notNull(), // JSON object with sync status, clientId, etc.
+  color: text("color"),
+  allDay: integer("all_day", { mode: "boolean" }).default(false).notNull(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const calendarSyncStatus = sqliteTable("calendar_sync_status", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  source: text("source", { enum: ["internal", "calendly", "google", "highlevel"] }).notNull(),
+  lastSyncAt: integer("last_sync_at", { mode: "timestamp" }),
+  syncStatus: text("sync_status", { enum: ["success", "failed", "in_progress"] }),
+  errorMessage: text("error_message"),
+  eventsSynced: integer("events_synced").default(0),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const calendarConflicts = sqliteTable("calendar_conflicts", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  type: text("type", { enum: ["time_overlap", "duplicate", "resource"] }).notNull(),
+  severity: text("severity", { enum: ["low", "medium", "high"] }).notNull(),
+  eventIds: text("event_ids", { mode: "json" }).notNull(), // JSON array of unified event IDs
+  detectedAt: integer("detected_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+  resolution: text("resolution", { enum: ["local_wins", "remote_wins", "newest_wins", "manual"] }),
+  resolvedBy: text("resolved_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const calendarSyncLogs = sqliteTable("calendar_sync_logs", {
+  id: text("id").primaryKey().$defaultFn(generateId),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  source: text("source", { enum: ["internal", "calendly", "google", "highlevel"] }).notNull(),
+  operation: text("operation", { enum: ["pull", "push", "sync", "aggregate"] }).notNull(),
+  status: text("status", { enum: ["success", "failed", "partial"] }).notNull(),
+  eventsProcessed: integer("events_processed").default(0),
+  errors: text("errors", { mode: "json" }), // JSON array of error messages
+  duration: integer("duration"), // Duration in milliseconds
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
 // Feature Management Tables

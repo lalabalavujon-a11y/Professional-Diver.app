@@ -16,10 +16,10 @@ Hyperbaric treatment protocols, emergency procedures, and patient monitoring.
 
 # Hyperbaric Chamber Operations & Safety
 
-**AI Tutor: Dr. Michael Rodriguez - Hyperbaric Medicine Specialist**
+**AI Tutor: Diver Well - Hyperbaric Medicine Specialist**
 *Expert in Hyperbaric Medicine with 15+ years in chamber operations, treatment protocols, and emergency procedures*
 
-Welcome to professional hyperbaric chamber operations training! I'm Dr. Michael Rodriguez, your specialized AI tutor for hyperbaric medicine and chamber operations. Let's master the essential techniques and safety protocols required for commercial hyperbaric operations.
+Welcome to professional hyperbaric chamber operations training! I'm Diver Well, your specialized AI tutor for hyperbaric medicine and chamber operations. Let's master the essential techniques and safety protocols required for commercial hyperbaric operations.
 
 ## Learning Objectives
 - Master fundamental hyperbaric chamber operation principles
@@ -199,7 +199,7 @@ This comprehensive training provides the professional foundation required for sa
 
 # Advanced Treatment Protocols & Patient Management
 
-**AI Tutor: Dr. Michael Rodriguez - Advanced Hyperbaric Medicine Specialist**
+**AI Tutor: Diver Well - Advanced Hyperbaric Medicine Specialist**
 
 Building on fundamental skills, this module covers advanced hyperbaric treatment protocols, sophisticated patient management techniques, and complex emergency procedures for commercial hyperbaric operations.
 
@@ -352,7 +352,7 @@ This advanced training ensures professional competency in complex hyperbaric tre
 
 # Chamber Maintenance & Equipment Management
 
-**AI Tutor: Dr. Michael Rodriguez - Hyperbaric Equipment Specialist**
+**AI Tutor: Diver Well - Hyperbaric Equipment Specialist**
 
 Professional hyperbaric operations require specialized equipment and comprehensive maintenance procedures. This module covers equipment selection, operation, maintenance, and troubleshooting for commercial hyperbaric chamber operations.
 
@@ -559,7 +559,7 @@ This comprehensive equipment training ensures professional competency in hyperba
 
 # Final Assessment & Certification
 
-**AI Tutor: Dr. Michael Rodriguez - Hyperbaric Operations Assessment Specialist**
+**AI Tutor: Diver Well - Hyperbaric Operations Assessment Specialist**
 
 This final module provides comprehensive assessment of hyperbaric operations knowledge and skills, preparing students for professional certification and real-world commercial hyperbaric operations.
 
@@ -803,7 +803,7 @@ Congratulations on completing the Hyperbaric Chamber Operations training program
 ## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
-Welcome to Lesson 1 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover chamber operations for professional diving operations.
+Welcome to Lesson 1 of Hyperbaric Operations! I'm Diver Well, your AI tutor. Today we'll cover chamber operations for professional diving operations.
 
 ## Learning Objectives
 - Master chamber operations principles and techniques
@@ -848,7 +848,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
-Welcome to Lesson 5 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover equipment maintenance for professional diving operations.
+Welcome to Lesson 5 of Hyperbaric Operations! I'm Diver Well, your AI tutor. Today we'll cover equipment maintenance for professional diving operations.
 
 ## Learning Objectives
 - Master equipment maintenance principles and techniques
@@ -893,7 +893,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
-Welcome to Lesson 2 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover treatment protocols for professional diving operations.
+Welcome to Lesson 2 of Hyperbaric Operations! I'm Diver Well, your AI tutor. Today we'll cover treatment protocols for professional diving operations.
 
 ## Learning Objectives
 - Master treatment protocols principles and techniques
@@ -938,7 +938,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
-Welcome to Lesson 6 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover gas management for professional diving operations.
+Welcome to Lesson 6 of Hyperbaric Operations! I'm Diver Well, your AI tutor. Today we'll cover gas management for professional diving operations.
 
 ## Learning Objectives
 - Master gas management principles and techniques
@@ -983,7 +983,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
-Welcome to Lesson 3 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover patient monitoring for professional diving operations.
+Welcome to Lesson 3 of Hyperbaric Operations! I'm Diver Well, your AI tutor. Today we'll cover patient monitoring for professional diving operations.
 
 ## Learning Objectives
 - Master patient monitoring principles and techniques
@@ -1028,7 +1028,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
-Welcome to Lesson 7 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover medical protocols for professional diving operations.
+Welcome to Lesson 7 of Hyperbaric Operations! I'm Diver Well, your AI tutor. Today we'll cover medical protocols for professional diving operations.
 
 ## Learning Objectives
 - Master medical protocols principles and techniques
@@ -1073,7 +1073,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
-Welcome to Lesson 4 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover emergency procedures for professional diving operations.
+Welcome to Lesson 4 of Hyperbaric Operations! I'm Diver Well, your AI tutor. Today we'll cover emergency procedures for professional diving operations.
 
 ## Learning Objectives
 - Master emergency procedures principles and techniques
@@ -1118,7 +1118,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
-Welcome to Lesson 8 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover safety systems for professional diving operations.
+Welcome to Lesson 8 of Hyperbaric Operations! I'm Diver Well, your AI tutor. Today we'll cover safety systems for professional diving operations.
 
 ## Learning Objectives
 - Master safety systems principles and techniques
@@ -1163,7 +1163,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
-Welcome to Lesson 9 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover maintenance procedures for professional diving operations.
+Welcome to Lesson 9 of Hyperbaric Operations! I'm Diver Well, your AI tutor. Today we'll cover maintenance procedures for professional diving operations.
 
 ## Learning Objectives
 - Master maintenance procedures principles and techniques
@@ -1208,7 +1208,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
-Welcome to Lesson 10 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover advanced operations for professional diving operations.
+Welcome to Lesson 10 of Hyperbaric Operations! I'm Diver Well, your AI tutor. Today we'll cover advanced operations for professional diving operations.
 
 ## Learning Objectives
 - Master advanced operations principles and techniques
@@ -1253,7 +1253,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
-Welcome to Lesson 11 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover quality control for professional diving operations.
+Welcome to Lesson 11 of Hyperbaric Operations! I'm Diver Well, your AI tutor. Today we'll cover quality control for professional diving operations.
 
 ## Learning Objectives
 - Master quality control principles and techniques

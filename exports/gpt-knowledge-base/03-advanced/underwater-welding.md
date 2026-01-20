@@ -16,7 +16,7 @@ Professional underwater welding techniques, electrode selection, and quality con
 
 # Underwater Welding Fundamentals & Safety
 
-**AI Tutor: Lisa - Underwater Welding Specialist**
+**AI Tutor: Diver Well - Underwater Welding Specialist**
 
 Welcome to professional underwater welding training! I'm Lisa Thompson, your specialized AI tutor for underwater welding operations. Let's master the essential techniques and safety protocols required for commercial marine welding operations.
 
@@ -197,7 +197,7 @@ This comprehensive training provides the professional foundation required for sa
 
 # Advanced Welding Techniques & Quality Control
 
-**AI Tutor: Lisa Thompson - Advanced Underwater Welding Specialist**
+**AI Tutor: Diver Well - Advanced Underwater Welding Specialist**
 
 Building on fundamental skills, this module covers advanced underwater welding techniques, sophisticated quality control methods, and professional certification standards for commercial marine operations.
 
@@ -403,7 +403,7 @@ This advanced training ensures professional competency in complex underwater wel
 
 # Welding Equipment & Maintenance
 
-**AI Tutor: Lisa Thompson - Underwater Welding Equipment Specialist**
+**AI Tutor: Diver Well - Underwater Welding Equipment Specialist**
 
 Professional underwater welding requires specialized equipment and comprehensive maintenance procedures. This module covers equipment selection, operation, maintenance, and troubleshooting for commercial underwater welding operations.
 
@@ -667,7 +667,7 @@ This comprehensive equipment training ensures professional competency in underwa
 
 # Final Assessment & Certification
 
-**AI Tutor: Lisa Thompson - Underwater Welding Assessment Specialist**
+**AI Tutor: Diver Well - Underwater Welding Assessment Specialist**
 
 This final module provides comprehensive assessment of underwater welding knowledge and skills, preparing students for professional certification and real-world commercial diving operations.
 
@@ -911,7 +911,7 @@ Congratulations on completing the Advanced Underwater Welding training program! 
 ## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 1 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover welding fundamentals for professional diving operations.
+Welcome to Lesson 1 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover welding fundamentals for professional diving operations.
 
 ## Learning Objectives
 - Master welding fundamentals principles and techniques
@@ -956,7 +956,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 5 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover advanced techniques for professional diving operations.
+Welcome to Lesson 5 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover advanced techniques for professional diving operations.
 
 ## Learning Objectives
 - Master advanced techniques principles and techniques
@@ -1001,7 +1001,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 2 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover electrode selection for professional diving operations.
+Welcome to Lesson 2 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover electrode selection for professional diving operations.
 
 ## Learning Objectives
 - Master electrode selection principles and techniques
@@ -1046,7 +1046,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 6 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover underwater welding methods for professional diving operations.
+Welcome to Lesson 6 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover underwater welding methods for professional diving operations.
 
 ## Learning Objectives
 - Master underwater welding methods principles and techniques
@@ -1091,7 +1091,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 3 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover quality control for professional diving operations.
+Welcome to Lesson 3 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover quality control for professional diving operations.
 
 ## Learning Objectives
 - Master quality control principles and techniques
@@ -1136,7 +1136,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 7 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover weld inspection for professional diving operations.
+Welcome to Lesson 7 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover weld inspection for professional diving operations.
 
 ## Learning Objectives
 - Master weld inspection principles and techniques
@@ -1181,7 +1181,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 4 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover safety protocols for professional diving operations.
+Welcome to Lesson 4 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover safety protocols for professional diving operations.
 
 ## Learning Objectives
 - Master safety protocols principles and techniques
@@ -1226,7 +1226,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 8 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover equipment operation for professional diving operations.
+Welcome to Lesson 8 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover equipment operation for professional diving operations.
 
 ## Learning Objectives
 - Master equipment operation principles and techniques
@@ -1271,7 +1271,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 9 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover troubleshooting for professional diving operations.
+Welcome to Lesson 9 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover troubleshooting for professional diving operations.
 
 ## Learning Objectives
 - Master troubleshooting principles and techniques
@@ -1316,7 +1316,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 10 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover material science for professional diving operations.
+Welcome to Lesson 10 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover material science for professional diving operations.
 
 ## Learning Objectives
 - Master material science principles and techniques
@@ -1361,7 +1361,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 11 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover welding standards for professional diving operations.
+Welcome to Lesson 11 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover welding standards for professional diving operations.
 
 ## Learning Objectives
 - Master welding standards principles and techniques

@@ -212,6 +212,9 @@ export const clients = pgTable("clients", {
   conversionDate: timestamp("conversion_date"), // When user became partner
   highlevelContactId: text("highlevel_contact_id"), // HighLevel contact ID for sync
   notes: text("notes"),
+  calendlyEventUri: text("calendly_event_uri"), // Reference to Calendly event
+  lastBookingTime: timestamp("last_booking_time"), // Most recent booking time
+  bookingCount: integer("booking_count").default(0).notNull(), // Number of bookings
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -295,6 +298,79 @@ export const navigationRoutes = pgTable("navigation_routes", {
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Calendar Sync Credentials Table
+export const calendarSyncCredentials = pgTable("calendar_sync_credentials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: varchar("provider", { enum: ["google", "outlook", "apple", "highlevel", "calendly", "custom"] }).notNull(),
+  refreshToken: text("refresh_token"), // Encrypted - nullable for providers that don't use OAuth
+  calendarId: text("calendar_id"), // Specific calendar ID (e.g., Google Calendar ID, HighLevel Location ID)
+  providerConfig: json("provider_config"), // JSON object for provider-specific configuration
+  connectionName: text("connection_name"), // User-friendly name for the connection
+  isActive: boolean("is_active").default(true).notNull(), // Enable/disable connection
+  syncEnabled: boolean("sync_enabled").default(true).notNull(),
+  lastSyncAt: timestamp("last_sync_at"),
+  syncDirection: varchar("sync_direction", { enum: ["bidirectional", "pull", "push"] }).default("bidirectional").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Unified Calendar Tables
+export const unifiedCalendarEvents = pgTable("unified_calendar_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  source: varchar("source", { enum: ["internal", "calendly", "google", "highlevel"] }).notNull(),
+  sourceId: text("source_id").notNull(),
+  title: text("title").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  description: text("description"),
+  location: text("location"),
+  attendees: json("attendees"), // JSON array of {email, name}
+  metadata: json("metadata").notNull(), // JSON object with sync status, clientId, etc.
+  color: text("color"),
+  allDay: boolean("all_day").default(false).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const calendarSyncStatus = pgTable("calendar_sync_status", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  source: varchar("source", { enum: ["internal", "calendly", "google", "highlevel"] }).notNull(),
+  lastSyncAt: timestamp("last_sync_at"),
+  syncStatus: varchar("sync_status", { enum: ["success", "failed", "in_progress"] }),
+  errorMessage: text("error_message"),
+  eventsSynced: integer("events_synced").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const calendarConflicts = pgTable("calendar_conflicts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: varchar("type", { enum: ["time_overlap", "duplicate", "resource"] }).notNull(),
+  severity: varchar("severity", { enum: ["low", "medium", "high"] }).notNull(),
+  eventIds: json("event_ids").notNull(), // JSON array of unified event IDs
+  detectedAt: timestamp("detected_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+  resolution: varchar("resolution", { enum: ["local_wins", "remote_wins", "newest_wins", "manual"] }),
+  resolvedBy: varchar("resolved_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const calendarSyncLogs = pgTable("calendar_sync_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  source: varchar("source", { enum: ["internal", "calendly", "google", "highlevel"] }).notNull(),
+  operation: varchar("operation", { enum: ["pull", "push", "sync", "aggregate"] }).notNull(),
+  status: varchar("status", { enum: ["success", "failed", "partial"] }).notNull(),
+  eventsProcessed: integer("events_processed").default(0),
+  errors: json("errors"), // JSON array of error messages
+  duration: integer("duration"), // Duration in milliseconds
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const medicalFacilityTypeEnum = pgEnum("medical_facility_type", ["A_E", "CRITICAL_CARE", "DIVING_DOCTOR", "HYPERBARIC"]);

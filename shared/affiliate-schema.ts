@@ -17,6 +17,10 @@ export const affiliates = pgTable("affiliates", {
   referralLink: text("referral_link").notNull(),
   paypalEmail: text("paypal_email"),
   bankDetails: text("bank_details"), // encrypted bank details for payouts
+  stripeConnectAccountId: text("stripe_connect_account_id"), // Stripe Connect account ID
+  stripeConnectOnboardingStatus: text("stripe_connect_onboarding_status").default("NOT_STARTED"), // NOT_STARTED, IN_PROGRESS, COMPLETE, REQUIRES_ACTION
+  preferredPaymentMethod: text("preferred_payment_method").default("PAYPAL"), // PAYPAL, BANK_TRANSFER, STRIPE_CONNECT
+  stripeConnectAccountEmail: text("stripe_connect_account_email"), // Email associated with Stripe Connect account
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -40,7 +44,7 @@ export const commissionPayments = pgTable("commission_payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   affiliateId: varchar("affiliate_id").notNull().references(() => affiliates.id, { onDelete: "cascade" }),
   amount: integer("amount").notNull(), // in cents
-  paymentMethod: text("payment_method").notNull(), // PAYPAL, BANK_TRANSFER, STRIPE
+  paymentMethod: text("payment_method").notNull(), // PAYPAL, BANK_TRANSFER, STRIPE, STRIPE_CONNECT
   paymentReference: text("payment_reference"),
   paymentStatus: text("payment_status").default("PENDING").notNull(), // PENDING, COMPLETED, FAILED
   periodStart: timestamp("period_start").notNull(),

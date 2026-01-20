@@ -38,7 +38,7 @@ This lesson meets the highest industry standards including:
 
 ---
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in underwater inspection techniques, corrosion assessment, and professional documentation standards*
 
 Welcome to underwater inspection training! I'm Dr. Sarah Chen, your AI tutor specializing in NDT and inspection techniques. Today we'll cover the fundamental principles of underwater inspection operations.
@@ -99,7 +99,7 @@ This lesson meets the highest industry standards from:
 
 # Underwater Inspection Fundamentals
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in underwater inspection techniques, corrosion assessment, and professional documentation standards*
 
 Welcome to underwater inspection training! I'm Dr. Sarah Chen, your AI tutor specializing in NDT and inspection techniques. Today we'll cover the fundamental principles of underwater inspection operations.
@@ -160,7 +160,7 @@ This lesson meets the highest industry standards from:
 
 # Underwater Inspection Fundamentals
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in underwater inspection techniques, corrosion assessment, and professional documentation standards*
 
 Welcome to underwater inspection training! I'm Dr. Sarah Chen, your AI tutor specializing in NDT and inspection techniques. Today we'll cover the fundamental principles of underwater inspection operations.
@@ -199,10 +199,10 @@ Remember: Quality inspection work requires attention to detail and professional 
 
 # Visual Inspection Fundamentals
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 1 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover visual inspection fundamentals for professional diving operations.
+Welcome to Lesson 1 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover visual inspection fundamentals for professional diving operations.
 
 ## Learning Objectives
 - Master visual inspection fundamentals principles and techniques
@@ -244,10 +244,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Ultrasonic Thickness Gauging
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 4 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover ultrasonic thickness gauging for professional diving operations.
+Welcome to Lesson 4 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover ultrasonic thickness gauging for professional diving operations.
 
 ## Learning Objectives
 - Master ultrasonic thickness gauging principles and techniques
@@ -289,10 +289,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Corrosion Assessment Techniques
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 2 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover corrosion assessment techniques for professional diving operations.
+Welcome to Lesson 2 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover corrosion assessment techniques for professional diving operations.
 
 ## Learning Objectives
 - Master corrosion assessment techniques principles and techniques
@@ -334,10 +334,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Cathodic Protection Surveying
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 5 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover cathodic protection surveying for professional diving operations.
+Welcome to Lesson 5 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover cathodic protection surveying for professional diving operations.
 
 ## Learning Objectives
 - Master cathodic protection surveying principles and techniques
@@ -379,10 +379,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Magnetic Particle Testing
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 3 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover magnetic particle testing for professional diving operations.
+Welcome to Lesson 3 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover magnetic particle testing for professional diving operations.
 
 ## Learning Objectives
 - Master magnetic particle testing principles and techniques
@@ -424,10 +424,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Documentation Standards
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 6 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover documentation standards for professional diving operations.
+Welcome to Lesson 6 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover documentation standards for professional diving operations.
 
 ## Learning Objectives
 - Master documentation standards principles and techniques
@@ -469,10 +469,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Marine Growth Identification
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 7 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover marine growth identification for professional diving operations.
+Welcome to Lesson 7 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover marine growth identification for professional diving operations.
 
 ## Learning Objectives
 - Master marine growth identification principles and techniques
@@ -514,10 +514,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Defect Classification
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 8 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover defect classification for professional diving operations.
+Welcome to Lesson 8 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover defect classification for professional diving operations.
 
 ## Learning Objectives
 - Master defect classification principles and techniques
@@ -559,10 +559,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Quality Assurance Protocols
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 9 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover quality assurance protocols for professional diving operations.
+Welcome to Lesson 9 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover quality assurance protocols for professional diving operations.
 
 ## Learning Objectives
 - Master quality assurance protocols principles and techniques
@@ -604,10 +604,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Advanced Inspection Methods
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 10 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover advanced inspection methods for professional diving operations.
+Welcome to Lesson 10 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover advanced inspection methods for professional diving operations.
 
 ## Learning Objectives
 - Master advanced inspection methods principles and techniques
@@ -649,10 +649,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Report Writing & Analysis
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 11 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover report writing & analysis for professional diving operations.
+Welcome to Lesson 11 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover report writing & analysis for professional diving operations.
 
 ## Learning Objectives
 - Master report writing & analysis principles and techniques
@@ -694,7 +694,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Final Assessment
 
-## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
+## AI Tutor: Diver Well - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
 Welcome to the Final Assessment for Ndt Inspection!

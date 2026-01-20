@@ -5,11 +5,11 @@ import { db } from "../server/db";
 const alstLessonsContent = [
   {
     title: 'AI Tutor: ALST Fundamentals',
-    content: `# AI Tutor: Assistant Life Support Technician Fundamentals
+    content: `# AI Tutor: Diver Well - Assistant Life Support Technician Fundamentals
 
 ## Welcome to Your ALST AI Tutor
 
-I'm your specialized AI tutor for Assistant Life Support Technician training. I'll guide you through the essential skills needed to support life support systems in diving operations.
+I'm Diver Well, your specialized AI tutor for Assistant Life Support Technician training. I'll guide you through the essential skills needed to support life support systems in diving operations.
 
 ## Learning Objectives
 - Master life support system components
@@ -199,11 +199,11 @@ Gas analysis is critical for maintaining safe breathing environments in diving o
 const lstLessonsContent = [
   {
     title: 'AI Tutor: LST Advanced Systems',
-    content: `# AI Tutor: Life Support Technician Advanced Systems
+    content: `# AI Tutor: Diver Well - Life Support Technician Advanced Systems
 
 ## Welcome to Your LST AI Tutor
 
-I'm your specialized AI tutor for Life Support Technician training. I'll guide you through advanced life support systems, troubleshooting, and team leadership.
+I'm Diver Well, your specialized AI tutor for Life Support Technician training. I'll guide you through advanced life support systems, troubleshooting, and team leadership.
 
 ## Learning Objectives
 - Master advanced life support systems
@@ -290,11 +290,11 @@ I'm your specialized AI tutor for Life Support Technician training. I'll guide y
 const ndtLessonsContent = [
   {
     title: 'AI Tutor: Visual Inspection Fundamentals',
-    content: `# AI Tutor: Visual Inspection Fundamentals
+    content: `# AI Tutor: Diver Well - Visual Inspection Fundamentals
 
 ## Welcome to Your NDT AI Tutor
 
-I'm your specialized AI tutor for Non-Destructive Testing and Inspection. I'll guide you through the fundamentals of visual inspection with real-world applications and industry best practices.
+I'm Diver Well, your specialized AI tutor for Non-Destructive Testing and Inspection. I'll guide you through the fundamentals of visual inspection with real-world applications and industry best practices.
 
 ## Learning Objectives
 - Master visual inspection principles and techniques

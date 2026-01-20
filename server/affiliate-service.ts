@@ -1,21 +1,24 @@
 import { nanoid } from "nanoid";
+import { db } from "./db";
+import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
+import { affiliates, referrals, affiliateClicks, commissionPayments } from "@shared/affiliate-schema";
+import type { Affiliate, Referral, AffiliateClick, InsertAffiliate, InsertReferral, InsertAffiliateClick } from "@shared/affiliate-schema";
+import { stripeConnectService } from "./stripe-connect-service";
 
-// Affiliate service for managing partner/referral program
+// Affiliate service for managing partner/referral program (Database-backed)
 export class AffiliateService {
-  private affiliates: Map<string, any> = new Map();
-  private referrals: Map<string, any> = new Map();
-  private clicks: Map<string, any> = new Map();
+  // Generate unique affiliate code
+  private generateAffiliateCode(): string {
+    return `PD${nanoid(8).toUpperCase()}`;
+  }
 
   // Create affiliate account
-  async createAffiliate(userData: { userId: string; name: string; email: string }) {
+  async createAffiliate(userData: { userId: string; name: string; email: string }): Promise<Affiliate> {
     const affiliateCode = this.generateAffiliateCode();
     const referralLink = `https://professional-diver.diverwell.app/?ref=${affiliateCode}`;
     
-    const affiliate = {
-      id: nanoid(),
+    const [newAffiliate] = await db.insert(affiliates).values({
       userId: userData.userId,
-      name: userData.name,
-      email: userData.email,
       affiliateCode,
       commissionRate: 50, // 50% commission
       totalReferrals: 0,
@@ -23,17 +26,11 @@ export class AffiliateService {
       monthlyEarnings: 0,
       referralLink,
       isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+      preferredPaymentMethod: "PAYPAL",
+      stripeConnectOnboardingStatus: "NOT_STARTED",
+    }).returning();
 
-    this.affiliates.set(affiliate.id, affiliate);
-    return affiliate;
-  }
-
-  // Generate unique affiliate code
-  private generateAffiliateCode(): string {
-    return `PD${nanoid(8).toUpperCase()}`;
+    return newAffiliate;
   }
 
   // Track affiliate click
@@ -42,16 +39,16 @@ export class AffiliateService {
     userAgent?: string;
     referrerUrl?: string;
     landingPage?: string;
-  }) {
-    const click = {
-      id: nanoid(),
+  }): Promise<AffiliateClick> {
+    const [click] = await db.insert(affiliateClicks).values({
       affiliateCode,
-      ...clickData,
+      ipAddress: clickData.ipAddress,
+      userAgent: clickData.userAgent,
+      referrerUrl: clickData.referrerUrl,
+      landingPage: clickData.landingPage,
       converted: false,
-      createdAt: new Date(),
-    };
+    }).returning();
 
-    this.clicks.set(click.id, click);
     return click;
   }
 
@@ -61,9 +58,12 @@ export class AffiliateService {
     referredUserId: string;
     subscriptionType: string;
     monthlyValue: number; // in cents
-  }) {
-    const affiliate = Array.from(this.affiliates.values())
-      .find(a => a.affiliateCode === data.affiliateCode);
+  }): Promise<Referral> {
+    // Find affiliate by code
+    const [affiliate] = await db.select()
+      .from(affiliates)
+      .where(eq(affiliates.affiliateCode, data.affiliateCode))
+      .limit(1);
 
     if (!affiliate) {
       throw new Error('Affiliate not found');
@@ -71,8 +71,8 @@ export class AffiliateService {
 
     const commissionEarned = Math.round(data.monthlyValue * (affiliate.commissionRate / 100));
 
-    const referral = {
-      id: nanoid(),
+    // Create referral record
+    const [referral] = await db.insert(referrals).values({
       affiliateId: affiliate.id,
       referredUserId: data.referredUserId,
       affiliateCode: data.affiliateCode,
@@ -82,92 +82,107 @@ export class AffiliateService {
       status: 'ACTIVE',
       firstPaymentDate: new Date(),
       lastPaymentDate: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    }).returning();
 
     // Update affiliate stats
-    affiliate.totalReferrals += 1;
-    affiliate.totalEarnings += commissionEarned;
-    affiliate.monthlyEarnings += commissionEarned;
-    affiliate.updatedAt = new Date();
+    await db.update(affiliates)
+      .set({
+        totalReferrals: sql`${affiliates.totalReferrals} + 1`,
+        totalEarnings: sql`${affiliates.totalEarnings} + ${commissionEarned}`,
+        monthlyEarnings: sql`${affiliates.monthlyEarnings} + ${commissionEarned}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(affiliates.id, affiliate.id));
 
-    this.referrals.set(referral.id, referral);
-    this.affiliates.set(affiliate.id, affiliate);
-
-    // Mark corresponding click as converted
-    const relatedClick = Array.from(this.clicks.values())
-      .find(c => c.affiliateCode === data.affiliateCode && !c.converted);
-    
-    if (relatedClick) {
-      relatedClick.converted = true;
-      relatedClick.convertedUserId = data.referredUserId;
-      this.clicks.set(relatedClick.id, relatedClick);
-    }
+    // Mark corresponding click as converted if exists
+    await db.update(affiliateClicks)
+      .set({
+        converted: true,
+        convertedUserId: data.referredUserId,
+      })
+      .where(
+        and(
+          eq(affiliateClicks.affiliateCode, data.affiliateCode),
+          eq(affiliateClicks.converted, false)
+        )
+      )
+      .limit(1);
 
     return referral;
   }
 
   // Get affiliate dashboard data
   async getAffiliateDashboard(affiliateId: string) {
-    const affiliate = this.affiliates.get(affiliateId);
+    const [affiliate] = await db.select()
+      .from(affiliates)
+      .where(eq(affiliates.id, affiliateId))
+      .limit(1);
+
     if (!affiliate) {
       throw new Error('Affiliate not found');
     }
 
-    const referrals = Array.from(this.referrals.values())
-      .filter(r => r.affiliateId === affiliateId);
+    // Get all referrals for this affiliate
+    const allReferrals = await db.select()
+      .from(referrals)
+      .where(eq(referrals.affiliateId, affiliateId))
+      .orderBy(desc(referrals.createdAt));
 
-    const clicks = Array.from(this.clicks.values())
-      .filter(c => c.affiliateCode === affiliate.affiliateCode);
+    // Get all clicks for this affiliate code
+    const allClicks = await db.select()
+      .from(affiliateClicks)
+      .where(eq(affiliateClicks.affiliateCode, affiliate.affiliateCode))
+      .orderBy(desc(affiliateClicks.createdAt));
 
-    const totalClicks = clicks.length;
-    const totalConversions = clicks.filter(c => c.converted).length;
+    const totalClicks = allClicks.length;
+    const totalConversions = allClicks.filter(c => c.converted).length;
     const conversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0;
 
-    const monthlyReferrals = referrals.filter(r => {
+    // Calculate monthly referrals (current month)
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const monthlyReferrals = allReferrals.filter(r => {
       const referralDate = new Date(r.createdAt);
-      const now = new Date();
-      return referralDate.getMonth() === now.getMonth() && 
-             referralDate.getFullYear() === now.getFullYear();
+      return referralDate >= startOfMonth && referralDate <= endOfMonth;
     });
+
+    const averageOrderValue = allReferrals.length > 0
+      ? Math.round(allReferrals.reduce((sum, r) => sum + r.monthlyValue, 0) / allReferrals.length)
+      : 0;
 
     return {
       affiliate,
       stats: {
-        totalReferrals: affiliate.totalReferrals,
-        totalEarnings: affiliate.totalEarnings,
-        monthlyEarnings: affiliate.monthlyEarnings,
+        totalReferrals: affiliate.totalReferrals || 0,
+        totalEarnings: affiliate.totalEarnings || 0,
+        monthlyEarnings: affiliate.monthlyEarnings || 0,
         monthlyReferrals: monthlyReferrals.length,
         totalClicks,
         totalConversions,
         conversionRate: Math.round(conversionRate * 100) / 100,
-        averageOrderValue: referrals.length > 0 
-          ? Math.round(referrals.reduce((sum, r) => sum + r.monthlyValue, 0) / referrals.length)
-          : 0
+        averageOrderValue,
       },
-      recentReferrals: referrals
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 10),
-      recentClicks: clicks
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 20)
+      recentReferrals: allReferrals.slice(0, 10),
+      recentClicks: allClicks.slice(0, 20),
     };
   }
 
   // Get affiliate leaderboard
   async getLeaderboard() {
-    const affiliatesList = Array.from(this.affiliates.values())
-      .filter(a => a.isActive)
-      .sort((a, b) => b.monthlyEarnings - a.monthlyEarnings)
-      .slice(0, 20);
+    const affiliatesList = await db.select()
+      .from(affiliates)
+      .where(eq(affiliates.isActive, true))
+      .orderBy(desc(affiliates.monthlyEarnings))
+      .limit(20);
 
     return affiliatesList.map((affiliate, index) => ({
       rank: index + 1,
-      name: affiliate.name,
-      totalReferrals: affiliate.totalReferrals,
-      monthlyEarnings: affiliate.monthlyEarnings,
-      totalEarnings: affiliate.totalEarnings,
+      name: affiliate.userId, // Will need to join with users table for name
+      totalReferrals: affiliate.totalReferrals || 0,
+      monthlyEarnings: affiliate.monthlyEarnings || 0,
+      totalEarnings: affiliate.totalEarnings || 0,
       affiliateCode: affiliate.affiliateCode,
       joinDate: affiliate.createdAt,
     }));
@@ -175,52 +190,256 @@ export class AffiliateService {
 
   // Calculate monthly commissions for all affiliates
   async calculateMonthlyCommissions() {
-    const affiliatesList = Array.from(this.affiliates.values())
-      .filter(a => a.isActive);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-    const commissions = affiliatesList.map(affiliate => {
-      const monthlyReferrals = Array.from(this.referrals.values())
-        .filter(r => {
-          if (r.affiliateId !== affiliate.id) return false;
-          
-          const referralDate = new Date(r.createdAt);
-          const now = new Date();
-          return referralDate.getMonth() === now.getMonth() && 
-                 referralDate.getFullYear() === now.getFullYear();
-        });
+    const allAffiliates = await db.select()
+      .from(affiliates)
+      .where(eq(affiliates.isActive, true));
 
-      const monthlyCommission = monthlyReferrals
-        .reduce((sum, r) => sum + r.commissionEarned, 0);
+    const commissions = await Promise.all(
+      allAffiliates.map(async (affiliate) => {
+        const monthlyReferrals = await db.select()
+          .from(referrals)
+          .where(
+            and(
+              eq(referrals.affiliateId, affiliate.id),
+              gte(referrals.createdAt, startOfMonth),
+              lte(referrals.createdAt, endOfMonth)
+            )
+          );
 
-      return {
-        affiliateId: affiliate.id,
-        affiliateCode: affiliate.affiliateCode,
-        name: affiliate.name,
-        email: affiliate.email,
-        monthlyCommission,
-        referralCount: monthlyReferrals.length,
-        paymentStatus: 'PENDING'
-      };
-    });
+        const monthlyCommission = monthlyReferrals.reduce(
+          (sum, r) => sum + (r.commissionEarned || 0),
+          0
+        );
+
+        return {
+          affiliateId: affiliate.id,
+          affiliateCode: affiliate.affiliateCode,
+          name: affiliate.userId, // Will need to join with users table
+          email: affiliate.stripeConnectAccountEmail || '', // Will need to get from users table
+          monthlyCommission,
+          referralCount: monthlyReferrals.length,
+          paymentStatus: 'PENDING' as const,
+        };
+      })
+    );
 
     return commissions.filter(c => c.monthlyCommission > 0);
   }
 
   // Get all affiliates
-  async getAllAffiliates() {
-    return Array.from(this.affiliates.values());
+  async getAllAffiliates(): Promise<Affiliate[]> {
+    return await db.select().from(affiliates);
   }
 
   // Get affiliate by code
-  async getAffiliateByCode(code: string) {
-    return Array.from(this.affiliates.values())
-      .find(a => a.affiliateCode === code);
+  async getAffiliateByCode(code: string): Promise<Affiliate | undefined> {
+    const [affiliate] = await db.select()
+      .from(affiliates)
+      .where(eq(affiliates.affiliateCode, code))
+      .limit(1);
+
+    return affiliate;
   }
 
   // Get affiliate by userId
-  async getAffiliateByUserId(userId: string) {
-    return Array.from(this.affiliates.values())
-      .find(a => a.userId === userId);
+  async getAffiliateByUserId(userId: string): Promise<Affiliate | undefined> {
+    const [affiliate] = await db.select()
+      .from(affiliates)
+      .where(eq(affiliates.userId, userId))
+      .limit(1);
+
+    return affiliate;
+  }
+
+  // Get affiliate by ID
+  async getAffiliateById(affiliateId: string): Promise<Affiliate | undefined> {
+    const [affiliate] = await db.select()
+      .from(affiliates)
+      .where(eq(affiliates.id, affiliateId))
+      .limit(1);
+
+    return affiliate;
+  }
+
+  // Update affiliate
+  async updateAffiliate(affiliateId: string, updates: Partial<Affiliate>): Promise<Affiliate> {
+    const [updated] = await db.update(affiliates)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(affiliates.id, affiliateId))
+      .returning();
+
+    if (!updated) {
+      throw new Error('Affiliate not found');
+    }
+
+    return updated;
+  }
+
+  // Initiate Stripe Connect onboarding
+  async initiateStripeConnectOnboarding(userId: string, email: string, returnUrl: string): Promise<{ accountId: string; onboardingUrl: string }> {
+    // Get or create affiliate
+    let affiliate = await this.getAffiliateByUserId(userId);
+    
+    if (!affiliate) {
+      // Create affiliate if doesn't exist
+      affiliate = await this.createAffiliate({
+        userId,
+        name: email.split('@')[0],
+        email,
+      });
+    }
+
+    // Check if account already exists
+    if (affiliate.stripeConnectAccountId) {
+      // Get existing account status
+      const accountStatus = await stripeConnectService.getAccountStatus(affiliate.stripeConnectAccountId);
+      
+      // If already complete, return existing account
+      if (accountStatus.payoutsEnabled) {
+        const onboardingLink = await stripeConnectService.createOnboardingLink(
+          affiliate.stripeConnectAccountId,
+          returnUrl
+        );
+        return {
+          accountId: affiliate.stripeConnectAccountId,
+          onboardingUrl: onboardingLink.url,
+        };
+      }
+    }
+
+    // Create new Connect account
+    const account = await stripeConnectService.createConnectAccount(email, userId);
+
+    // Create onboarding link
+    const onboardingLink = await stripeConnectService.createOnboardingLink(
+      account.id,
+      returnUrl
+    );
+
+    // Update affiliate with account ID
+    await this.updateAffiliate(affiliate.id, {
+      stripeConnectAccountId: account.id,
+      stripeConnectAccountEmail: email,
+      stripeConnectOnboardingStatus: 'IN_PROGRESS',
+    });
+
+    return {
+      accountId: account.id,
+      onboardingUrl: onboardingLink.url,
+    };
+  }
+
+  // Update Stripe Connect account information
+  async updateStripeConnectAccount(
+    affiliateId: string,
+    accountId: string,
+    status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETE' | 'REQUIRES_ACTION'
+  ): Promise<Affiliate> {
+    // Get account details from Stripe
+    const account = await stripeConnectService.getAccountDetails(accountId);
+    const onboardingStatus = stripeConnectService.getOnboardingStatus(account);
+
+    // Update affiliate record
+    return await this.updateAffiliate(affiliateId, {
+      stripeConnectAccountId: accountId,
+      stripeConnectAccountEmail: account.email || undefined,
+      stripeConnectOnboardingStatus: onboardingStatus,
+    });
+  }
+
+  // Get payout eligibility for an affiliate
+  async getPayoutEligibility(affiliateId: string): Promise<{
+    eligible: boolean;
+    reason?: string;
+    minimumThreshold: number;
+    currentEarnings: number;
+    accountReady: boolean;
+  }> {
+    const affiliate = await this.getAffiliateById(affiliateId);
+    
+    if (!affiliate) {
+      throw new Error('Affiliate not found');
+    }
+
+    const minimumThreshold = 5000; // $50 in cents
+    const currentEarnings = affiliate.monthlyEarnings || 0;
+
+    // Check if account is ready for payouts
+    let accountReady = false;
+    if (affiliate.stripeConnectAccountId) {
+      try {
+        const accountStatus = await stripeConnectService.getAccountStatus(affiliate.stripeConnectAccountId);
+        accountReady = accountStatus.payoutsEnabled;
+      } catch (error) {
+        console.error('Error checking account status:', error);
+      }
+    }
+
+    const eligible = currentEarnings >= minimumThreshold && accountReady;
+
+    return {
+      eligible,
+      reason: !eligible
+        ? currentEarnings < minimumThreshold
+          ? `Minimum threshold not met. Need $${(minimumThreshold / 100).toFixed(2)}, have $${(currentEarnings / 100).toFixed(2)}`
+          : !accountReady
+          ? 'Stripe Connect account not ready for payouts'
+          : undefined
+        : undefined,
+      minimumThreshold,
+      currentEarnings,
+      accountReady,
+    };
+  }
+
+  // Get Stripe Connect account status
+  async getStripeConnectStatus(affiliateId: string): Promise<{
+    accountId: string | null;
+    onboardingStatus: string;
+    accountStatus?: {
+      detailsSubmitted: boolean;
+      chargesEnabled: boolean;
+      payoutsEnabled: boolean;
+    };
+  }> {
+    const affiliate = await this.getAffiliateById(affiliateId);
+    
+    if (!affiliate) {
+      throw new Error('Affiliate not found');
+    }
+
+    if (!affiliate.stripeConnectAccountId) {
+      return {
+        accountId: null,
+        onboardingStatus: affiliate.stripeConnectOnboardingStatus || 'NOT_STARTED',
+      };
+    }
+
+    try {
+      const accountStatus = await stripeConnectService.getAccountStatus(affiliate.stripeConnectAccountId);
+      return {
+        accountId: affiliate.stripeConnectAccountId,
+        onboardingStatus: affiliate.stripeConnectOnboardingStatus || 'NOT_STARTED',
+        accountStatus: {
+          detailsSubmitted: accountStatus.detailsSubmitted,
+          chargesEnabled: accountStatus.chargesEnabled,
+          payoutsEnabled: accountStatus.payoutsEnabled,
+        },
+      };
+    } catch (error) {
+      console.error('Error getting account status:', error);
+      return {
+        accountId: affiliate.stripeConnectAccountId,
+        onboardingStatus: affiliate.stripeConnectOnboardingStatus || 'NOT_STARTED',
+      };
+    }
   }
 
   // Add predefined super admins and lifetime users
@@ -252,46 +471,3 @@ export class AffiliateService {
 }
 
 export const affiliateService = new AffiliateService();
-
-// Initialize demo data
-(async () => {
-  // Create demo affiliate for testing
-  const demoAffiliate = await affiliateService.createAffiliate({
-    userId: 'demo-affiliate-1',
-    name: 'Demo Partner',
-    email: 'partner@example.com'
-  });
-
-  // Add some sample referrals for demo
-  await affiliateService.processReferral({
-    affiliateCode: demoAffiliate.affiliateCode,
-    referredUserId: 'user-1',
-    subscriptionType: 'MONTHLY',
-    monthlyValue: 2500 // $25.00
-  });
-
-  await affiliateService.processReferral({
-    affiliateCode: demoAffiliate.affiliateCode,
-    referredUserId: 'user-2', 
-    subscriptionType: 'ANNUAL',
-    monthlyValue: 25000 // $250.00
-  });
-
-  // Track some demo clicks
-  await affiliateService.trackClick(demoAffiliate.affiliateCode, {
-    ipAddress: '192.168.1.1',
-    userAgent: 'Mozilla/5.0...',
-    landingPage: '/',
-    referrerUrl: 'https://google.com'
-  });
-
-  await affiliateService.trackClick(demoAffiliate.affiliateCode, {
-    ipAddress: '192.168.1.2',
-    userAgent: 'Mozilla/5.0...',
-    landingPage: '/trial-signup',
-    referrerUrl: 'https://facebook.com'
-  });
-
-  // Initialize special users
-  await affiliateService.initializeSpecialUsers();
-})();

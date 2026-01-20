@@ -35,10 +35,10 @@ async function addWeldingLessons() {
         order: 1,
         content: `# Underwater Welding Fundamentals & Safety
 
-**AI Tutor: Lisa - Underwater Welding Specialist**
+**AI Tutor: Diver Well - Underwater Welding Specialist**
 *Expert in Marine Welding Operations with 12+ years in underwater welding techniques, quality control, and safety protocols*
 
-Welcome to professional underwater welding training! I'm Lisa, your specialized AI tutor for underwater welding operations. Let's master the essential techniques and safety protocols required for commercial marine welding operations.
+Welcome to professional underwater welding training! I'm Diver Well, your specialized AI tutor for underwater welding operations. Let's master the essential techniques and safety protocols required for commercial marine welding operations.
 
 ## Learning Objectives
 - Master fundamental underwater welding principles and techniques
@@ -216,7 +216,7 @@ This comprehensive training provides the professional foundation required for sa
         order: 2,
         content: `# Advanced Welding Techniques & Quality Control
 
-**AI Tutor: Lisa Thompson - Advanced Underwater Welding Specialist**
+**AI Tutor: Diver Well - Advanced Underwater Welding Specialist**
 
 Building on fundamental skills, this module covers advanced underwater welding techniques, sophisticated quality control methods, and professional certification standards for commercial marine operations.
 
@@ -421,7 +421,7 @@ This advanced training ensures professional competency in complex underwater wel
         order: 3,
         content: `# Welding Equipment & Maintenance
 
-**AI Tutor: Lisa Thompson - Underwater Welding Equipment Specialist**
+**AI Tutor: Diver Well - Underwater Welding Equipment Specialist**
 
 Professional underwater welding requires specialized equipment and comprehensive maintenance procedures. This module covers equipment selection, operation, maintenance, and troubleshooting for commercial underwater welding operations.
 
@@ -684,7 +684,7 @@ This comprehensive equipment training ensures professional competency in underwa
         order: 4,
         content: `# Final Assessment & Certification
 
-**AI Tutor: Lisa Thompson - Underwater Welding Assessment Specialist**
+**AI Tutor: Diver Well - Underwater Welding Assessment Specialist**
 
 This final module provides comprehensive assessment of underwater welding knowledge and skills, preparing students for professional certification and real-world commercial diving operations.
 

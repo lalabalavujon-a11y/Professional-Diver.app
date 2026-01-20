@@ -25,9 +25,9 @@ Professional underwater welding techniques, electrode selection, and quality con
 
 # Underwater Welding Fundamentals & Safety
 
-**AI Tutor: Lisa - Underwater Welding Specialist**
+**AI Tutor: Diver Well - Underwater Welding Specialist**
 
-Welcome to professional underwater welding training! I'm Lisa Thompson, your specialized AI tutor for underwater welding operations. Let's master the essential techniques and safety protocols required for commercial marine welding operations.
+Welcome to professional underwater welding training! I'm Diver Well, your specialized AI tutor for underwater welding operations. Let's master the essential techniques and safety protocols required for commercial marine welding operations.
 
 ## Learning Objectives
 - Master fundamental underwater welding principles and techniques
@@ -917,10 +917,10 @@ Congratulations on completing the Advanced Underwater Welding training program! 
 
 # Welding Fundamentals
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 1 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover welding fundamentals for professional diving operations.
+Welcome to Lesson 1 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover welding fundamentals for professional diving operations.
 
 ## Learning Objectives
 - Master welding fundamentals principles and techniques
@@ -962,10 +962,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Advanced Techniques
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 5 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover advanced techniques for professional diving operations.
+Welcome to Lesson 5 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover advanced techniques for professional diving operations.
 
 ## Learning Objectives
 - Master advanced techniques principles and techniques
@@ -1007,10 +1007,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Electrode Selection
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 2 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover electrode selection for professional diving operations.
+Welcome to Lesson 2 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover electrode selection for professional diving operations.
 
 ## Learning Objectives
 - Master electrode selection principles and techniques
@@ -1052,10 +1052,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Underwater Welding Methods
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 6 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover underwater welding methods for professional diving operations.
+Welcome to Lesson 6 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover underwater welding methods for professional diving operations.
 
 ## Learning Objectives
 - Master underwater welding methods principles and techniques
@@ -1097,10 +1097,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Quality Control
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 3 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover quality control for professional diving operations.
+Welcome to Lesson 3 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover quality control for professional diving operations.
 
 ## Learning Objectives
 - Master quality control principles and techniques
@@ -1142,10 +1142,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Weld Inspection
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 7 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover weld inspection for professional diving operations.
+Welcome to Lesson 7 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover weld inspection for professional diving operations.
 
 ## Learning Objectives
 - Master weld inspection principles and techniques
@@ -1187,10 +1187,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Safety Protocols
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 4 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover safety protocols for professional diving operations.
+Welcome to Lesson 4 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover safety protocols for professional diving operations.
 
 ## Learning Objectives
 - Master safety protocols principles and techniques
@@ -1232,10 +1232,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Equipment Operation
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 8 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover equipment operation for professional diving operations.
+Welcome to Lesson 8 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover equipment operation for professional diving operations.
 
 ## Learning Objectives
 - Master equipment operation principles and techniques
@@ -1277,10 +1277,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Troubleshooting
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 9 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover troubleshooting for professional diving operations.
+Welcome to Lesson 9 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover troubleshooting for professional diving operations.
 
 ## Learning Objectives
 - Master troubleshooting principles and techniques
@@ -1322,10 +1322,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Material Science
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 10 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover material science for professional diving operations.
+Welcome to Lesson 10 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover material science for professional diving operations.
 
 ## Learning Objectives
 - Master material science principles and techniques
@@ -1367,10 +1367,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Welding Standards
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
-Welcome to Lesson 11 of Underwater Welding! I'm Master Welder Carlos Mendez, your AI tutor. Today we'll cover welding standards for professional diving operations.
+Welcome to Lesson 11 of Underwater Welding! I'm Diver Well, your AI tutor. Today we'll cover welding standards for professional diving operations.
 
 ## Learning Objectives
 - Master welding standards principles and techniques
@@ -1412,7 +1412,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Final Assessment
 
-## AI Tutor: Master Welder Carlos Mendez - Underwater Welding Specialist
+## AI Tutor: Diver Well - Underwater Welding Specialist
 *Expert in underwater welding techniques, quality control, and marine construction*
 
 Welcome to the Final Assessment for Underwater Welding!
@@ -1469,10 +1469,10 @@ Essential air diving skills with AI tutor Lisa Thompson including diving physics
 
 # Diving Physics Review
 
-**AI Tutor: Dr. Michael Rodriguez - Diving Physics Specialist**
+**AI Tutor: Diver Well - Diving Physics Specialist**
 *Expert in diving physics and decompression theory with 15+ years in commercial diving operations*
 
-Welcome to diving physics review! I'm Dr. Michael Rodriguez, your specialized AI tutor for diving physics and decompression theory. Let's review the essential physics principles that govern all diving operations.
+Welcome to diving physics review! I'm Diver Well, your specialized AI tutor for diving physics and decompression theory. Let's review the essential physics principles that govern all diving operations.
 
 ## Learning Objectives
 - Master fundamental diving physics principles and gas laws
@@ -1636,7 +1636,7 @@ This comprehensive review of diving physics provides the foundation for safe, ef
 ## AI Tutor: Lisa Thompson - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 1 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover diving physics fundamentals for professional diving operations.
+Welcome to Lesson 1 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover diving physics fundamentals for professional diving operations.
 
 ## Learning Objectives
 - Master diving physics fundamentals principles and techniques
@@ -1681,7 +1681,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Lisa Thompson - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 2 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover gas laws & pressure effects for professional diving operations.
+Welcome to Lesson 2 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover gas laws & pressure effects for professional diving operations.
 
 ## Learning Objectives
 - Master gas laws & pressure effects principles and techniques
@@ -1726,7 +1726,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Lisa Thompson - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 3 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover decompression theory for professional diving operations.
+Welcome to Lesson 3 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover decompression theory for professional diving operations.
 
 ## Learning Objectives
 - Master decompression theory principles and techniques
@@ -1771,7 +1771,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Lisa Thompson - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 4 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover safety calculations for professional diving operations.
+Welcome to Lesson 4 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover safety calculations for professional diving operations.
 
 ## Learning Objectives
 - Master safety calculations principles and techniques
@@ -1816,7 +1816,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Lisa Thompson - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 5 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover equipment physics for professional diving operations.
+Welcome to Lesson 5 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover equipment physics for professional diving operations.
 
 ## Learning Objectives
 - Master equipment physics principles and techniques
@@ -1861,7 +1861,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Lisa Thompson - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 6 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover gas management for professional diving operations.
+Welcome to Lesson 6 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover gas management for professional diving operations.
 
 ## Learning Objectives
 - Master gas management principles and techniques
@@ -1906,7 +1906,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Lisa Thompson - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 7 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover ascent procedures for professional diving operations.
+Welcome to Lesson 7 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover ascent procedures for professional diving operations.
 
 ## Learning Objectives
 - Master ascent procedures principles and techniques
@@ -1951,7 +1951,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Lisa Thompson - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 8 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover problem solving for professional diving operations.
+Welcome to Lesson 8 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover problem solving for professional diving operations.
 
 ## Learning Objectives
 - Master problem solving principles and techniques
@@ -1996,7 +1996,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Lisa Thompson - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 9 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover tool handling safety for professional diving operations.
+Welcome to Lesson 9 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover tool handling safety for professional diving operations.
 
 ## Learning Objectives
 - Master tool handling safety principles and techniques
@@ -2041,7 +2041,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Lisa Thompson - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 10 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover communication protocols for professional diving operations.
+Welcome to Lesson 10 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover communication protocols for professional diving operations.
 
 ## Learning Objectives
 - Master communication protocols principles and techniques
@@ -2086,7 +2086,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Lisa Thompson - Air Diving Specialist
 *Professional air diving instructor specializing in gas management, ascent procedures, and underwater tool handling safety*
 
-Welcome to Lesson 11 of Air Diver Certification! I'm Lisa Thompson, your AI tutor. Today we'll cover emergency procedures for professional diving operations.
+Welcome to Lesson 11 of Air Diver Certification! I'm Diver Well, your AI tutor. Today we'll cover emergency procedures for professional diving operations.
 
 ## Learning Objectives
 - Master emergency procedures principles and techniques
@@ -2363,10 +2363,10 @@ Remember: Quick and effective emergency response can save lives and prevent equi
 
 # Safety Protocols & Procedures
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 4 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover safety protocols & procedures for professional diving operations.
+Welcome to Lesson 4 of Alst! I'm Diver Well, your AI tutor. Today we'll cover safety protocols & procedures for professional diving operations.
 
 ## Learning Objectives
 - Master safety protocols & procedures principles and techniques
@@ -2408,10 +2408,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Leadership & Communication
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 5 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover leadership & communication for professional diving operations.
+Welcome to Lesson 5 of Alst! I'm Diver Well, your AI tutor. Today we'll cover leadership & communication for professional diving operations.
 
 ## Learning Objectives
 - Master leadership & communication principles and techniques
@@ -2453,10 +2453,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Gas Management
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 6 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover gas management for professional diving operations.
+Welcome to Lesson 6 of Alst! I'm Diver Well, your AI tutor. Today we'll cover gas management for professional diving operations.
 
 ## Learning Objectives
 - Master gas management principles and techniques
@@ -2498,10 +2498,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # System Troubleshooting
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 7 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover system troubleshooting for professional diving operations.
+Welcome to Lesson 7 of Alst! I'm Diver Well, your AI tutor. Today we'll cover system troubleshooting for professional diving operations.
 
 ## Learning Objectives
 - Master system troubleshooting principles and techniques
@@ -2543,10 +2543,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Environmental Control
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 8 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover environmental control for professional diving operations.
+Welcome to Lesson 8 of Alst! I'm Diver Well, your AI tutor. Today we'll cover environmental control for professional diving operations.
 
 ## Learning Objectives
 - Master environmental control principles and techniques
@@ -2588,10 +2588,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Team Coordination
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 9 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover team coordination for professional diving operations.
+Welcome to Lesson 9 of Alst! I'm Diver Well, your AI tutor. Today we'll cover team coordination for professional diving operations.
 
 ## Learning Objectives
 - Master team coordination principles and techniques
@@ -2633,10 +2633,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Advanced Procedures
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 10 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover advanced procedures for professional diving operations.
+Welcome to Lesson 10 of Alst! I'm Diver Well, your AI tutor. Today we'll cover advanced procedures for professional diving operations.
 
 ## Learning Objectives
 - Master advanced procedures principles and techniques
@@ -2678,10 +2678,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Quality Assurance
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
-Welcome to Lesson 11 of Alst! I'm Chief Technician Robert Kim, your AI tutor. Today we'll cover quality assurance for professional diving operations.
+Welcome to Lesson 11 of Alst! I'm Diver Well, your AI tutor. Today we'll cover quality assurance for professional diving operations.
 
 ## Learning Objectives
 - Master quality assurance principles and techniques
@@ -2723,7 +2723,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Final Assessment
 
-## AI Tutor: Chief Technician Robert Kim - Life Support Systems Expert
+## AI Tutor: Diver Well - Life Support Systems Expert
 *Expert in life support system operations, emergency response procedures, and life support operations*
 
 Welcome to the Final Assessment for Alst!
@@ -2836,10 +2836,10 @@ Remember: Proper dive planning is essential for safe and successful commercial d
 
 # Risk Assessment & Safety
 
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 2 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover risk assessment & safety for professional diving operations.
+Welcome to Lesson 2 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover risk assessment & safety for professional diving operations.
 
 ## Learning Objectives
 - Master risk assessment & safety principles and techniques
@@ -2881,10 +2881,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Team Management
 
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 3 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover team management for professional diving operations.
+Welcome to Lesson 3 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover team management for professional diving operations.
 
 ## Learning Objectives
 - Master team management principles and techniques
@@ -2926,10 +2926,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Emergency Response
 
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 4 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover emergency response for professional diving operations.
+Welcome to Lesson 4 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover emergency response for professional diving operations.
 
 ## Learning Objectives
 - Master emergency response principles and techniques
@@ -2971,10 +2971,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Quality Assurance
 
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 5 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover quality assurance for professional diving operations.
+Welcome to Lesson 5 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover quality assurance for professional diving operations.
 
 ## Learning Objectives
 - Master quality assurance principles and techniques
@@ -3016,10 +3016,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Project Management
 
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 6 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover project management for professional diving operations.
+Welcome to Lesson 6 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover project management for professional diving operations.
 
 ## Learning Objectives
 - Master project management principles and techniques
@@ -3061,10 +3061,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Communication Protocols
 
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 7 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover communication protocols for professional diving operations.
+Welcome to Lesson 7 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover communication protocols for professional diving operations.
 
 ## Learning Objectives
 - Master communication protocols principles and techniques
@@ -3106,10 +3106,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Equipment Management
 
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 8 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover equipment management for professional diving operations.
+Welcome to Lesson 8 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover equipment management for professional diving operations.
 
 ## Learning Objectives
 - Master equipment management principles and techniques
@@ -3151,10 +3151,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Regulatory Compliance
 
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 9 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover regulatory compliance for professional diving operations.
+Welcome to Lesson 9 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover regulatory compliance for professional diving operations.
 
 ## Learning Objectives
 - Master regulatory compliance principles and techniques
@@ -3196,10 +3196,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Incident Investigation
 
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 10 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover incident investigation for professional diving operations.
+Welcome to Lesson 10 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover incident investigation for professional diving operations.
 
 ## Learning Objectives
 - Master incident investigation principles and techniques
@@ -3241,10 +3241,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Leadership & Decision Making
 
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
-Welcome to Lesson 11 of Commercial Supervisor! I'm Captain James Mitchell, your AI tutor. Today we'll cover leadership & decision making for professional diving operations.
+Welcome to Lesson 11 of Commercial Supervisor! I'm Diver Well, your AI tutor. Today we'll cover leadership & decision making for professional diving operations.
 
 ## Learning Objectives
 - Master leadership & decision making principles and techniques
@@ -3286,7 +3286,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Final Assessment
 
-## AI Tutor: Captain James Mitchell - Commercial Dive Supervisor
+## AI Tutor: Diver Well - Commercial Dive Supervisor
 *Veteran dive supervisor with expertise in dive planning, risk assessment, and emergency response coordination for commercial diving operations*
 
 Welcome to the Final Assessment for Commercial Supervisor!
@@ -3404,10 +3404,10 @@ Remember: Systematic assessment saves lives in diving emergencies.
 
 # Scene Assessment and Safety Protocols
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 1 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover scene assessment and safety protocols for professional diving operations.
+Welcome to Lesson 1 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover scene assessment and safety protocols for professional diving operations.
 
 ## Learning Objectives
 - Master scene assessment and safety protocols principles and techniques
@@ -3449,10 +3449,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # ABCDE Assessment Protocol
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 2 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover abcde assessment protocol for professional diving operations.
+Welcome to Lesson 2 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover abcde assessment protocol for professional diving operations.
 
 ## Learning Objectives
 - Master abcde assessment protocol principles and techniques
@@ -3494,10 +3494,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Airway Management Techniques
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 3 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover airway management techniques for professional diving operations.
+Welcome to Lesson 3 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover airway management techniques for professional diving operations.
 
 ## Learning Objectives
 - Master airway management techniques principles and techniques
@@ -3539,10 +3539,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Breathing Support Procedures
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 4 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover breathing support procedures for professional diving operations.
+Welcome to Lesson 4 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover breathing support procedures for professional diving operations.
 
 ## Learning Objectives
 - Master breathing support procedures principles and techniques
@@ -3584,10 +3584,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Circulation Assessment
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 5 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover circulation assessment for professional diving operations.
+Welcome to Lesson 5 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover circulation assessment for professional diving operations.
 
 ## Learning Objectives
 - Master circulation assessment principles and techniques
@@ -3629,10 +3629,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Neurological Evaluation
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 6 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover neurological evaluation for professional diving operations.
+Welcome to Lesson 6 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover neurological evaluation for professional diving operations.
 
 ## Learning Objectives
 - Master neurological evaluation principles and techniques
@@ -3674,10 +3674,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Diving Injuries & Treatment
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 7 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover diving injuries & treatment for professional diving operations.
+Welcome to Lesson 7 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover diving injuries & treatment for professional diving operations.
 
 ## Learning Objectives
 - Master diving injuries & treatment principles and techniques
@@ -3719,10 +3719,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Decompression Sickness Management
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 8 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover decompression sickness management for professional diving operations.
+Welcome to Lesson 8 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover decompression sickness management for professional diving operations.
 
 ## Learning Objectives
 - Master decompression sickness management principles and techniques
@@ -3764,10 +3764,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Hyperbaric Medicine
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 9 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover hyperbaric medicine for professional diving operations.
+Welcome to Lesson 9 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover hyperbaric medicine for professional diving operations.
 
 ## Learning Objectives
 - Master hyperbaric medicine principles and techniques
@@ -3809,10 +3809,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Emergency Medications
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 10 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover emergency medications for professional diving operations.
+Welcome to Lesson 10 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover emergency medications for professional diving operations.
 
 ## Learning Objectives
 - Master emergency medications principles and techniques
@@ -3854,10 +3854,10 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Patient Transport & Evacuation
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
-Welcome to Lesson 11 of Diver Medic! I'm Dr. Michael Rodriguez, your AI tutor. Today we'll cover patient transport & evacuation for professional diving operations.
+Welcome to Lesson 11 of Diver Medic! I'm Diver Well, your AI tutor. Today we'll cover patient transport & evacuation for professional diving operations.
 
 ## Learning Objectives
 - Master patient transport & evacuation principles and techniques
@@ -3899,7 +3899,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Final Assessment
 
-## AI Tutor: Dr. Michael Rodriguez - Emergency Medicine Specialist
+## AI Tutor: Diver Well - Emergency Medicine Specialist
 *Emergency medicine specialist focused on diving-related medical emergencies, hyperbaric treatment, and underwater rescue protocols*
 
 Welcome to the Final Assessment for Diver Medic!
@@ -3954,7 +3954,7 @@ Hyperbaric treatment protocols, emergency procedures, and patient monitoring.
 **AI Tutor: Dr. Michael Rodriguez - Hyperbaric Medicine Specialist**
 *Expert in Hyperbaric Medicine with 15+ years in chamber operations, treatment protocols, and emergency procedures*
 
-Welcome to professional hyperbaric chamber operations training! I'm Dr. Michael Rodriguez, your specialized AI tutor for hyperbaric medicine and chamber operations. Let's master the essential techniques and safety protocols required for commercial hyperbaric operations.
+Welcome to professional hyperbaric chamber operations training! I'm Diver Well, your specialized AI tutor for hyperbaric medicine and chamber operations. Let's master the essential techniques and safety protocols required for commercial hyperbaric operations.
 
 ## Learning Objectives
 - Master fundamental hyperbaric chamber operation principles
@@ -4735,7 +4735,7 @@ Congratulations on completing the Hyperbaric Chamber Operations training program
 
 # Chamber Operations
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to Lesson 1 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover chamber operations for professional diving operations.
@@ -4780,7 +4780,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Equipment Maintenance
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to Lesson 5 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover equipment maintenance for professional diving operations.
@@ -4825,7 +4825,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Treatment Protocols
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to Lesson 2 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover treatment protocols for professional diving operations.
@@ -4870,7 +4870,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Gas Management
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to Lesson 6 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover gas management for professional diving operations.
@@ -4915,7 +4915,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Patient Monitoring
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to Lesson 3 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover patient monitoring for professional diving operations.
@@ -4960,7 +4960,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Medical Protocols
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to Lesson 7 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover medical protocols for professional diving operations.
@@ -5005,7 +5005,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Emergency Procedures
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to Lesson 4 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover emergency procedures for professional diving operations.
@@ -5050,7 +5050,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Safety Systems
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to Lesson 8 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover safety systems for professional diving operations.
@@ -5095,7 +5095,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Maintenance Procedures
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to Lesson 9 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover maintenance procedures for professional diving operations.
@@ -5140,7 +5140,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Advanced Operations
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to Lesson 10 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover advanced operations for professional diving operations.
@@ -5185,7 +5185,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Quality Control
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to Lesson 11 of Hyperbaric Operations! I'm Dr. Patricia Walsh, your AI tutor. Today we'll cover quality control for professional diving operations.
@@ -5230,7 +5230,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 
 # Final Assessment
 
-## AI Tutor: Dr. Patricia Walsh - Hyperbaric Medicine Specialist
+## AI Tutor: Diver Well - Hyperbaric Medicine Specialist
 *Specialist in hyperbaric chamber operations, decompression therapy, and medical gas management*
 
 Welcome to the Final Assessment for Hyperbaric Operations!
@@ -5307,7 +5307,7 @@ This lesson meets the highest industry standards including:
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in underwater inspection techniques, corrosion assessment, and professional documentation standards*
 
-Welcome to underwater inspection training! I'm Dr. Sarah Chen, your AI tutor specializing in NDT and inspection techniques. Today we'll cover the fundamental principles of underwater inspection operations.
+Welcome to underwater inspection training! I'm Diver Well, your AI tutor specializing in NDT and inspection techniques. Today we'll cover the fundamental principles of underwater inspection operations.
 
 ## Core Inspection Principles
 
@@ -5368,7 +5368,7 @@ This lesson meets the highest industry standards from:
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in underwater inspection techniques, corrosion assessment, and professional documentation standards*
 
-Welcome to underwater inspection training! I'm Dr. Sarah Chen, your AI tutor specializing in NDT and inspection techniques. Today we'll cover the fundamental principles of underwater inspection operations.
+Welcome to underwater inspection training! I'm Diver Well, your AI tutor specializing in NDT and inspection techniques. Today we'll cover the fundamental principles of underwater inspection operations.
 
 ## Core Inspection Principles
 
@@ -5429,7 +5429,7 @@ This lesson meets the highest industry standards from:
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in underwater inspection techniques, corrosion assessment, and professional documentation standards*
 
-Welcome to underwater inspection training! I'm Dr. Sarah Chen, your AI tutor specializing in NDT and inspection techniques. Today we'll cover the fundamental principles of underwater inspection operations.
+Welcome to underwater inspection training! I'm Diver Well, your AI tutor specializing in NDT and inspection techniques. Today we'll cover the fundamental principles of underwater inspection operations.
 
 ## Core Inspection Principles
 
@@ -5468,7 +5468,7 @@ Remember: Quality inspection work requires attention to detail and professional 
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 1 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover visual inspection fundamentals for professional diving operations.
+Welcome to Lesson 1 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover visual inspection fundamentals for professional diving operations.
 
 ## Learning Objectives
 - Master visual inspection fundamentals principles and techniques
@@ -5513,7 +5513,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 4 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover ultrasonic thickness gauging for professional diving operations.
+Welcome to Lesson 4 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover ultrasonic thickness gauging for professional diving operations.
 
 ## Learning Objectives
 - Master ultrasonic thickness gauging principles and techniques
@@ -5558,7 +5558,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 2 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover corrosion assessment techniques for professional diving operations.
+Welcome to Lesson 2 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover corrosion assessment techniques for professional diving operations.
 
 ## Learning Objectives
 - Master corrosion assessment techniques principles and techniques
@@ -5603,7 +5603,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 5 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover cathodic protection surveying for professional diving operations.
+Welcome to Lesson 5 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover cathodic protection surveying for professional diving operations.
 
 ## Learning Objectives
 - Master cathodic protection surveying principles and techniques
@@ -5648,7 +5648,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 3 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover magnetic particle testing for professional diving operations.
+Welcome to Lesson 3 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover magnetic particle testing for professional diving operations.
 
 ## Learning Objectives
 - Master magnetic particle testing principles and techniques
@@ -5693,7 +5693,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 6 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover documentation standards for professional diving operations.
+Welcome to Lesson 6 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover documentation standards for professional diving operations.
 
 ## Learning Objectives
 - Master documentation standards principles and techniques
@@ -5738,7 +5738,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 7 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover marine growth identification for professional diving operations.
+Welcome to Lesson 7 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover marine growth identification for professional diving operations.
 
 ## Learning Objectives
 - Master marine growth identification principles and techniques
@@ -5783,7 +5783,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 8 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover defect classification for professional diving operations.
+Welcome to Lesson 8 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover defect classification for professional diving operations.
 
 ## Learning Objectives
 - Master defect classification principles and techniques
@@ -5828,7 +5828,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 9 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover quality assurance protocols for professional diving operations.
+Welcome to Lesson 9 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover quality assurance protocols for professional diving operations.
 
 ## Learning Objectives
 - Master quality assurance protocols principles and techniques
@@ -5873,7 +5873,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 10 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover advanced inspection methods for professional diving operations.
+Welcome to Lesson 10 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover advanced inspection methods for professional diving operations.
 
 ## Learning Objectives
 - Master advanced inspection methods principles and techniques
@@ -5918,7 +5918,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Dr. Sarah Chen - NDT & Inspection Specialist
 *Expert in Non-Destructive Testing and Inspection with 15+ years in underwater inspection techniques, corrosion assessment, and CP surveying*
 
-Welcome to Lesson 11 of Ndt Inspection! I'm Dr. Sarah Chen, your AI tutor. Today we'll cover report writing & analysis for professional diving operations.
+Welcome to Lesson 11 of Ndt Inspection! I'm Diver Well, your AI tutor. Today we'll cover report writing & analysis for professional diving operations.
 
 ## Learning Objectives
 - Master report writing & analysis principles and techniques
@@ -6198,7 +6198,7 @@ Remember: Effective emergency management requires strong leadership and quick de
 ## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 1 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover life support fundamentals for professional diving operations.
+Welcome to Lesson 1 of Lst! I'm Diver Well, your AI tutor. Today we'll cover life support fundamentals for professional diving operations.
 
 ## Learning Objectives
 - Master life support fundamentals principles and techniques
@@ -6243,7 +6243,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 4 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover equipment operations for professional diving operations.
+Welcome to Lesson 4 of Lst! I'm Diver Well, your AI tutor. Today we'll cover equipment operations for professional diving operations.
 
 ## Learning Objectives
 - Master equipment operations principles and techniques
@@ -6288,7 +6288,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 2 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover gas management for professional diving operations.
+Welcome to Lesson 2 of Lst! I'm Diver Well, your AI tutor. Today we'll cover gas management for professional diving operations.
 
 ## Learning Objectives
 - Master gas management principles and techniques
@@ -6333,7 +6333,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 5 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover safety systems for professional diving operations.
+Welcome to Lesson 5 of Lst! I'm Diver Well, your AI tutor. Today we'll cover safety systems for professional diving operations.
 
 ## Learning Objectives
 - Master safety systems principles and techniques
@@ -6378,7 +6378,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 3 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover emergency response for professional diving operations.
+Welcome to Lesson 3 of Lst! I'm Diver Well, your AI tutor. Today we'll cover emergency response for professional diving operations.
 
 ## Learning Objectives
 - Master emergency response principles and techniques
@@ -6423,7 +6423,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 6 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover system design for professional diving operations.
+Welcome to Lesson 6 of Lst! I'm Diver Well, your AI tutor. Today we'll cover system design for professional diving operations.
 
 ## Learning Objectives
 - Master system design principles and techniques
@@ -6468,7 +6468,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 7 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover advanced troubleshooting for professional diving operations.
+Welcome to Lesson 7 of Lst! I'm Diver Well, your AI tutor. Today we'll cover advanced troubleshooting for professional diving operations.
 
 ## Learning Objectives
 - Master advanced troubleshooting principles and techniques
@@ -6513,7 +6513,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 8 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover team leadership for professional diving operations.
+Welcome to Lesson 8 of Lst! I'm Diver Well, your AI tutor. Today we'll cover team leadership for professional diving operations.
 
 ## Learning Objectives
 - Master team leadership principles and techniques
@@ -6558,7 +6558,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 9 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover quality control for professional diving operations.
+Welcome to Lesson 9 of Lst! I'm Diver Well, your AI tutor. Today we'll cover quality control for professional diving operations.
 
 ## Learning Objectives
 - Master quality control principles and techniques
@@ -6603,7 +6603,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 10 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover maintenance protocols for professional diving operations.
+Welcome to Lesson 10 of Lst! I'm Diver Well, your AI tutor. Today we'll cover maintenance protocols for professional diving operations.
 
 ## Learning Objectives
 - Master maintenance protocols principles and techniques
@@ -6648,7 +6648,7 @@ Remember: Professional competency requires both knowledge and practical applicat
 ## AI Tutor: Senior Technician Maria Santos - Advanced Life Support Systems
 *Expert in advanced life support systems, gas management, and emergency response for diving operations*
 
-Welcome to Lesson 11 of Lst! I'm Senior Technician Maria Santos, your AI tutor. Today we'll cover advanced operations for professional diving operations.
+Welcome to Lesson 11 of Lst! I'm Diver Well, your AI tutor. Today we'll cover advanced operations for professional diving operations.
 
 ## Learning Objectives
 - Master advanced operations principles and techniques
