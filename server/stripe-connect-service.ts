@@ -5,16 +5,37 @@ import Stripe from 'stripe';
  * Handles all Stripe Connect operations for affiliate payouts
  */
 export class StripeConnectService {
-  private stripe: Stripe;
+  private stripe: Stripe | null = null;
+  private initialized = false;
 
   constructor() {
+    // Don't initialize in constructor - use lazy initialization
+  }
+
+  /**
+   * Lazy initialization - only creates Stripe client when actually needed
+   */
+  private ensureInitialized(): void {
+    if (this.initialized && this.stripe) {
+      return;
+    }
+
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
-      throw new Error('STRIPE_SECRET_KEY environment variable is required');
+      throw new Error('STRIPE_SECRET_KEY environment variable is required. Stripe Connect features are disabled.');
     }
+    
     this.stripe = new Stripe(secretKey, {
       apiVersion: '2025-12-15.clover', // Latest stable API version
     });
+    this.initialized = true;
+  }
+
+  /**
+   * Check if Stripe is configured
+   */
+  isConfigured(): boolean {
+    return !!process.env.STRIPE_SECRET_KEY;
   }
 
   /**
@@ -22,6 +43,9 @@ export class StripeConnectService {
    * Express accounts have simplified onboarding and lower fees
    */
   async createConnectAccount(email: string, userId: string): Promise<Stripe.Account> {
+    this.ensureInitialized();
+    if (!this.stripe) throw new Error('Stripe not initialized');
+    
     try {
       const account = await this.stripe.accounts.create({
         type: 'express',
@@ -51,6 +75,9 @@ export class StripeConnectService {
     returnUrl: string,
     refreshUrl?: string
   ): Promise<Stripe.AccountLink> {
+    this.ensureInitialized();
+    if (!this.stripe) throw new Error('Stripe not initialized');
+    
     try {
       const accountLink = await this.stripe.accountLinks.create({
         account: accountId,
@@ -76,6 +103,9 @@ export class StripeConnectService {
     payoutsEnabled: boolean;
     requirements: Stripe.Account.Requirements;
   }> {
+    this.ensureInitialized();
+    if (!this.stripe) throw new Error('Stripe not initialized');
+    
     try {
       const account = await this.stripe.accounts.retrieve(accountId);
 
@@ -101,6 +131,9 @@ export class StripeConnectService {
     currency: string = 'usd',
     metadata?: Record<string, string>
   ): Promise<Stripe.Transfer> {
+    this.ensureInitialized();
+    if (!this.stripe) throw new Error('Stripe not initialized');
+    
     try {
       const transfer = await this.stripe.transfers.create({
         amount,
@@ -124,6 +157,9 @@ export class StripeConnectService {
    * Get account details for a Connect account
    */
   async getAccountDetails(accountId: string): Promise<Stripe.Account> {
+    this.ensureInitialized();
+    if (!this.stripe) throw new Error('Stripe not initialized');
+    
     try {
       const account = await this.stripe.accounts.retrieve(accountId);
       return account;
@@ -138,6 +174,9 @@ export class StripeConnectService {
    * Allows affiliates to access their Stripe Express dashboard
    */
   async createLoginLink(accountId: string): Promise<Stripe.LoginLink> {
+    this.ensureInitialized();
+    if (!this.stripe) throw new Error('Stripe not initialized');
+    
     try {
       const loginLink = await this.stripe.accounts.createLoginLink(accountId);
       return loginLink;
@@ -197,6 +236,9 @@ export class StripeConnectService {
     signature: string,
     secret: string
   ): Stripe.Event {
+    this.ensureInitialized();
+    if (!this.stripe) throw new Error('Stripe not initialized');
+    
     try {
       return this.stripe.webhooks.constructEvent(payload, signature, secret);
     } catch (error) {
@@ -206,5 +248,22 @@ export class StripeConnectService {
   }
 }
 
-// Export singleton instance
-export const stripeConnectService = new StripeConnectService();
+// Lazy singleton getter - only creates instance when accessed
+let _stripeConnectServiceInstance: StripeConnectService | null = null;
+
+export function getStripeConnectService(): StripeConnectService {
+  if (!_stripeConnectServiceInstance) {
+    _stripeConnectServiceInstance = new StripeConnectService();
+  }
+  return _stripeConnectServiceInstance;
+}
+
+// Export singleton instance for backward compatibility (lazy-loaded)
+// The service will only initialize when actually used
+export const stripeConnectService = new Proxy({} as StripeConnectService, {
+  get(_target, prop) {
+    const instance = getStripeConnectService();
+    const value = (instance as any)[prop];
+    return typeof value === 'function' ? value.bind(instance) : value;
+  }
+});
