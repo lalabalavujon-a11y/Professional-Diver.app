@@ -34,6 +34,8 @@
     "generate-marketing": "tsx marketing/scripts/generate-marketing-materials.ts",
     "test:stripe-connect": "tsx scripts/test-stripe-connect.ts",
     "verify:stripe": "tsx scripts/verify-stripe-setup.ts",
+    "diagnose:deployment": "tsx scripts/diagnose-deployment.ts",
+    "check:railway-env": "tsx scripts/check-railway-env.ts",
     "cap:sync": "cap sync",
     "cap:copy": "cap copy",
     "cap:open:ios": "cap open ios",

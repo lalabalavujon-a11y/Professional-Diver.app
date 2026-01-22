@@ -12,7 +12,7 @@ import {
   MapPin, 
   Users, 
   ExternalLink, 
-  Sync, 
+  RefreshCw, 
   CheckCircle, 
   AlertTriangle,
   Calendar as CalendarIcon
@@ -159,7 +159,7 @@ export default function CalendarEventDetail({ event, onClose, onSync }: Calendar
           {/* Sync Status */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm">
-              <Sync className="w-4 h-4 text-muted-foreground" />
+              <RefreshCw className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium">Sync Status</span>
             </div>
             <div className="pl-6 space-y-2">
@@ -200,7 +200,7 @@ export default function CalendarEventDetail({ event, onClose, onSync }: Calendar
           <div className="flex gap-2 justify-end">
             {onSync && (
               <Button onClick={onSync} variant="outline" size="sm">
-                <Sync className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-4 h-4 mr-2" />
                 Sync Now
               </Button>
             )}
