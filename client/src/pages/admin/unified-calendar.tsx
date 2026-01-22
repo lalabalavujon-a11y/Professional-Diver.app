@@ -26,8 +26,7 @@ import {
   Clock,
   MapPin,
   Users,
-  ExternalLink,
-  Sync
+  ExternalLink
 } from "lucide-react";
 import { format } from "date-fns";
 import CalendarEventDetail from "@/components/admin/calendar-event-detail";
@@ -184,7 +183,7 @@ export default function UnifiedCalendar() {
         {/* Actions Bar */}
         <div className="flex flex-wrap gap-4 mb-6">
           <Button onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending}>
-            <Sync className="w-4 h-4 mr-2" />
+            <RefreshCw className="w-4 h-4 mr-2" />
             {syncMutation.isPending ? 'Syncing...' : 'Sync All Calendars'}
           </Button>
           <Button onClick={() => setShowConflicts(true)} variant="outline">

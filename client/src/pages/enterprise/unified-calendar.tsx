@@ -26,7 +26,6 @@ import {
   MapPin,
   Users,
   ExternalLink,
-  Sync,
   Settings
 } from "lucide-react";
 import { format } from "date-fns";
@@ -188,7 +187,7 @@ export default function EnterpriseUnifiedCalendar() {
             Manage Connections
           </Button>
           <Button onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending}>
-            <Sync className="w-4 h-4 mr-2" />
+            <RefreshCw className="w-4 h-4 mr-2" />
             {syncMutation.isPending ? 'Syncing...' : 'Sync All Calendars'}
           </Button>
           <Button onClick={() => setShowConflicts(true)} variant="outline">
