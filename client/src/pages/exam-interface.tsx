@@ -211,6 +211,46 @@ export default function ExamInterface() {
     }
   }, [currentSlug, isSRS]);
   
+  const handleSubmitExam = useCallback(async () => {
+    setExamSubmitted(true);
+    setShowExplanations(true);
+
+    try {
+      // Auto-grade only questions that have a correctAnswer.
+      const gradableQuestions = questions.filter((q) => typeof q.correctAnswer === "string" && q.correctAnswer.length > 0);
+      const totalGradable = gradableQuestions.length;
+      const correct = gradableQuestions.reduce((sum, q) => {
+        const userAnswer = answers[q.id];
+        // For short-answer questions, we can't auto-grade, so skip them for auto-grading
+        if (q.type === 'WRITTEN') {
+          return sum; // Don't auto-grade written/short-answer questions
+        }
+        return userAnswer && userAnswer.toLowerCase().trim() === q.correctAnswer?.toLowerCase().trim() ? sum + 1 : sum;
+      }, 0);
+
+      const percentage = totalGradable > 0 ? Math.round((correct / totalGradable) * 100) : 0;
+      const passingScore = currentSlug ? getPassingScore(currentSlug) : 80;
+      const passed = percentage >= passingScore;
+
+      console.log(`Exam Results: ${correct}/${totalGradable} = ${percentage}% (Passing: ${passingScore}%, ${passed ? 'PASSED' : 'FAILED'})`);
+
+      if (currentSlug) {
+        await apiRequest("POST", "/api/exam-attempts", {
+          userId: "current-user",
+          examSlug: currentSlug,
+          score: correct,
+          totalQuestions: totalGradable,
+          percentage: percentage,
+          passed: passed,
+          passingScore: passingScore,
+          answers: JSON.stringify(answers),
+        });
+      }
+    } catch (error) {
+      console.error("Failed to persist exam attempt:", error);
+    }
+  }, [questions, answers, currentSlug]);
+  
   const [timeRemaining, setTimeRemaining] = useState(
     currentSlug ? getTimeLimit(currentSlug, isSRS) : 1800
   );
@@ -389,46 +429,6 @@ export default function ExamInterface() {
     } else {
       // Stop recording
       setIsRecording(false);
-    }
-  };
-
-  const handleSubmitExam = useCallback(async () => {
-    setExamSubmitted(true);
-    setShowExplanations(true);
-
-    try {
-      // Auto-grade only questions that have a correctAnswer.
-      const gradableQuestions = questions.filter((q) => typeof q.correctAnswer === "string" && q.correctAnswer.length > 0);
-      const totalGradable = gradableQuestions.length;
-      const correct = gradableQuestions.reduce((sum, q) => {
-        const userAnswer = answers[q.id];
-        // For short-answer questions, we can't auto-grade, so skip them for auto-grading
-        if (q.type === 'WRITTEN') {
-          return sum; // Don't auto-grade written/short-answer questions
-        }
-        return userAnswer && userAnswer.toLowerCase().trim() === q.correctAnswer?.toLowerCase().trim() ? sum + 1 : sum;
-      }, 0);
-
-      const percentage = totalGradable > 0 ? Math.round((correct / totalGradable) * 100) : 0;
-      const passingScore = currentSlug ? getPassingScore(currentSlug) : 80;
-      const passed = percentage >= passingScore;
-
-      console.log(`Exam Results: ${correct}/${totalGradable} = ${percentage}% (Passing: ${passingScore}%, ${passed ? 'PASSED' : 'FAILED'})`);
-
-      if (currentSlug) {
-        await apiRequest("POST", "/api/exam-attempts", {
-          userId: "current-user",
-          examSlug: currentSlug,
-          score: correct,
-          totalQuestions: totalGradable,
-          percentage: percentage,
-          passed: passed,
-          passingScore: passingScore,
-          answers: JSON.stringify(answers),
-        });
-      }
-    } catch (error) {
-      console.error("Failed to persist exam attempt:", error);
     }
   };
 
