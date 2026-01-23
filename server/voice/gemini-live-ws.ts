@@ -1,9 +1,155 @@
 import type { Server as HttpServer, IncomingMessage } from "http";
 import WebSocket, { WebSocketServer } from "ws";
 import type { AddressInfo } from "net";
+import type { Socket } from "net";
 import { fallbackToOpenAIVoice, shouldFallbackToOpenAI } from "./voice-connection-manager";
+import { eq } from "drizzle-orm";
+import { db } from "../db";
+import { sessions as pgSessions, users as pgUsers } from "@shared/schema";
+import { sessions as sqliteSessions, users as sqliteUsers } from "@shared/schema-sqlite";
 
 type VoiceAgentId = "laura-oracle" | "diver-well";
+
+// Authentication types and helpers
+interface AuthenticatedUser {
+  id: string;
+  email: string | null;
+  role: string | null;
+}
+
+const env = process.env.NODE_ENV ?? "development";
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
+const isSQLiteDevMode = env === "development" && !hasDatabaseUrl;
+
+const sessionsTable = isSQLiteDevMode ? sqliteSessions : pgSessions;
+const usersTable = isSQLiteDevMode ? sqliteUsers : pgUsers;
+
+/**
+ * Parse cookies from request headers
+ */
+function parseCookies(cookieHeader: string | undefined): Record<string, string> {
+  if (!cookieHeader) return {};
+  const cookies: Record<string, string> = {};
+  cookieHeader.split(";").forEach((cookie) => {
+    const [key, ...rest] = cookie.trim().split("=");
+    if (key) {
+      cookies[key] = rest.join("=");
+    }
+  });
+  return cookies;
+}
+
+/**
+ * Extract session token from WebSocket upgrade request
+ * Supports: cookie (sessionToken), query param (?token=), Authorization header
+ */
+function extractSessionToken(req: IncomingMessage): string | null {
+  // 1. Check cookies
+  const cookies = parseCookies(req.headers.cookie);
+  if (cookies.sessionToken) {
+    return cookies.sessionToken;
+  }
+  
+  // 2. Check query parameters
+  const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+  const tokenParam = url.searchParams.get("token");
+  if (tokenParam) {
+    return tokenParam;
+  }
+  
+  // 3. Check Authorization header (Bearer token)
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice(7).trim();
+  }
+  
+  // 4. Check x-session-token header
+  const sessionHeader = req.headers["x-session-token"];
+  if (typeof sessionHeader === "string") {
+    return sessionHeader.trim();
+  }
+  
+  return null;
+}
+
+/**
+ * Authenticate WebSocket connection using session token
+ * Returns the authenticated user or null if authentication fails
+ */
+async function authenticateWebSocketConnection(req: IncomingMessage): Promise<AuthenticatedUser | null> {
+  const sessionToken = extractSessionToken(req);
+  
+  if (!sessionToken) {
+    console.log("🔐 WebSocket auth failed: No session token provided");
+    return null;
+  }
+  
+  try {
+    // Look up session
+    const sessionResult = await db
+      .select()
+      .from(sessionsTable)
+      .where(eq(sessionsTable.sessionToken, sessionToken))
+      .limit(1);
+    
+    if (!sessionResult || sessionResult.length === 0) {
+      console.log("🔐 WebSocket auth failed: Invalid session token");
+      return null;
+    }
+    
+    const session = sessionResult[0] as any;
+    const expires = session.expires instanceof Date ? session.expires : new Date(session.expires);
+    
+    if (Number.isNaN(expires.getTime()) || expires <= new Date()) {
+      console.log("🔐 WebSocket auth failed: Session expired");
+      return null;
+    }
+    
+    // Look up user
+    const userResult = await db
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        role: usersTable.role,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, session.userId))
+      .limit(1);
+    
+    if (!userResult || userResult.length === 0) {
+      console.log("🔐 WebSocket auth failed: User not found");
+      return null;
+    }
+    
+    const user = userResult[0];
+    console.log(`🔐 WebSocket authenticated: user=${user.email || user.id}`);
+    
+    return {
+      id: String(user.id),
+      email: user.email ? String(user.email) : null,
+      role: user.role ? String(user.role) : null,
+    };
+  } catch (error) {
+    console.error("🔐 WebSocket auth error:", error);
+    return null;
+  }
+}
+
+/**
+ * Reject WebSocket upgrade with 401 Unauthorized
+ */
+function rejectWebSocketUpgrade(socket: Socket, reason: string): void {
+  const response = [
+    "HTTP/1.1 401 Unauthorized",
+    "Content-Type: application/json",
+    "Connection: close",
+    "",
+    JSON.stringify({ error: "Authentication required", message: reason }),
+  ].join("\r\n");
+  
+  socket.write(response);
+  socket.destroy();
+}
 
 const GEMINI_URL_BASE =
   "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent";
@@ -12,6 +158,33 @@ function getBooleanEnv(name: string, defaultValue = false): boolean {
   const raw = process.env[name];
   if (!raw) return defaultValue;
   return ["1", "true", "yes", "on"].includes(raw.toLowerCase());
+}
+
+/**
+ * Check if running in development mode
+ */
+function isDevelopment(): boolean {
+  return process.env.NODE_ENV === "development";
+}
+
+/**
+ * Log verbose debug info only in development mode
+ * SECURITY: Prevents credential details from appearing in production logs
+ */
+function debugLog(message: string, ...args: unknown[]): void {
+  if (isDevelopment()) {
+    console.log(message, ...args);
+  }
+}
+
+/**
+ * Log verbose debug errors only in development mode
+ * SECURITY: Prevents sensitive error details from appearing in production logs
+ */
+function debugError(message: string, ...args: unknown[]): void {
+  if (isDevelopment()) {
+    console.error(message, ...args);
+  }
 }
 
 interface GeminiToolCall {
@@ -128,40 +301,29 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
     const cause = anyErr?.cause;
     const originalError = anyErr?.originalError || anyErr?.error;
     
-    // Log the raw error structure for debugging
-    console.error("LAURA: Raw error object structure:", {
+    // SECURITY: Only log detailed error structure in development mode
+    debugError("LAURA: Raw error object structure:", {
       hasResponse: !!anyErr?.response,
       status: anyErr?.response?.status,
       statusText: anyErr?.response?.statusText,
-      data: anyErr?.response?.data,
       code: anyErr?.code,
       name: anyErr?.name,
       message: anyErr?.message,
-      stack: anyErr?.stack?.split('\n').slice(0, 5).join('\n'), // First 5 lines of stack
-      hasCause: !!cause,
-      causeMessage: cause?.message,
-      causeCode: cause?.code,
-      hasOriginalError: !!originalError,
-      originalErrorMessage: originalError?.message,
-      originalErrorCode: originalError?.code,
-      keys: Object.keys(anyErr || {}),
     });
     
-    // If there's a cause or originalError, log it separately
+    // If there's a cause or originalError, log it separately (dev only)
     if (cause) {
-      console.error("LAURA: Error cause:", {
+      debugError("LAURA: Error cause:", {
         name: cause?.name,
         message: cause?.message,
         code: cause?.code,
-        stack: cause?.stack?.split('\n').slice(0, 3).join('\n'),
       });
     }
     if (originalError) {
-      console.error("LAURA: Original error:", {
+      debugError("LAURA: Original error:", {
         name: originalError?.name,
         message: originalError?.message,
         code: originalError?.code,
-        stack: originalError?.stack?.split('\n').slice(0, 3).join('\n'),
       });
     }
     
@@ -220,45 +382,34 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
   ];
 
   try {
-    // Log credential file info for debugging
+    // SECURITY: Only log detailed credential info in development mode
     const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
     if (credsPath) {
       const fs = await import("node:fs");
       try {
         if (fs.existsSync(credsPath)) {
-          const stats = fs.statSync(credsPath);
-          console.log(`LAURA: Credentials file exists: ${credsPath} (${stats.size} bytes)`);
-          // Validate JSON structure
+          debugLog(`LAURA: Credentials file found`);
           try {
             const credsContent = fs.readFileSync(credsPath, "utf8");
             const credsJson = JSON.parse(credsContent);
-            console.log(`LAURA: Credentials valid JSON - project: ${credsJson.project_id}, client_email: ${credsJson.client_email}`);
-            // Check private key format
-            if (credsJson.private_key) {
-              const keyLines = credsJson.private_key.split('\n');
-              const hasBegin = keyLines.some((line: string) => line.includes('BEGIN'));
-              const hasEnd = keyLines.some((line: string) => line.includes('END'));
-              console.log(`LAURA: Private key format check - has BEGIN: ${hasBegin}, has END: ${hasEnd}, lines: ${keyLines.length}`);
-              if (!hasBegin || !hasEnd) {
-                console.error("LAURA: ⚠️ Private key may be malformed - missing BEGIN/END markers");
-              }
-            } else {
+            debugLog(`LAURA: Credentials valid JSON - project: ${credsJson.project_id}`);
+            if (!credsJson.private_key) {
               console.error("LAURA: ❌ Private key missing from credentials JSON");
             }
           } catch (parseErr) {
-            console.error("LAURA: ❌ Failed to parse credentials JSON:", parseErr instanceof Error ? parseErr.message : parseErr);
+            console.error("LAURA: ❌ Failed to parse credentials JSON");
           }
         } else {
-          console.error(`LAURA: ❌ Credentials file does not exist: ${credsPath}`);
+          console.error("LAURA: ❌ Credentials file does not exist");
         }
       } catch (fsErr) {
-        console.error("LAURA: Error checking credentials file:", fsErr instanceof Error ? fsErr.message : fsErr);
+        console.error("LAURA: Error checking credentials file");
       }
     } else {
-      console.warn("LAURA: ⚠️ GOOGLE_APPLICATION_CREDENTIALS not set");
+      debugLog("LAURA: ⚠️ GOOGLE_APPLICATION_CREDENTIALS not set (will use other auth methods)");
     }
 
-    console.log(`LAURA: Requesting scopes: ${scopes.join(", ")}`);
+    debugLog(`LAURA: Requesting scopes: ${scopes.join(", ")}`);
 
     const auth = new google.auth.GoogleAuth({
       // Some Gemini Live endpoints require OAuth and can be picky about scopes.
@@ -267,134 +418,91 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
     });
     let client: any;
     client = await auth.getClient();
-    console.log("LAURA: GoogleAuth client created successfully");
+    debugLog("LAURA: GoogleAuth client created successfully");
 
     let tokenResult: any;
     try {
-      // Try to get more details about the client before requesting token
-      if (client && typeof client === 'object') {
-        console.log("LAURA: Client type:", client.constructor?.name);
-        // Check if it's a JWT client and log its properties
-        if ('credentials' in client) {
-          console.log("LAURA: Client has credentials property");
-        }
+      // SECURITY: Only log detailed client info in development
+      if (isDevelopment() && client && typeof client === 'object') {
+        debugLog("LAURA: Client type:", client.constructor?.name);
         if ('projectId' in client) {
-          console.log(`LAURA: Client projectId: ${(client as any).projectId}`);
+          debugLog(`LAURA: Client projectId: ${(client as any).projectId}`);
         }
       }
       
-      console.log("LAURA: Attempting to get access token...");
+      debugLog("LAURA: Attempting to get access token...");
       
-      // Try to manually test the credentials by reading and validating the key file
-      const fs = await import("node:fs");
-      const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-      if (credsPath && fs.existsSync(credsPath)) {
-        try {
-          const credsContent = fs.readFileSync(credsPath, "utf8");
-          const credsJson = JSON.parse(credsContent);
-          
-          // Check if private key can be parsed (basic validation)
-          if (credsJson.private_key) {
-            const key = credsJson.private_key;
-            // Remove headers/footers and whitespace for validation
-            const keyContent = key.replace(/-----BEGIN[^-]+-----/g, '').replace(/-----END[^-]+-----/g, '').replace(/\s/g, '');
-            console.log(`LAURA: Private key content length (without headers): ${keyContent.length} chars`);
-            if (keyContent.length < 100) {
-              console.error("LAURA: ⚠️ Private key seems too short - might be corrupted");
-            }
-          }
-        } catch (keyErr) {
-          console.error("LAURA: Error validating key file:", keyErr instanceof Error ? keyErr.message : keyErr);
-        }
-      }
-      
-      // Try with explicit error handling and manual JWT test
+      // Try with explicit error handling
       try {
-        // First, try to get token the normal way
-        console.log("LAURA: Calling client.getAccessToken()...");
-      tokenResult = await client.getAccessToken();
-        console.log("LAURA: Access token retrieved successfully");
+        tokenResult = await client.getAccessToken();
+        debugLog("LAURA: Access token retrieved successfully");
       } catch (tokenErr: any) {
-        console.error("LAURA: getAccessToken() failed. Error type:", typeof tokenErr, "Error constructor:", tokenErr?.constructor?.name);
+        debugError("LAURA: getAccessToken() failed:", tokenErr?.message || "Unknown error");
         
-        // Try to manually test JWT signing and token exchange
-        console.log("LAURA: Attempting manual JWT token request to capture actual error...");
-        try {
-          const fsMod = await import("node:fs");
-          const fs = fsMod.default || fsMod;
-          const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-          if (credsPath && fs.existsSync(credsPath)) {
-            const credsContent = fs.readFileSync(credsPath, "utf8");
-            const credsJson = JSON.parse(credsContent);
-            
-            // Try to manually make the OAuth2 token request
-            const jwtModule = await import("jsonwebtoken");
-            const jwt = jwtModule.default || jwtModule;
-            const now = Math.floor(Date.now() / 1000);
-            const jwtPayload = {
-              iss: credsJson.client_email,
-              sub: credsJson.client_email,
-              aud: "https://oauth2.googleapis.com/token",
-              exp: now + 3600,
-              iat: now,
-              scope: scopes.join(" "),
-            };
-            
-            console.log("LAURA: Creating JWT with payload:", JSON.stringify(jwtPayload, null, 2));
-            
-            try {
-              const signedJwt = jwt.sign(jwtPayload, credsJson.private_key, { algorithm: "RS256" });
-              console.log("LAURA: JWT signed successfully, length:", signedJwt.length);
+        // SECURITY: Only attempt manual JWT request in development for debugging
+        if (isDevelopment()) {
+          debugLog("LAURA: Attempting manual JWT token request to capture actual error...");
+          try {
+            const fsMod = await import("node:fs");
+            const fs = fsMod.default || fsMod;
+            const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+            if (credsPath && fs.existsSync(credsPath)) {
+              const credsContent = fs.readFileSync(credsPath, "utf8");
+              const credsJson = JSON.parse(credsContent);
               
-              // Try to exchange JWT for access token manually (Node.js 18+ has fetch built-in)
-              const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: new URLSearchParams({
-                  grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-                  assertion: signedJwt,
-                }).toString(),
-              });
+              const jwtModule = await import("jsonwebtoken");
+              const jwt = jwtModule.default || jwtModule;
+              const now = Math.floor(Date.now() / 1000);
+              const jwtPayload = {
+                iss: credsJson.client_email,
+                sub: credsJson.client_email,
+                aud: "https://oauth2.googleapis.com/token",
+                exp: now + 3600,
+                iat: now,
+                scope: scopes.join(" "),
+              };
               
-              const tokenData = await tokenResponse.json() as any;
-              console.log("LAURA: Token exchange response status:", tokenResponse.status);
-              console.log("LAURA: Token exchange response keys:", Object.keys(tokenData));
-              console.log("LAURA: Token exchange response (full):", JSON.stringify(tokenData, null, 2));
-              console.log("LAURA: Has access_token?", !!tokenData.access_token);
-              console.log("LAURA: Has id_token?", !!tokenData.id_token);
-              if (tokenData.access_token) {
-                console.log("LAURA: access_token length:", tokenData.access_token.length);
-              }
+              debugLog("LAURA: Creating JWT for manual token request");
+              
+              try {
+                const signedJwt = jwt.sign(jwtPayload, credsJson.private_key, { algorithm: "RS256" });
+                debugLog("LAURA: JWT signed successfully");
+                
+                const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                  body: new URLSearchParams({
+                    grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                    assertion: signedJwt,
+                  }).toString(),
+                });
+                
+                const tokenData = await tokenResponse.json() as any;
+                debugLog("LAURA: Token exchange response status:", tokenResponse.status);
+                if (tokenData.access_token) {
+                  debugLog("LAURA: access_token obtained via manual request");
+                }
               
               if (!tokenResponse.ok) {
-                console.error("LAURA: ❌ Token exchange failed - this is the actual error!");
-                console.error("LAURA: HTTP Status:", tokenResponse.status, tokenResponse.statusText);
-                console.error("LAURA: Error details:", JSON.stringify(tokenData, null, 2));
+                debugError("LAURA: ❌ Token exchange failed");
+                debugError("LAURA: HTTP Status:", tokenResponse.status);
               } else {
-                // Check for access_token in response
                 if (tokenData.access_token) {
-                  console.log("LAURA: ✅ Token exchange successful - access token obtained!");
+                  debugLog("LAURA: ✅ Token exchange successful");
                   tokenResult = { token: tokenData.access_token };
                 } else if (tokenData.id_token) {
-                  // If we got id_token instead of access_token, log the issue
-                  console.error("LAURA: ⚠️ Response contains id_token instead of access_token");
-                  console.error("LAURA: Response keys:", Object.keys(tokenData));
-                  console.error("LAURA: Full response:", JSON.stringify(tokenData, null, 2));
-                  // This shouldn't happen, but let's log it for debugging
                   throw new Error("OAuth2 token response missing access_token (got id_token instead)");
                 } else {
-                  console.error("LAURA: ❌ Token response missing both access_token and id_token");
-                  console.error("LAURA: Response:", JSON.stringify(tokenData, null, 2));
                   throw new Error("OAuth2 token response missing access_token");
                 }
               }
             } catch (jwtErr: any) {
-              console.error("LAURA: ❌ JWT signing failed:", jwtErr?.message);
-              console.error("LAURA: JWT error details:", JSON.stringify(jwtErr, Object.getOwnPropertyNames(jwtErr), 2));
+              debugError("LAURA: ❌ JWT signing failed:", jwtErr?.message);
             }
           }
         } catch (manualErr: any) {
-          console.error("LAURA: Manual token request failed:", manualErr?.message);
+          debugError("LAURA: Manual token request failed:", manualErr?.message);
+        }
         }
         
         // If manual token request also failed, throw the original error
@@ -404,26 +512,12 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
         }
       }
     } catch (err) {
-      console.error("LAURA: Google ADC getAccessToken() error:", err);
-      
-      // Try to get more details from the error
-      const anyErr = err as any;
-      if (anyErr?.response) {
-        console.error("LAURA: Error has response:", {
-          status: anyErr.response.status,
-          statusText: anyErr.response.statusText,
-          data: anyErr.response.data,
-        });
-      }
-      
-      // Check if there's an inner error in the stack or message
-      const errorString = String(err);
-      const errorStack = anyErr?.stack || '';
-      console.error("LAURA: Full error string:", errorString);
-      console.error("LAURA: Error stack (first 10 lines):", errorStack.split('\n').slice(0, 10).join('\n'));
+      // SECURITY: Only log minimal error info in production
+      console.error("LAURA: Google ADC getAccessToken() error");
+      debugError("LAURA: Error details:", err);
       
       const formatted = formatAuthFailure(err);
-      console.error("LAURA:", formatted);
+      console.error("LAURA: Auth failure -", isDevelopment() ? formatted : "See development logs for details");
       throw new Error(formatted);
     }
     const token = typeof tokenResult === "string" ? tokenResult : tokenResult?.token;
@@ -433,7 +527,7 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
       );
     }
 
-    console.log("LAURA: Using OAuth2 bearer token for Gemini Live connection.");
+    debugLog("LAURA: Using OAuth2 bearer token for Gemini Live connection.");
     return new WebSocket(urlBase, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -441,7 +535,7 @@ async function createGeminiLiveUpstreamWebSocket(): Promise<WebSocket> {
     });
   } catch (oauthErr) {
     lastError = oauthErr;
-    console.error("LAURA: OAuth2 connection failed, considering API key fallback...", oauthErr);
+    debugError("LAURA: OAuth2 connection failed, considering API key fallback...");
   }
 
   if (apiKeyAvailable) {
@@ -531,7 +625,7 @@ function buildToolDeclarations(agent: VoiceAgentId) {
   return agent === "laura-oracle" ? [...common, ...lauraOnly] : common;
 }
 
-async function runToolCall(call: GeminiToolCall): Promise<unknown> {
+async function runToolCall(call: GeminiToolCall, user?: AuthenticatedUser): Promise<unknown> {
   const name = call.name;
   const args = isRecord(call.args) ? call.args : {};
 
@@ -566,10 +660,17 @@ async function runToolCall(call: GeminiToolCall): Promise<unknown> {
   }
 
   if (name === "laura_admin_task") {
+    // SECURITY: Only allow admin users to execute admin tasks
+    if (!user || user.role !== "admin") {
+      console.warn(`🔐 Admin task rejected - user ${user?.email || user?.id || 'unknown'} is not an admin`);
+      return { error: "Unauthorized: Admin privileges required for this operation" };
+    }
+    
     const task = args.task;
     const parameters = args.parameters;
     const LauraOracleService = (await import("../laura-oracle-service")).default;
     const laura = LauraOracleService.getInstance();
+    console.log(`🔐 Admin task authorized for user ${user.email || user.id}: ${task}`);
     return await laura.executeAdminTask(String(task ?? ""), parameters);
   }
 
@@ -623,7 +724,7 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
 
   console.log("🎙️ Registering Gemini Live Voice WebSocket routes...");
 
-  httpServer.on("upgrade", (req, socket, head) => {
+  httpServer.on("upgrade", async (req, socket, head) => {
     const url = getWsUrl(req);
     const pathname = url.pathname;
 
@@ -637,14 +738,24 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
       return;
     }
 
-    console.log(`✅ WebSocket upgrade accepted for ${isLaura ? 'laura-oracle' : 'diver-well'}`);
+    // SECURITY: Authenticate the WebSocket connection before accepting
+    const user = await authenticateWebSocketConnection(req);
+    if (!user) {
+      console.log(`🔐 WebSocket upgrade rejected - authentication required for ${pathname}`);
+      rejectWebSocketUpgrade(socket as Socket, "Valid session token required for voice endpoints");
+      return;
+    }
+
+    console.log(`✅ WebSocket upgrade accepted for ${isLaura ? 'laura-oracle' : 'diver-well'} (user: ${user.email || user.id})`);
 
     wss.handleUpgrade(req, socket, head, (ws) => {
+      // Attach user info to the connection for later use
+      (ws as any).authenticatedUser = user;
       wss.emit("connection", ws, req, pathname);
     });
   });
   
-  console.log("✅ Gemini Live Voice WebSocket routes registered");
+  console.log("✅ Gemini Live Voice WebSocket routes registered (with authentication)");
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   wss.on("connection", async (clientWs: WebSocket, req: IncomingMessage) => {
@@ -652,6 +763,17 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
     const pathname = url.pathname;
     const agent: VoiceAgentId =
       pathname === "/api/laura-oracle/live" ? "laura-oracle" : "diver-well";
+    
+    // Get authenticated user from the connection (set during upgrade)
+    const authenticatedUser: AuthenticatedUser | undefined = (clientWs as any).authenticatedUser;
+    if (!authenticatedUser) {
+      // This should not happen if upgrade handler worked correctly, but defensive check
+      console.error("🔐 Connection established without authentication - closing");
+      clientWs.close(1008, "Authentication required");
+      return;
+    }
+    
+    console.log(`🎙️ Voice connection established for ${agent} (user: ${authenticatedUser.email || authenticatedUser.id})`);
 
     let upstreamWs: WebSocket | null = null;
     let closed = false;
@@ -743,7 +865,7 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
 
       for (const call of toolCalls) {
         try {
-          const result = await runToolCall(call);
+          const result = await runToolCall(call, authenticatedUser);
           if (upstreamWs?.readyState === WebSocket.OPEN) {
             upstreamWs.send(
               JSON.stringify({

@@ -73,13 +73,46 @@ if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && serviceAccountJson) {
     }
     
     const tmpDir = os.tmpdir();
-    const credsPath = path.join(tmpDir, 'google-service-account.json');
-    fs.writeFileSync(credsPath, serviceAccountJson, { encoding: 'utf8' });
+    const credsPath = path.join(tmpDir, `google-service-account-${process.pid}.json`);
+    
+    // SECURITY: Write file with restrictive permissions (0600 = owner read/write only)
+    // This prevents other users/processes on the system from reading the credentials
+    fs.writeFileSync(credsPath, serviceAccountJson, { encoding: 'utf8', mode: 0o600 });
+    
+    // Verify permissions were set correctly
+    try {
+      const stats = fs.statSync(credsPath);
+      const mode = stats.mode & 0o777; // Get permission bits
+      if (mode !== 0o600) {
+        console.warn(`⚠️ Credentials file permissions are ${mode.toString(8)}, expected 600`);
+      }
+    } catch {
+      // Ignore stat errors
+    }
+    
+    // Register cleanup handler to delete credentials on process exit
+    const cleanupCredentials = () => {
+      try {
+        if (fs.existsSync(credsPath)) {
+          fs.unlinkSync(credsPath);
+          console.log('🧹 Cleaned up temporary credentials file');
+        }
+      } catch {
+        // Ignore cleanup errors
+      }
+    };
+    process.on('exit', cleanupCredentials);
+    process.on('SIGINT', () => { cleanupCredentials(); process.exit(0); });
+    process.on('SIGTERM', () => { cleanupCredentials(); process.exit(0); });
+    
     process.env.GOOGLE_APPLICATION_CREDENTIALS = credsPath;
-    console.log('🔐 Google credentials loaded from env (temp file created)');
+    console.log('🔐 Google credentials loaded from env (secure temp file created)');
     console.log(`   Project ID: ${parsedJson.project_id || 'NOT SET'}`);
     console.log(`   Client Email: ${parsedJson.client_email || 'NOT SET'}`);
-    console.log(`   Credentials file: ${credsPath}`);
+    // SECURITY: Don't log the actual file path in production
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`   Credentials file: ${credsPath}`);
+    }
   } catch (e) {
     console.error(
       '❌ Failed to write service account JSON to temp file; Google ADC may not work:',

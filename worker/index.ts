@@ -17,6 +17,7 @@ export interface Env {
   DATABASE_URL?: string; // not used here but exists in your worker env
   ENVIRONMENT?: string;
   NODE_ENV?: string;
+  ALLOWED_ORIGINS?: string; // Comma-separated list of allowed origins
 }
 
 const HOP_BY_HOP_HEADERS = new Set([
@@ -31,13 +32,60 @@ const HOP_BY_HOP_HEADERS = new Set([
   "host",
 ]);
 
-function withCors(headers: Headers): Headers {
-  // If you want to restrict origins, replace "*" with your Pages domain(s).
-  headers.set("Access-Control-Allow-Origin", "*");
-  headers.set("Access-Control-Allow-Credentials", "true");
+/**
+ * Default allowed origins for CORS
+ * SECURITY: Explicitly list allowed origins instead of using wildcard with credentials
+ */
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://professionaldiver.app",
+  "https://www.professionaldiver.app",
+  "https://professional-diver-app.pages.dev",
+];
+
+/**
+ * Check if an origin is allowed
+ */
+function isOriginAllowed(origin: string | null, env: Env): boolean {
+  if (!origin) return false;
+  
+  // Check custom allowed origins from environment
+  if (env.ALLOWED_ORIGINS) {
+    const customOrigins = env.ALLOWED_ORIGINS.split(",").map(o => o.trim());
+    if (customOrigins.includes(origin)) return true;
+  }
+  
+  // Check default allowed origins
+  if (DEFAULT_ALLOWED_ORIGINS.includes(origin)) return true;
+  
+  // Allow localhost in development
+  if (env.ENVIRONMENT === "development" || env.NODE_ENV === "development") {
+    if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Apply CORS headers with proper security
+ * SECURITY: Uses explicit origin whitelist instead of wildcard with credentials
+ */
+function withCors(headers: Headers, origin: string | null, env: Env): Headers {
+  // Only allow credentials with explicitly whitelisted origins
+  if (origin && isOriginAllowed(origin, env)) {
+    headers.set("Access-Control-Allow-Origin", origin);
+    headers.set("Access-Control-Allow-Credentials", "true");
+  } else {
+    // For non-credentialed requests, we can use wildcard
+    // But we won't set credentials header
+    headers.set("Access-Control-Allow-Origin", "*");
+    // Explicitly NOT setting Access-Control-Allow-Credentials
+  }
+  
   headers.set(
     "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email"
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-session-token"
   );
   headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
   // Avoid caches interfering with auth/session flows.
@@ -61,9 +109,12 @@ export default {
       return new Response("Missing API_URL secret", { status: 500 });
     }
 
+    // Get the request origin for CORS handling
+    const origin = request.headers.get("Origin");
+
     // Handle CORS preflight at the edge.
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: withCors(new Headers()) });
+      return new Response(null, { status: 204, headers: withCors(new Headers(), origin, env) });
     }
 
     const upstreamBase = env.API_URL.startsWith("http")
@@ -92,7 +143,7 @@ export default {
     });
 
     const outHeaders = new Headers(resp.headers);
-    withCors(outHeaders);
+    withCors(outHeaders, origin, env);
 
     return new Response(resp.body, {
       status: resp.status,

@@ -13,7 +13,7 @@
  *   node scripts/commit-push-purge.mjs "chore: deploy"
  */
 
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import process from "node:process";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -58,7 +58,16 @@ const commitAndPush = (message) => {
   }
 
   console.log(`📝 Committing with message: "${message}"`);
-  execSync("git", { args: ["commit", "-m", message], stdio: "pipe", encoding: "utf8" });
+  // SECURITY: Use spawnSync with array arguments to avoid shell injection vulnerabilities
+  const result = spawnSync("git", ["commit", "-m", message], { 
+    stdio: "pipe", 
+    encoding: "utf8" 
+  });
+  if (result.status !== 0) {
+    console.error("❌ Git commit failed");
+    if (result.stderr) console.error(result.stderr);
+    process.exit(1);
+  }
 
   const branch = run("git rev-parse --abbrev-ref HEAD");
   console.log(`⬆️ Pushing to origin/${branch}...`);

@@ -1,7 +1,8 @@
-import type { Express } from "express";
+import type { Express, Response } from "express";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { db } from "./db";
+import { requireAuth, optionalAuth, type AuthenticatedRequest } from "./middleware/auth";
 
 type EnvMode = "development" | "production" | "test";
 
@@ -554,17 +555,24 @@ export function registerSrsRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/srs/due", async (req, res) => {
+  // SECURITY: Requires authentication - uses authenticated user's ID
+  app.get("/api/srs/due", requireAuth, async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
+      
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const userId = user.id;
+      
       await ensureSrsTables();
 
       const query = z.object({
-        userId: z.string().min(1),
         deckId: z.string().min(1),
         limit: z.coerce.number().int().min(1).max(100).optional(),
       });
-      const { userId, deckId, limit } = query.parse(req.query);
+      const { deckId, limit } = query.parse(req.query);
       const opts = await getDeckOptions(deckId);
       const max = limit ?? 20;
 
@@ -630,13 +638,20 @@ export function registerSrsRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/srs/review", async (req, res) => {
+  // SECURITY: Requires authentication - uses authenticated user's ID
+  app.post("/api/srs/review", requireAuth, async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
+      
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const userId = user.id;
+      
       await ensureSrsTables();
 
       const input = z.object({
-        userId: z.string().min(1),
         deckId: z.string().min(1),
         cardId: z.string().min(1),
         grade: z.number().int().min(0).max(3),
@@ -645,7 +660,7 @@ export function registerSrsRoutes(app: Express): void {
 
       const parsed = input.parse(req.body);
       const opts = await getDeckOptions(parsed.deckId);
-      const state = await getOrCreateCardState(parsed.userId, parsed.cardId);
+      const state = await getOrCreateCardState(userId, parsed.cardId);
 
       if (state.suspended) {
         return res.status(409).json({ error: "Card is suspended (leech)" });
@@ -733,7 +748,7 @@ export function registerSrsRoutes(app: Express): void {
            last_reviewed_at = excluded.last_reviewed_at,
            updated_at = excluded.updated_at`,
         [
-          parsed.userId,
+          userId,
           parsed.cardId,
           nextState,
           nextDueAt,
@@ -755,7 +770,7 @@ export function registerSrsRoutes(app: Express): void {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
         [
           eventId,
-          parsed.userId,
+          userId,
           parsed.deckId,
           parsed.cardId,
           grade,
@@ -797,19 +812,26 @@ export function registerSrsRoutes(app: Express): void {
   });
 
   // Filtered sessions (Phase 2): tag-based queue for targeted study
-  app.get("/api/srs/filtered", async (req, res) => {
+  // SECURITY: Requires authentication - uses authenticated user's ID
+  app.get("/api/srs/filtered", requireAuth, async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
+      
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const userId = user.id;
+      
       await ensureSrsTables();
 
       const query = z.object({
-        userId: z.string().min(1),
         deckId: z.string().min(1),
         tagId: z.string().min(1).optional(),
         dueOnly: z.coerce.boolean().optional(),
         limit: z.coerce.number().int().min(1).max(100).optional(),
       });
-      const { userId, deckId, tagId, dueOnly, limit } = query.parse(req.query);
+      const { deckId, tagId, dueOnly, limit } = query.parse(req.query);
       const now = nowMs();
       const max = limit ?? 50;
 
@@ -847,16 +869,23 @@ export function registerSrsRoutes(app: Express): void {
   });
 
   // Phase 4 groundwork: pull/push review events (for offline/cross-device later)
-  app.get("/api/srs/sync/pull", async (req, res) => {
+  // SECURITY: Requires authentication - uses authenticated user's ID
+  app.get("/api/srs/sync/pull", requireAuth, async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
+      
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const userId = user.id;
+      
       await ensureSrsTables();
 
       const query = z.object({
-        userId: z.string().min(1),
         since: z.coerce.number().int().min(0).optional(),
       });
-      const { userId, since } = query.parse(req.query);
+      const { since } = query.parse(req.query);
       const cursor = since ?? 0;
 
       const events = await db.execute(
@@ -894,15 +923,18 @@ export function registerSrsRoutes(app: Express): void {
   });
 
   // Phase 2 analytics: SRS deck stats + recent reviews (near real-time)
-  app.get("/api/analytics/srs", async (req, res) => {
+  // SECURITY: Requires authentication - uses authenticated user's ID
+  app.get("/api/analytics/srs", requireAuth, async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS analytics not enabled for production yet" });
+      
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const userId = user.id;
+      
       await ensureSrsTables();
-
-      const query = z.object({
-        userId: z.string().min(1),
-      });
-      const { userId } = query.parse(req.query);
       const now = nowMs();
       const since7d = now - 7 * 24 * 60 * 60 * 1000;
 

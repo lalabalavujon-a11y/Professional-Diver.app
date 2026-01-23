@@ -15,8 +15,29 @@ import crypto from "crypto";
 const isSQLiteDev = () => process.env.NODE_ENV === "development";
 
 // SSO token configuration
-const SSO_TOKEN_SECRET = process.env.SSO_TOKEN_SECRET || "change-me-in-production";
 const SSO_TOKEN_EXPIRY = 3600; // 1 hour in seconds
+
+/**
+ * Get SSO token secret from environment.
+ * SECURITY: No default value - must be explicitly configured.
+ * Throws an error if not configured to prevent insecure operation.
+ */
+function getSSOTokenSecret(): string {
+  const secret = process.env.SSO_TOKEN_SECRET;
+  if (!secret) {
+    throw new Error(
+      "[SECURITY] SSO_TOKEN_SECRET environment variable is not configured. " +
+      "This is required for secure cross-platform authentication. " +
+      "Please set a strong, random secret (at least 32 characters)."
+    );
+  }
+  if (secret.length < 32) {
+    console.warn(
+      "[SECURITY WARNING] SSO_TOKEN_SECRET should be at least 32 characters for adequate security."
+    );
+  }
+  return secret;
+}
 
 /**
  * Generate SSO token for cross-platform access
@@ -36,7 +57,7 @@ export function generateSSOToken(
 
   const payloadString = JSON.stringify(payload);
   const signature = crypto
-    .createHmac("sha256", SSO_TOKEN_SECRET)
+    .createHmac("sha256", getSSOTokenSecret())
     .update(payloadString)
     .digest("hex");
 
@@ -65,7 +86,7 @@ export function verifySSOToken(token: string): {
 
     // Verify signature
     const expectedSignature = crypto
-      .createHmac("sha256", SSO_TOKEN_SECRET)
+      .createHmac("sha256", getSSOTokenSecret())
       .update(payloadString)
       .digest("hex");
 
