@@ -34,6 +34,7 @@ import { registerOperationsCalendarRoutes } from "./routes/operations-calendar-r
 import { registerUnifiedCalendarRoutes } from "./routes/unified-calendar-routes";
 import { registerCallingRoutes } from "./routes/calling-routes";
 import { registerSponsorRoutes } from "./sponsor-routes";
+import { registerBackendOpsRoutes } from "./api/backend-ops-routes";
 import { getWeatherData, timezoneToCoordinates as weatherTimezoneToCoordinates } from "./weather-service";
 import { getTideData, timezoneToCoordinates as tidesTimezoneToCoordinates, clearTidesCache } from "./tides-service";
 import { getPorts, getPortsNearLocation } from "./ports-service";
@@ -176,6 +177,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Sponsor routes
   registerSponsorRoutes(app);
+
+  // Backend Operations routes (Super Admin)
+  registerBackendOpsRoutes(app);
 
   // Serve uploaded files statically with CORS headers for PDF files
   const path = await import('path');

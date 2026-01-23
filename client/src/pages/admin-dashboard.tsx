@@ -22,6 +22,7 @@ import {
   RefreshCw,
   Upload,
 } from "lucide-react";
+import { BackendOpsMonitor } from "@/components/backend-ops-monitor";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
@@ -532,6 +533,13 @@ export default function AdminDashboard() {
               </div>
             </div>
           </PageSection>
+        )}
+
+        {/* Backend Operations - Super Admin Only */}
+        {isSuperAdmin && (
+          <div className="mt-8 mb-8 border rounded-lg p-6 bg-slate-50">
+            <BackendOpsMonitor />
+          </div>
         )}
 
         {/* User Management Container (Access Control) - SUPER_ADMIN only */}
