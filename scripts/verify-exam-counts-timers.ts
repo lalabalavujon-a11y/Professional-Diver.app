@@ -1,5 +1,5 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
+// @ts-ignore - content file import
+import { examQuestions } from '../content/exam-questions.js';
 
 /**
  * Script to verify exam counts and timers are correctly represented
@@ -17,32 +17,11 @@ interface ExamTrack {
 
 // Read actual question counts from content file
 function getActualQuestionCounts() {
-  try {
-    const contentPath = join(process.cwd(), 'content', 'exam-questions.js');
-    const content = readFileSync(contentPath, 'utf-8');
-    
-    // Extract question counts using regex (simple approach)
-    const counts: Record<string, number> = {};
-    
-    // Count questions in each section
-    const sections = ['ndt', 'dmt', 'alst', 'lst', 'underwater-welding', 'commercial-supervisor', 'hyperbaric-operations', 'saturation-diving', 'commercial-air-diver-wet-bell'];
-    
-    sections.forEach(section => {
-      const regex = new RegExp(`${section}:\\s*\\[([\\s\\S]*?)\\]`, 'm');
-      const match = content.match(regex);
-      if (match) {
-        // Count objects in array (simple count of '{' that are part of question objects)
-        const sectionContent = match[1];
-        const questionMatches = sectionContent.match(/id:\s*"[^"]+"/g);
-        counts[section] = questionMatches ? questionMatches.length : 0;
-      }
-    });
-    
-    return counts;
-  } catch (error) {
-    console.error('Error reading exam questions file:', error);
-    return {};
+  const counts: Record<string, number> = {};
+  for (const [key, value] of Object.entries(examQuestions)) {
+    counts[key] = Array.isArray(value) ? value.length : 0;
   }
+  return counts;
 }
 
 // Expected exam tracks from professional-exams.tsx
