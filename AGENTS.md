@@ -49,8 +49,12 @@ Typecheck / lint:
 
 ```bash
 npm run typecheck
-npm run debug:start   # eslint .
+npm run debug:start   # eslint . (may currently fail on TS/TSX parsing)
 ```
+
+Linting note:
+
+- The repo has an `eslint .` script, but the current ESLint configuration is minimal and may not successfully parse all TypeScript/TSX files. If you hit parsing errors, prioritize `npm run typecheck` / `npm run build` and scope lint fixes to the files you touched.
 
 Build:
 
