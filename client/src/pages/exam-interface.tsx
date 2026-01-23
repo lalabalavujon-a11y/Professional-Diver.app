@@ -18,12 +18,13 @@ import { examQuestions as fullExamQuestions } from '../../../content/exam-questi
 const examQuestions = {
   "ndt-inspection": fullExamQuestions.ndt,
   "diver-medic": fullExamQuestions.dmt,
-  "saturation-diving": fullExamQuestions.alst,
+  "saturation-diving": fullExamQuestions["saturation-diving"],
   "underwater-welding": fullExamQuestions["underwater-welding"],
   "commercial-supervisor": fullExamQuestions["commercial-supervisor"],
   "hyperbaric-operations": fullExamQuestions["hyperbaric-operations"],
   "alst": fullExamQuestions.alst,
-  "lst": fullExamQuestions.lst
+  "lst": fullExamQuestions.lst,
+  "commercial-air-diver-wet-bell": fullExamQuestions["commercial-air-diver-wet-bell"]
 };
 
 interface ExamQuestion {
@@ -159,7 +160,8 @@ export default function ExamInterface() {
         'hyperbaric-operations': 1500, // 25 minutes
         'alst': 1800,                  // 30 minutes
         'lst': 1500,                   // 25 minutes
-        'client-representative': 1800  // 30 minutes (SRS test)
+        'client-representative': 1800, // 30 minutes (SRS test)
+        'commercial-air-diver-wet-bell': 1800 // 30 minutes
       };
       return srsTimeLimits[slug] || 1800; // Default to 30 minutes
     } else {
@@ -173,7 +175,8 @@ export default function ExamInterface() {
         'hyperbaric-operations': 5400,    // 90 minutes
         'alst': 7200,                     // 120 minutes
         'lst': 6000,                      // 100 minutes
-        'client-representative': 5400    // 90 minutes (full exam: 75% passing, 65% per component)
+        'client-representative': 5400,    // 90 minutes (full exam: 75% passing, 65% per component)
+        'commercial-air-diver-wet-bell': 7200 // 120 minutes
       };
       return fullExamTimeLimits[slug] || 5400; // Default to 90 minutes
     }
@@ -191,6 +194,7 @@ export default function ExamInterface() {
       'alst': 80,
       'lst': 80,
       'client-representative': 75, // 75% overall, 65% per component per assessment blueprint
+      'commercial-air-diver-wet-bell': 80,
     };
     return passingScores[slug] || 80;
   };

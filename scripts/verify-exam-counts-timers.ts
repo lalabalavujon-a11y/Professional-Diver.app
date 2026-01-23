@@ -25,7 +25,7 @@ function getActualQuestionCounts() {
     const counts: Record<string, number> = {};
     
     // Count questions in each section
-    const sections = ['ndt', 'dmt', 'alst', 'lst', 'underwater-welding', 'commercial-supervisor', 'hyperbaric-operations'];
+    const sections = ['ndt', 'dmt', 'alst', 'lst', 'underwater-welding', 'commercial-supervisor', 'hyperbaric-operations', 'saturation-diving', 'commercial-air-diver-wet-bell'];
     
     sections.forEach(section => {
       const regex = new RegExp(`${section}:\\s*\\[([\\s\\S]*?)\\]`, 'm');
@@ -120,6 +120,15 @@ const expectedExams: ExamTrack[] = [
     fullExamTimeLimit: 100,
   },
   {
+    id: "commercial-air-diver-wet-bell",
+    title: "Commercial Air Diver + Top Up (Wet Bell)",
+    slug: "commercial-air-diver-wet-bell",
+    srsQuestions: 15,
+    fullExamQuestions: 60,
+    srsTimeLimit: 30,
+    fullExamTimeLimit: 120,
+  },
+  {
     id: "client-representative",
     title: "Client Representative",
     slug: "client-representative",
@@ -140,7 +149,8 @@ const srsTimeLimits: Record<string, number> = {
   'hyperbaric-operations': 1500, // 25 minutes
   'alst': 1800,                  // 30 minutes
   'lst': 1500,                   // 25 minutes
-  'client-representative': 1800  // 30 minutes
+  'client-representative': 1800,  // 30 minutes
+  'commercial-air-diver-wet-bell': 1800 // 30 minutes
 };
 
 const fullExamTimeLimits: Record<string, number> = {
@@ -152,7 +162,8 @@ const fullExamTimeLimits: Record<string, number> = {
   'hyperbaric-operations': 5400,    // 90 minutes
   'alst': 7200,                     // 120 minutes
   'lst': 6000,                      // 100 minutes
-  'client-representative': 5400     // 90 minutes
+  'client-representative': 5400,     // 90 minutes
+  'commercial-air-diver-wet-bell': 7200 // 120 minutes
 };
 
 async function verifyExamCountsAndTimers() {
@@ -165,11 +176,12 @@ async function verifyExamCountsAndTimers() {
     'ndt-inspection': 'ndt',
     'diver-medic': 'dmt',
     'commercial-supervisor': 'commercial-supervisor',
-    'saturation-diving': 'alst', // Uses ALST questions
+    'saturation-diving': 'saturation-diving',
     'underwater-welding': 'underwater-welding',
     'hyperbaric-operations': 'hyperbaric-operations',
     'alst': 'alst',
     'lst': 'lst',
+    'commercial-air-diver-wet-bell': 'commercial-air-diver-wet-bell',
   };
 
   console.log('📊 EXAM COUNT VERIFICATION:\n');

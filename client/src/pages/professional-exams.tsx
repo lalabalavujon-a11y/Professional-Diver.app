@@ -165,6 +165,23 @@ const professionalExamTracks: ExamTrack[] = [
     hasVoiceQuestions: true
   },
   {
+    id: "commercial-air-diver-wet-bell",
+    title: "Commercial Air Diver + Top Up (Wet Bell)",
+    slug: "commercial-air-diver-wet-bell",
+    description: "Surface-supplied air operations, wet bell procedures, gas management, and emergency response for commercial air diving",
+    difficulty: 'Advanced',
+    srsQuestions: 15,
+    fullExamQuestions: 60, // Actual: 60 questions
+    srsTimeLimit: 30,
+    fullExamTimeLimit: 120,
+    passingScore: 80,
+    srsAttempts: 0,
+    fullExamAttempts: 0,
+    srsBestScore: null,
+    fullExamBestScore: null,
+    hasVoiceQuestions: true
+  },
+  {
     id: "client-representative",
     title: "Client Representative",
     slug: "client-representative",

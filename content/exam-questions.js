@@ -4491,5 +4491,1276 @@ export const examQuestions = {
       points: 3,
       order: 60
     }
+  ],
+  "saturation-diving": [
+    {
+      id: "sat-1",
+      type: "MULTIPLE_CHOICE",
+      prompt: "What is the primary purpose of saturation diving operations?",
+      options: ["Allow divers to work at depth for extended periods by keeping tissues saturated and reducing daily decompression","Eliminate the need for gas analysis","Allow use of air at any depth","Remove the need for life support systems"],
+      correctAnswer: "Allow divers to work at depth for extended periods by keeping tissues saturated and reducing daily decompression",
+      explanation: "Saturation keeps tissues at equilibrium so divers avoid daily decompression and only complete one final decompression.",
+      points: 3,
+      order: 1
+    },
+    {
+      id: "sat-2",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Why is storage depth typically set at or deeper than the deepest planned working depth?",
+      options: ["To allow excursions without adding additional saturation or decompression penalties","To reduce helium costs","To increase oxygen levels","To avoid using a bell"],
+      correctAnswer: "To allow excursions without adding additional saturation or decompression penalties",
+      explanation: "Setting storage depth at the deepest planned work depth allows controlled excursions without changing the overall saturation schedule.",
+      points: 3,
+      order: 2
+    },
+    {
+      id: "sat-3",
+      type: "TRUE_FALSE",
+      prompt: "Saturation diving removes the need for any decompression at the end of a project.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Saturation still requires a controlled final decompression at the end of the project.",
+      points: 2,
+      order: 3
+    },
+    {
+      id: "sat-4",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Why is helium commonly used in saturation breathing mixtures?",
+      options: ["It reduces narcosis and work of breathing at depth","It increases oxygen toxicity threshold to unlimited levels","It eliminates CO2 buildup","It allows use of standard air compressors"],
+      correctAnswer: "It reduces narcosis and work of breathing at depth",
+      explanation: "Helium is less dense than nitrogen, reducing work of breathing and narcosis at depth.",
+      points: 3,
+      order: 4
+    },
+    {
+      id: "sat-5",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Excursion limits in saturation diving define:",
+      options: ["Maximum depth and time a diver can exceed storage depth without changing the overall decompression schedule","The number of days in saturation","The maximum chamber oxygen percentage","The surface interval between dives"],
+      correctAnswer: "Maximum depth and time a diver can exceed storage depth without changing the overall decompression schedule",
+      explanation: "Excursion limits prevent excessive decompression penalties while allowing limited depth changes.",
+      points: 3,
+      order: 5
+    },
+    {
+      id: "sat-6",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The primary function of chamber CO2 scrubbers is to:",
+      options: ["Remove carbon dioxide to maintain a safe atmosphere","Add oxygen to the chamber","Control humidity only","Cool the chamber"],
+      correctAnswer: "Remove carbon dioxide to maintain a safe atmosphere",
+      explanation: "CO2 scrubbers remove exhaled CO2 and keep chamber levels within safe limits.",
+      points: 3,
+      order: 6
+    },
+    {
+      id: "sat-7",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A life support technician's primary responsibility is to:",
+      options: ["Monitor and control chamber atmosphere, gas supply, and environmental systems","Plan underwater tasks","Operate welding equipment","Authorize bell launch"],
+      correctAnswer: "Monitor and control chamber atmosphere, gas supply, and environmental systems",
+      explanation: "Life support technicians maintain safe habitat conditions, gas systems, and environmental control.",
+      points: 3,
+      order: 7
+    },
+    {
+      id: "sat-8",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The diving support vessel (DSV) provides:",
+      options: ["A platform for launch and recovery, life support, and control of saturation operations","Only transportation to site","Only a decompression chamber","Only a crane for lifting"],
+      correctAnswer: "A platform for launch and recovery, life support, and control of saturation operations",
+      explanation: "The DSV supports launch and recovery, life support, and operational control for saturation diving.",
+      points: 3,
+      order: 8
+    },
+    {
+      id: "sat-9",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A closed bell is primarily used to:",
+      options: ["Transfer divers between surface and storage depth under pressure","Provide a dry habitat for welding","Eliminate the need for umbilicals","Allow free swimming without support"],
+      correctAnswer: "Transfer divers between surface and storage depth under pressure",
+      explanation: "Closed bells allow safe pressurized transfer between the surface and storage depth.",
+      points: 3,
+      order: 9
+    },
+    {
+      id: "sat-10",
+      type: "WRITTEN",
+      prompt: "Describe the lock-in/lock-out procedure for saturation divers, including pressure equalization, communications, and safety checks.",
+      points: 5,
+      order: 10
+    },
+    {
+      id: "sat-11",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Which control best reduces launch and recovery risks for the bell?",
+      options: ["Weather limits, heave compensation, and clear deck communications","Increasing diver work rate","Reducing standby personnel","Skipping pre-launch checks"],
+      correctAnswer: "Weather limits, heave compensation, and clear deck communications",
+      explanation: "Managing sea state, heave, and communications reduces bell launch and recovery hazards.",
+      points: 3,
+      order: 11
+    },
+    {
+      id: "sat-12",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The standby diver in saturation operations is used to:",
+      options: ["Provide immediate rescue capability for working divers","Manage chamber temperature","Operate compressors","Log dive times only"],
+      correctAnswer: "Provide immediate rescue capability for working divers",
+      explanation: "Standby divers ensure rapid rescue response during emergencies.",
+      points: 3,
+      order: 12
+    },
+    {
+      id: "sat-13",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The emergency gas supply for a bell is intended to:",
+      options: ["Provide independent breathing gas if the main supply fails","Increase helium purity","Cool the chamber","Inflate lift bags"],
+      correctAnswer: "Provide independent breathing gas if the main supply fails",
+      explanation: "Emergency gas provides breathing supply if primary bell gas is lost.",
+      points: 3,
+      order: 13
+    },
+    {
+      id: "sat-14",
+      type: "TRUE_FALSE",
+      prompt: "Hot-water suits are optional for long duration saturation dives in cold water.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Hot-water suits are typically required to prevent hypothermia on long cold-water exposures.",
+      points: 2,
+      order: 14
+    },
+    {
+      id: "sat-15",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Why is oxygen partial pressure tightly controlled in saturation habitats?",
+      options: ["To prevent oxygen toxicity and hypoxia while maintaining safe metabolism","To improve diver alertness only","To reduce helium cost","To increase chamber humidity"],
+      correctAnswer: "To prevent oxygen toxicity and hypoxia while maintaining safe metabolism",
+      explanation: "Oxygen levels must balance safe metabolism and avoid toxicity or hypoxia.",
+      points: 3,
+      order: 15
+    },
+    {
+      id: "sat-16",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Gas analysis must be performed:",
+      options: ["Before lock-out and routinely during operations to confirm quality","Only after the dive","Only when problems occur","Only by the supervisor once per week"],
+      correctAnswer: "Before lock-out and routinely during operations to confirm quality",
+      explanation: "Frequent analysis confirms breathing gas quality throughout operations.",
+      points: 3,
+      order: 16
+    },
+    {
+      id: "sat-17",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Fire prevention in saturation chambers focuses on:",
+      options: ["Oxygen control, ignition source management, and housekeeping","Increasing oxygen to suppress smoke","Reducing communications","Increasing pressure to extinguish flames"],
+      correctAnswer: "Oxygen control, ignition source management, and housekeeping",
+      explanation: "Fire risk is managed by limiting oxygen, controlling ignition sources, and maintaining cleanliness.",
+      points: 3,
+      order: 17
+    },
+    {
+      id: "sat-18",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Before a bell run, communications checks should verify:",
+      options: ["Clear voice comms between diver, bellman, and supervisor","Only the supervisor headset","Only music playback","Only video feed"],
+      correctAnswer: "Clear voice comms between diver, bellman, and supervisor",
+      explanation: "Reliable comms ensure coordination and emergency response.",
+      points: 3,
+      order: 18
+    },
+    {
+      id: "sat-19",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Umbilical management in saturation operations is critical to:",
+      options: ["Prevent entanglement and maintain gas, comms, and hot water supply","Increase swimming speed","Reduce diver work time","Avoid all tension on the line"],
+      correctAnswer: "Prevent entanglement and maintain gas, comms, and hot water supply",
+      explanation: "Umbilicals provide life support services and must be managed to prevent hazards.",
+      points: 3,
+      order: 19
+    },
+    {
+      id: "sat-20",
+      type: "WRITTEN",
+      prompt: "Outline the key considerations for saturation decompression planning, including rate control, medical readiness, and emergency contingencies.",
+      points: 5,
+      order: 20
+    },
+    {
+      id: "sat-21",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Life support system redundancy is required to:",
+      options: ["Maintain a safe atmosphere during equipment failures","Increase gas consumption","Reduce backup staffing","Eliminate alarms"],
+      correctAnswer: "Maintain a safe atmosphere during equipment failures",
+      explanation: "Redundancy keeps divers safe if a primary system fails.",
+      points: 3,
+      order: 21
+    },
+    {
+      id: "sat-22",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Environmental control systems maintain:",
+      options: ["Temperature, humidity, and air quality for diver health","Only chamber lighting","Only pressure","Only oxygen percentage"],
+      correctAnswer: "Temperature, humidity, and air quality for diver health",
+      explanation: "Environmental control provides safe living conditions in the habitat.",
+      points: 3,
+      order: 22
+    },
+    {
+      id: "sat-23",
+      type: "MULTIPLE_CHOICE",
+      prompt: "If carbon monoxide contamination is detected in breathing gas, the immediate action is to:",
+      options: ["Isolate the source and switch to verified clean backup gas","Increase chamber pressure","Continue operations and monitor","Reduce oxygen to zero"],
+      correctAnswer: "Isolate the source and switch to verified clean backup gas",
+      explanation: "CO contamination is critical and requires switching to clean backup gas immediately.",
+      points: 3,
+      order: 23
+    },
+    {
+      id: "sat-24",
+      type: "TRUE_FALSE",
+      prompt: "Chamber oxygen percentage should be set as high as possible to maximize performance.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Excessive oxygen increases fire and toxicity risk; levels must be controlled.",
+      points: 2,
+      order: 24
+    },
+    {
+      id: "sat-25",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The medical lock in a saturation system is used to:",
+      options: ["Transfer supplies or evacuate a casualty without depressurizing the habitat","Store gas cylinders","Mix breathing gas","Store tools only"],
+      correctAnswer: "Transfer supplies or evacuate a casualty without depressurizing the habitat",
+      explanation: "Medical locks allow transfer of people or supplies without losing habitat pressure.",
+      points: 3,
+      order: 25
+    },
+    {
+      id: "sat-26",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A gas reclaim system primarily:",
+      options: ["Recovers exhaled helium to reduce consumption and cost","Filters CO2 in the chamber","Adds oxygen to the bell","Provides communications"],
+      correctAnswer: "Recovers exhaled helium to reduce consumption and cost",
+      explanation: "Helium reclaim systems recover expensive helium from the bell return flow.",
+      points: 3,
+      order: 26
+    },
+    {
+      id: "sat-27",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Transfer under pressure (TUP) refers to:",
+      options: ["Moving a pressurized chamber or bell without decompression","Moving divers in open water","Changing worksite on surface","Switching from air to nitrox"],
+      correctAnswer: "Moving a pressurized chamber or bell without decompression",
+      explanation: "TUP keeps occupants under pressure during transfers.",
+      points: 3,
+      order: 27
+    },
+    {
+      id: "sat-28",
+      type: "MULTIPLE_CHOICE",
+      prompt: "High pressure nervous syndrome (HPNS) primarily affects:",
+      options: ["Neurological function at great depth","Vision only","Skin hydration","Hearing only"],
+      correctAnswer: "Neurological function at great depth",
+      explanation: "HPNS causes neurological symptoms at great depths.",
+      points: 3,
+      order: 28
+    },
+    {
+      id: "sat-29",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A common mitigation for HPNS is to:",
+      options: ["Use slow compression and adjust gas mixtures","Increase work rate","Reduce helium content to zero","Eliminate rest periods"],
+      correctAnswer: "Use slow compression and adjust gas mixtures",
+      explanation: "Slower compression and careful gas planning reduce HPNS severity.",
+      points: 3,
+      order: 29
+    },
+    {
+      id: "sat-30",
+      type: "WRITTEN",
+      prompt: "Describe the emergency response for a lost bell, including communications, location, and rescue steps.",
+      points: 5,
+      order: 30
+    },
+    {
+      id: "sat-31",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Bell umbilical systems typically provide:",
+      options: ["Breathing gas, power, communications, hot water, and hydraulics","Only breathing gas","Only power","Only communications"],
+      correctAnswer: "Breathing gas, power, communications, hot water, and hydraulics",
+      explanation: "Bell umbilicals carry multiple services required for bell operations.",
+      points: 3,
+      order: 31
+    },
+    {
+      id: "sat-32",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A diver umbilical usually includes:",
+      options: ["Breathing gas, communications, pneumo, and hot water","Only breathing gas","Only comms and video","Only pneumo"],
+      correctAnswer: "Breathing gas, communications, pneumo, and hot water",
+      explanation: "Diver umbilicals support life support and monitoring services.",
+      points: 3,
+      order: 32
+    },
+    {
+      id: "sat-33",
+      type: "TRUE_FALSE",
+      prompt: "A pneumofathometer measures diver depth by gas pressure in a dedicated line.",
+      options: ["True","False"],
+      correctAnswer: "True",
+      explanation: "Pneumo depth is determined by gas pressure in a calibrated line.",
+      points: 2,
+      order: 33
+    },
+    {
+      id: "sat-34",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The dive supervisor is responsible for:",
+      options: ["Overall operational control, safety decisions, and authorization of bell runs","Performing underwater welding","Operating the chamber scrubber only","Cooking meals in saturation"],
+      correctAnswer: "Overall operational control, safety decisions, and authorization of bell runs",
+      explanation: "The supervisor controls the operation and makes critical safety decisions.",
+      points: 3,
+      order: 34
+    },
+    {
+      id: "sat-35",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Lock-out safety checks include:",
+      options: ["Pressure equalization, gas analysis, comms check, and valve positions","Only timekeeping","Only diver suit inspection","Only weather check"],
+      correctAnswer: "Pressure equalization, gas analysis, comms check, and valve positions",
+      explanation: "Comprehensive checks reduce lock-out hazards.",
+      points: 3,
+      order: 35
+    },
+    {
+      id: "sat-36",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Emergency life support packages are intended to:",
+      options: ["Sustain life support during major system failures","Increase working depth","Replace bell gas permanently","Improve lighting"],
+      correctAnswer: "Sustain life support during major system failures",
+      explanation: "ELS packages provide temporary survival capability during failures.",
+      points: 3,
+      order: 36
+    },
+    {
+      id: "sat-37",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Dynamic positioning (DP) hazards to bells are controlled by:",
+      options: ["Thruster exclusion zones and continuous position monitoring","Turning off all alarms","Increasing diver workload","Removing standby divers"],
+      correctAnswer: "Thruster exclusion zones and continuous position monitoring",
+      explanation: "Thruster wash can damage the bell; exclusion zones and monitoring mitigate risk.",
+      points: 3,
+      order: 37
+    },
+    {
+      id: "sat-38",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Before switching a diver to an alternate gas, the team must:",
+      options: ["Verify gas analysis, label, and confirm with supervisor","Skip communications to save time","Increase depth first","Reduce bell pressure quickly"],
+      correctAnswer: "Verify gas analysis, label, and confirm with supervisor",
+      explanation: "Gas switches require positive verification and supervisor approval.",
+      points: 3,
+      order: 38
+    },
+    {
+      id: "sat-39",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Chamber sanitation and hygiene are important to:",
+      options: ["Prevent infection and maintain diver health","Reduce gas usage","Increase chamber pressure","Avoid comms checks"],
+      correctAnswer: "Prevent infection and maintain diver health",
+      explanation: "Long exposures require strict hygiene to reduce illness risk.",
+      points: 3,
+      order: 39
+    },
+    {
+      id: "sat-40",
+      type: "WRITTEN",
+      prompt: "Describe a comprehensive pre-dive bell checklist, including life support, communications, and emergency equipment.",
+      points: 5,
+      order: 40
+    },
+    {
+      id: "sat-41",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The bell run log is used to:",
+      options: ["Record events, times, and operational parameters for traceability","Replace medical records","Track gas cylinder inventory only","Control chamber lighting"],
+      correctAnswer: "Record events, times, and operational parameters for traceability",
+      explanation: "Bell logs provide traceability for safety and review.",
+      points: 3,
+      order: 41
+    },
+    {
+      id: "sat-42",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Excursions from storage depth are controlled to:",
+      options: ["Limit additional decompression obligations and manage risk","Increase helium usage","Maximize bottom time regardless of limits","Avoid gas analysis"],
+      correctAnswer: "Limit additional decompression obligations and manage risk",
+      explanation: "Controlled excursions limit decompression penalties and risk.",
+      points: 3,
+      order: 42
+    },
+    {
+      id: "sat-43",
+      type: "TRUE_FALSE",
+      prompt: "Saturation diving operations normally use air as the primary breathing gas at depth.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Air is not suitable for deep saturation due to narcosis and density.",
+      points: 2,
+      order: 43
+    },
+    {
+      id: "sat-44",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Closed bell transfer provides safety by:",
+      options: ["Keeping divers under pressure during transfer and protecting from surface conditions","Eliminating the need for a supervisor","Allowing free ascent without control","Removing need for umbilicals"],
+      correctAnswer: "Keeping divers under pressure during transfer and protecting from surface conditions",
+      explanation: "Closed bell transfer protects divers and maintains pressurization.",
+      points: 3,
+      order: 44
+    },
+    {
+      id: "sat-45",
+      type: "MULTIPLE_CHOICE",
+      prompt: "If life support power fails, the immediate response is to:",
+      options: ["Switch to emergency power and stabilize atmosphere","Increase chamber pressure rapidly","Open all valves","Ignore and continue work"],
+      correctAnswer: "Switch to emergency power and stabilize atmosphere",
+      explanation: "Emergency power maintains life support and stable atmosphere.",
+      points: 3,
+      order: 45
+    },
+    {
+      id: "sat-46",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A deck decompression chamber in saturation operations is primarily used to:",
+      options: ["Provide treatment capability and transfer support","Store tools","Operate compressors","Provide navigation"],
+      correctAnswer: "Provide treatment capability and transfer support",
+      explanation: "DDCs provide treatment and transfer support for hyperbaric incidents.",
+      points: 3,
+      order: 46
+    },
+    {
+      id: "sat-47",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Breathing gas analysis should include monitoring for:",
+      options: ["Oxygen, carbon dioxide, carbon monoxide, and hydrocarbons","Only oxygen","Only nitrogen","Only humidity"],
+      correctAnswer: "Oxygen, carbon dioxide, carbon monoxide, and hydrocarbons",
+      explanation: "Gas quality checks include oxygen and contaminants to ensure safety.",
+      points: 3,
+      order: 47
+    },
+    {
+      id: "sat-48",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Pressure control systems in saturation chambers are designed to:",
+      options: ["Maintain stable pressure and prevent rapid changes","Maximize pressure swings","Eliminate alarms","Increase humidity"],
+      correctAnswer: "Maintain stable pressure and prevent rapid changes",
+      explanation: "Stable pressure protects diver health and system integrity.",
+      points: 3,
+      order: 48
+    },
+    {
+      id: "sat-49",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Rapid blowdown of a chamber is avoided because it can:",
+      options: ["Cause extreme cooling and barotrauma risk","Improve diver comfort","Reduce oxygen toxicity","Remove CO2 faster"],
+      correctAnswer: "Cause extreme cooling and barotrauma risk",
+      explanation: "Rapid pressure changes cause cooling and barotrauma hazards.",
+      points: 3,
+      order: 49
+    },
+    {
+      id: "sat-50",
+      type: "WRITTEN",
+      prompt: "Explain the procedure for managing a medical emergency in saturation, including isolation and evacuation options.",
+      points: 5,
+      order: 50
+    },
+    {
+      id: "sat-51",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Heave compensation during bell recovery is important to:",
+      options: ["Reduce shock loading and prevent bell collision","Increase recovery speed only","Reduce gas consumption","Eliminate communication needs"],
+      correctAnswer: "Reduce shock loading and prevent bell collision",
+      explanation: "Heave compensation reduces shock loading on the bell and structure.",
+      points: 3,
+      order: 51
+    },
+    {
+      id: "sat-52",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Bell location and tracking are supported by:",
+      options: ["Acoustic pingers and tracking systems","Only diver memory","Only surface cameras","Only umbilical color"],
+      correctAnswer: "Acoustic pingers and tracking systems",
+      explanation: "Acoustic tracking improves bell location awareness and recovery.",
+      points: 3,
+      order: 52
+    },
+    {
+      id: "sat-53",
+      type: "TRUE_FALSE",
+      prompt: "Saturation decompression obligations are based solely on the last dive duration.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Saturation decompression is based on total saturation exposure and storage depth.",
+      points: 2,
+      order: 53
+    },
+    {
+      id: "sat-54",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Storage depth selection is primarily based on:",
+      options: ["Deepest planned work depth and operational margin","Lowest helium cost","Best weather window","Diver preference"],
+      correctAnswer: "Deepest planned work depth and operational margin",
+      explanation: "Storage depth is driven by operational depth requirements and safety margin.",
+      points: 3,
+      order: 54
+    },
+    {
+      id: "sat-55",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Life support technicians ensure gas quality by:",
+      options: ["Sampling, analyzing, and documenting gas parameters","Reducing communications","Avoiding alarms","Skipping calibration"],
+      correctAnswer: "Sampling, analyzing, and documenting gas parameters",
+      explanation: "Routine sampling and documentation confirm gas quality and compliance.",
+      points: 3,
+      order: 55
+    },
+    {
+      id: "sat-56",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Humidity control in the habitat helps to:",
+      options: ["Prevent condensation, corrosion, and health issues","Increase oxygen fraction","Increase chamber pressure","Eliminate CO2"],
+      correctAnswer: "Prevent condensation, corrosion, and health issues",
+      explanation: "Humidity control improves comfort and reduces corrosion risk.",
+      points: 3,
+      order: 56
+    },
+    {
+      id: "sat-57",
+      type: "MULTIPLE_CHOICE",
+      prompt: "If a diver umbilical is severed, the immediate action is to:",
+      options: ["Switch to bailout and initiate recovery procedures","Continue work until gas runs out","Increase depth to reduce flow","Shut all bell valves"],
+      correctAnswer: "Switch to bailout and initiate recovery procedures",
+      explanation: "Bailout provides immediate breathing gas and supports recovery.",
+      points: 3,
+      order: 57
+    },
+    {
+      id: "sat-58",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Bell hatch interlocks are used to:",
+      options: ["Prevent opening when unsafe pressure differentials exist","Increase bell speed","Reduce gas usage","Improve lighting"],
+      correctAnswer: "Prevent opening when unsafe pressure differentials exist",
+      explanation: "Interlocks prevent unsafe opening under differential pressure.",
+      points: 3,
+      order: 58
+    },
+    {
+      id: "sat-59",
+      type: "MULTIPLE_CHOICE",
+      prompt: "CO2 scrubber performance is verified by:",
+      options: ["Monitoring CO2 levels, temperature, and flow indicators","Checking bell paint color","Listening for noise only","Reducing oxygen level"],
+      correctAnswer: "Monitoring CO2 levels, temperature, and flow indicators",
+      explanation: "Monitoring confirms proper CO2 removal performance.",
+      points: 3,
+      order: 59
+    },
+    {
+      id: "sat-60",
+      type: "WRITTEN",
+      prompt: "Explain saturation gas management and reclaim strategy, including monitoring and loss control.",
+      points: 5,
+      order: 60
+    },
+    {
+      id: "sat-61",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Communications redundancy is important to:",
+      options: ["Maintain control if primary comms fail","Reduce staffing","Increase noise","Eliminate checklists"],
+      correctAnswer: "Maintain control if primary comms fail",
+      explanation: "Redundant comms support safety and control during failures.",
+      points: 3,
+      order: 61
+    },
+    {
+      id: "sat-62",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A hyperbaric evacuation system (HES) provides:",
+      options: ["A pressurized lifeboat for safe evacuation during emergencies","A surface taxi","A welding habitat","A decompression table"],
+      correctAnswer: "A pressurized lifeboat for safe evacuation during emergencies",
+      explanation: "HES provides pressurized evacuation for saturation personnel.",
+      points: 3,
+      order: 62
+    },
+    {
+      id: "sat-63",
+      type: "TRUE_FALSE",
+      prompt: "Excursion limits can be exceeded without approval if the diver feels capable.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Excursion limits must be approved and controlled to manage decompression risk.",
+      points: 2,
+      order: 63
+    },
+    {
+      id: "sat-64",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Limiting diver work rate in saturation helps to control:",
+      options: ["CO2 retention, heat stress, and fatigue","Gas purity","Helmet paint","Umbilical length"],
+      correctAnswer: "CO2 retention, heat stress, and fatigue",
+      explanation: "High work rates increase CO2 and heat stress, raising risk.",
+      points: 3,
+      order: 64
+    },
+    {
+      id: "sat-65",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Bell to chamber transfer requires:",
+      options: ["Pressure equalization, comms confirmation, and valve coordination","Open hatch immediately","Cutting the umbilical","Skipping logging"],
+      correctAnswer: "Pressure equalization, comms confirmation, and valve coordination",
+      explanation: "Proper transfer protects diver safety and system integrity.",
+      points: 3,
+      order: 65
+    },
+    {
+      id: "sat-66",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Pressure relief valves protect the system by:",
+      options: ["Preventing over-pressurization and equipment damage","Increasing chamber humidity","Reducing gas quality","Improving lighting"],
+      correctAnswer: "Preventing over-pressurization and equipment damage",
+      explanation: "Relief valves prevent system overpressure failures.",
+      points: 3,
+      order: 66
+    },
+    {
+      id: "sat-67",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Chamber fire response includes:",
+      options: ["Isolating sections, reducing oxygen, and evacuating if required","Increasing oxygen to flush smoke","Ignoring alarms","Opening all locks at once"],
+      correctAnswer: "Isolating sections, reducing oxygen, and evacuating if required",
+      explanation: "Fire response focuses on isolation, oxygen reduction, and controlled evacuation.",
+      points: 3,
+      order: 67
+    },
+    {
+      id: "sat-68",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Bell gas top-up is performed to:",
+      options: ["Restore oxygen levels and maintain a safe atmosphere","Increase water temperature","Reduce pressure","Decrease communications"],
+      correctAnswer: "Restore oxygen levels and maintain a safe atmosphere",
+      explanation: "Top-up maintains safe oxygen levels and atmosphere in the bell.",
+      points: 3,
+      order: 68
+    },
+    {
+      id: "sat-69",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Post-dive debriefs are used to:",
+      options: ["Capture lessons learned and verify safety issues","Replace medical exams","Eliminate logs","Ignore near misses"],
+      correctAnswer: "Capture lessons learned and verify safety issues",
+      explanation: "Debriefs capture lessons learned and improve future safety.",
+      points: 3,
+      order: 69
+    },
+    {
+      id: "sat-70",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Saturation dive logs should include:",
+      options: ["Times, depths, gas data, and incident notes","Only diver names","Only weather","Only equipment serials"],
+      correctAnswer: "Times, depths, gas data, and incident notes",
+      explanation: "Detailed logs provide traceability and safety review information.",
+      points: 3,
+      order: 70
+    }
+  ],
+  "commercial-air-diver-wet-bell": [
+    {
+      id: "cad-1",
+      type: "MULTIPLE_CHOICE",
+      prompt: "What is the primary advantage of surface-supplied air for commercial diving?",
+      options: ["Provides continuous gas supply, communications, and surface support","Eliminates the need for supervision","Allows deeper dives than mixed gas without limits","Removes the need for bailout"],
+      correctAnswer: "Provides continuous gas supply, communications, and surface support",
+      explanation: "Surface supply provides steady gas, comms, and support for safety and control.",
+      points: 3,
+      order: 1
+    },
+    {
+      id: "cad-2",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The primary purpose of a wet bell top-up is to:",
+      options: ["Provide sheltered rest and gas top-up between work periods","Create a dry habitat for welding","Replace decompression procedures","Eliminate the need for umbilicals"],
+      correctAnswer: "Provide sheltered rest and gas top-up between work periods",
+      explanation: "Wet bells allow divers to rest, verify comms, and top up gas.",
+      points: 3,
+      order: 2
+    },
+    {
+      id: "cad-3",
+      type: "TRUE_FALSE",
+      prompt: "A wet bell provides a dry environment for divers during ascent.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "A wet bell is open to the water and does not provide a dry environment.",
+      points: 2,
+      order: 3
+    },
+    {
+      id: "cad-4",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A standard surface-supplied diver umbilical includes:",
+      options: ["Breathing gas, communications, pneumo, and strength member","Only breathing gas","Only comms and video","Only pneumo"],
+      correctAnswer: "Breathing gas, communications, pneumo, and strength member",
+      explanation: "The umbilical provides life support and monitoring services.",
+      points: 3,
+      order: 4
+    },
+    {
+      id: "cad-5",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The bailout cylinder is carried to:",
+      options: ["Provide independent breathing gas if the main supply fails","Increase buoyancy","Cool the helmet","Replace the umbilical"],
+      correctAnswer: "Provide independent breathing gas if the main supply fails",
+      explanation: "Bailout provides emergency breathing gas if the primary supply is lost.",
+      points: 3,
+      order: 5
+    },
+    {
+      id: "cad-6",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The pneumofathometer is used to:",
+      options: ["Measure diver depth by gas pressure","Measure water temperature","Provide communications","Inflate lift bags"],
+      correctAnswer: "Measure diver depth by gas pressure",
+      explanation: "Pneumo depth is determined from gas pressure in the line.",
+      points: 3,
+      order: 6
+    },
+    {
+      id: "cad-7",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Before the dive, breathing gas quality must be verified for:",
+      options: ["Oxygen content and contaminants like CO and oil","Only oxygen percentage","Only humidity","Only nitrogen"],
+      correctAnswer: "Oxygen content and contaminants like CO and oil",
+      explanation: "Air quality checks ensure safe oxygen levels and absence of contaminants.",
+      points: 3,
+      order: 7
+    },
+    {
+      id: "cad-8",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The dive supervisor is responsible for:",
+      options: ["Overall control of the dive and safety decisions","Only tool selection","Only logging weather","Operating the compressor only"],
+      correctAnswer: "Overall control of the dive and safety decisions",
+      explanation: "The supervisor manages the operation and makes safety decisions.",
+      points: 3,
+      order: 8
+    },
+    {
+      id: "cad-9",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The standby diver is used to:",
+      options: ["Provide immediate rescue capability","Operate the winch","Manage paperwork","Handle lunch breaks"],
+      correctAnswer: "Provide immediate rescue capability",
+      explanation: "Standby divers provide immediate response for emergencies.",
+      points: 3,
+      order: 9
+    },
+    {
+      id: "cad-10",
+      type: "WRITTEN",
+      prompt: "Describe the wet bell launch procedure, including checks, communications, and safety controls.",
+      points: 5,
+      order: 10
+    },
+    {
+      id: "cad-11",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Top-up (wet bell) procedures are used to:",
+      options: ["Rest the diver, verify comms, and replenish breathing gas","Increase descent rate","Eliminate decompression","Reduce supervisor workload"],
+      correctAnswer: "Rest the diver, verify comms, and replenish breathing gas",
+      explanation: "Top-up procedures support diver rest and gas management between work periods.",
+      points: 3,
+      order: 11
+    },
+    {
+      id: "cad-12",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Diver recall signals should be:",
+      options: ["Pre-briefed, clear, and confirmed with the diver","Improvised during the dive","Only hand signals at the surface","Optional if comms are good"],
+      correctAnswer: "Pre-briefed, clear, and confirmed with the diver",
+      explanation: "Pre-briefed recall signals ensure fast and unambiguous response.",
+      points: 3,
+      order: 12
+    },
+    {
+      id: "cad-13",
+      type: "TRUE_FALSE",
+      prompt: "Communications checks are only required before the initial descent.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Comms checks should be performed routinely throughout the dive.",
+      points: 2,
+      order: 13
+    },
+    {
+      id: "cad-14",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Air diving depth limits are primarily constrained by:",
+      options: ["Nitrogen narcosis and oxygen exposure limits","Umbilical length only","Water temperature only","Diver age only"],
+      correctAnswer: "Nitrogen narcosis and oxygen exposure limits",
+      explanation: "Air depth limits are driven by narcosis and oxygen exposure risk.",
+      points: 3,
+      order: 14
+    },
+    {
+      id: "cad-15",
+      type: "MULTIPLE_CHOICE",
+      prompt: "If CO contamination is detected in the air supply, the correct response is to:",
+      options: ["Switch to a verified clean backup supply and stop the dive","Increase depth","Ignore if readings are low","Reduce oxygen to zero"],
+      correctAnswer: "Switch to a verified clean backup supply and stop the dive",
+      explanation: "CO contamination is critical and requires immediate action.",
+      points: 3,
+      order: 15
+    },
+    {
+      id: "cad-16",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A non-return valve in the gas system prevents:",
+      options: ["Backflow of water or gas into the supply","Excess oxygen","Loss of communications","Helmet fogging"],
+      correctAnswer: "Backflow of water or gas into the supply",
+      explanation: "Non-return valves prevent backflow and contamination.",
+      points: 3,
+      order: 16
+    },
+    {
+      id: "cad-17",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Hot water suits are used to:",
+      options: ["Reduce heat loss and prevent hypothermia","Increase gas consumption","Reduce buoyancy","Replace the umbilical"],
+      correctAnswer: "Reduce heat loss and prevent hypothermia",
+      explanation: "Hot water suits maintain diver temperature during long exposures.",
+      points: 3,
+      order: 17
+    },
+    {
+      id: "cad-18",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Decompression for surface-supplied air diving may involve:",
+      options: ["In-water stops or surface decompression in a chamber","No decompression ever","Only bell decompression","Only breath-hold ascent"],
+      correctAnswer: "In-water stops or surface decompression in a chamber",
+      explanation: "Air dives can require in-water or surface decompression depending on profile.",
+      points: 3,
+      order: 18
+    },
+    {
+      id: "cad-19",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Compared with a stage, a wet bell provides:",
+      options: ["A sheltered platform with gas top-up and improved diver rest","A fully dry chamber","A propulsion system","Elimination of umbilicals"],
+      correctAnswer: "A sheltered platform with gas top-up and improved diver rest",
+      explanation: "Wet bells provide shelter and gas top-up for diver rest.",
+      points: 3,
+      order: 19
+    },
+    {
+      id: "cad-20",
+      type: "WRITTEN",
+      prompt: "Explain the emergency response to loss of gas supply during an air dive.",
+      points: 5,
+      order: 20
+    },
+    {
+      id: "cad-21",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Umbilical management focuses on:",
+      options: ["Preventing entanglement and protecting the strength member","Reducing diver workload only","Avoiding any tension at all times","Eliminating the need for a tender"],
+      correctAnswer: "Preventing entanglement and protecting the strength member",
+      explanation: "Proper umbilical management prevents entanglement and protects life support.",
+      points: 3,
+      order: 21
+    },
+    {
+      id: "cad-22",
+      type: "MULTIPLE_CHOICE",
+      prompt: "When working around lifts, the primary hazard is:",
+      options: ["Crush and pinch points from moving loads","Excess oxygen in the helmet","Overheating of the compressor","Diver noise exposure"],
+      correctAnswer: "Crush and pinch points from moving loads",
+      explanation: "Moving loads create crush and pinch hazards for divers.",
+      points: 3,
+      order: 22
+    },
+    {
+      id: "cad-23",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Dynamic positioning thruster hazards are controlled by:",
+      options: ["Exclusion zones and continuous vessel monitoring","Turning off all alarms","Shortening umbilicals to minimum","Ignoring current changes"],
+      correctAnswer: "Exclusion zones and continuous vessel monitoring",
+      explanation: "Thruster wash and positioning hazards are controlled through zones and monitoring.",
+      points: 3,
+      order: 23
+    },
+    {
+      id: "cad-24",
+      type: "TRUE_FALSE",
+      prompt: "A diver may disconnect the umbilical to clear an entanglement.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Disconnecting the umbilical is unsafe; follow emergency procedures instead.",
+      points: 2,
+      order: 24
+    },
+    {
+      id: "cad-25",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The tender is responsible for:",
+      options: ["Managing the umbilical and assisting the diver per supervisor instructions","Authorizing dive plan changes","Performing gas analysis only","Operating the bell hydraulics only"],
+      correctAnswer: "Managing the umbilical and assisting the diver per supervisor instructions",
+      explanation: "Tenders manage the umbilical and support diver operations.",
+      points: 3,
+      order: 25
+    },
+    {
+      id: "cad-26",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Post-dive equipment checks should include:",
+      options: ["Helmet, umbilical, bailout cylinder, and comms inspection","Only cleaning fins","Only logging depth","Only weather review"],
+      correctAnswer: "Helmet, umbilical, bailout cylinder, and comms inspection",
+      explanation: "Post-dive checks identify issues before the next dive.",
+      points: 3,
+      order: 26
+    },
+    {
+      id: "cad-27",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A pneumo reading is obtained by:",
+      options: ["Opening the pneumo line and reading back pressure at the surface","Measuring umbilical length","Estimating by time","Using the diver's watch only"],
+      correctAnswer: "Opening the pneumo line and reading back pressure at the surface",
+      explanation: "Pneumo depth uses back pressure from the open pneumo line.",
+      points: 3,
+      order: 27
+    },
+    {
+      id: "cad-28",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Bailout volume should be sufficient to:",
+      options: ["Allow safe ascent to the bell or surface with contingency","Only cover 30 seconds","Replace the main supply permanently","Increase buoyancy"],
+      correctAnswer: "Allow safe ascent to the bell or surface with contingency",
+      explanation: "Bailout should cover safe ascent with contingency allowance.",
+      points: 3,
+      order: 28
+    },
+    {
+      id: "cad-29",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Failure to equalize pressure during descent can cause:",
+      options: ["Barotrauma to ears or sinuses","Increased oxygen levels","Reduced CO2 retention","Improved buoyancy"],
+      correctAnswer: "Barotrauma to ears or sinuses",
+      explanation: "Poor equalization causes pressure injury to ears or sinuses.",
+      points: 3,
+      order: 29
+    },
+    {
+      id: "cad-30",
+      type: "WRITTEN",
+      prompt: "Describe a standard pre-dive checklist for commercial air divers.",
+      points: 5,
+      order: 30
+    },
+    {
+      id: "cad-31",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A wet bell is not used as a decompression chamber because it:",
+      options: ["Is open to the water and cannot maintain a sealed pressure environment","Is too large for divers","Contains no gas supply","Is only for surface use"],
+      correctAnswer: "Is open to the water and cannot maintain a sealed pressure environment",
+      explanation: "Wet bells are open to water and cannot maintain pressurized decompression.",
+      points: 3,
+      order: 31
+    },
+    {
+      id: "cad-32",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Descent and ascent rates should be:",
+      options: ["Controlled to avoid barotrauma and maintain safety","As fast as possible","Based only on gas supply","Unrestricted if the diver is fit"],
+      correctAnswer: "Controlled to avoid barotrauma and maintain safety",
+      explanation: "Controlled rates prevent barotrauma and improve safety.",
+      points: 3,
+      order: 32
+    },
+    {
+      id: "cad-33",
+      type: "TRUE_FALSE",
+      prompt: "A wet bell can fully replace surface decompression procedures.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Wet bells are open to water and do not replace decompression procedures.",
+      points: 2,
+      order: 33
+    },
+    {
+      id: "cad-34",
+      type: "MULTIPLE_CHOICE",
+      prompt: "High work rate at depth increases risk of:",
+      options: ["CO2 retention and fatigue","Lower oxygen exposure","Improved decompression","Reduced narcosis"],
+      correctAnswer: "CO2 retention and fatigue",
+      explanation: "High work rate increases CO2 buildup and fatigue risk.",
+      points: 3,
+      order: 34
+    },
+    {
+      id: "cad-35",
+      type: "MULTIPLE_CHOICE",
+      prompt: "If communications fail, the diver should:",
+      options: ["Follow pre-briefed emergency signals and return as directed","Continue work until finished","Disconnect umbilical to swim free","Turn off gas supply"],
+      correctAnswer: "Follow pre-briefed emergency signals and return as directed",
+      explanation: "Pre-briefed comms failure procedures guide safe return.",
+      points: 3,
+      order: 35
+    },
+    {
+      id: "cad-36",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A diver locator or pinger is used to:",
+      options: ["Assist in tracking diver or bell position","Measure water temperature","Increase gas flow","Reduce umbilical drag"],
+      correctAnswer: "Assist in tracking diver or bell position",
+      explanation: "Acoustic tracking aids in locating divers or the bell.",
+      points: 3,
+      order: 36
+    },
+    {
+      id: "cad-37",
+      type: "MULTIPLE_CHOICE",
+      prompt: "If a helmet free-flow occurs, the diver should:",
+      options: ["Switch to bailout if required and notify the supervisor","Increase depth to stop flow","Remove the helmet","Ignore it"],
+      correctAnswer: "Switch to bailout if required and notify the supervisor",
+      explanation: "Free-flow can exhaust gas supply; notify surface and follow emergency procedures.",
+      points: 3,
+      order: 37
+    },
+    {
+      id: "cad-38",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The surface-supplied manifold is used to:",
+      options: ["Distribute gas from primary and backup sources","Store tools","Provide hot water only","Replace communications"],
+      correctAnswer: "Distribute gas from primary and backup sources",
+      explanation: "The manifold routes primary and backup gas supplies to the diver.",
+      points: 3,
+      order: 38
+    },
+    {
+      id: "cad-39",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Standby diver readiness requires:",
+      options: ["Immediate availability with equipment ready and comms checked","Being off site","No comms until needed","Skipping pre-dive checks"],
+      correctAnswer: "Immediate availability with equipment ready and comms checked",
+      explanation: "Standby divers must be ready to respond without delay.",
+      points: 3,
+      order: 39
+    },
+    {
+      id: "cad-40",
+      type: "WRITTEN",
+      prompt: "Outline the lost diver procedure for a wet bell air dive.",
+      points: 5,
+      order: 40
+    },
+    {
+      id: "cad-41",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The bellman (wet bell) is responsible for:",
+      options: ["Monitoring divers, managing comms, and assisting with top-up","Performing all underwater tasks","Operating the compressor only","Replacing the supervisor"],
+      correctAnswer: "Monitoring divers, managing comms, and assisting with top-up",
+      explanation: "Bellmen monitor divers and provide support from the wet bell.",
+      points: 3,
+      order: 41
+    },
+    {
+      id: "cad-42",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Helmet and umbilical inspections should be performed:",
+      options: ["Before each dive and after any incident","Once per month only","Only after repair","Only by the diver underwater"],
+      correctAnswer: "Before each dive and after any incident",
+      explanation: "Routine inspections help identify problems before they become hazards.",
+      points: 3,
+      order: 42
+    },
+    {
+      id: "cad-43",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The bailout valve should be operated:",
+      options: ["Smoothly and only after confirming the need and notifying the supervisor","Continuously during the dive","Without informing the surface","Only at the surface"],
+      correctAnswer: "Smoothly and only after confirming the need and notifying the supervisor",
+      explanation: "Switching to bailout is an emergency action and must be coordinated with the surface.",
+      points: 3,
+      order: 43
+    },
+    {
+      id: "cad-44",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Air supply redundancy is typically provided by:",
+      options: ["Primary compressor with backup banks or secondary compressor","Single compressor only","Scuba cylinders only","No backup needed"],
+      correctAnswer: "Primary compressor with backup banks or secondary compressor",
+      explanation: "Redundant air supply is required to ensure continuous breathing gas.",
+      points: 3,
+      order: 44
+    },
+    {
+      id: "cad-45",
+      type: "TRUE_FALSE",
+      prompt: "Heliox is the standard breathing gas for shallow air diving operations.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Heliox is used for deeper or specialized operations, not standard shallow air dives.",
+      points: 2,
+      order: 45
+    },
+    {
+      id: "cad-46",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Positive pressure helmets are used to:",
+      options: ["Prevent water ingress and maintain breathing gas flow","Increase buoyancy","Eliminate the need for comms","Reduce diver hearing"],
+      correctAnswer: "Prevent water ingress and maintain breathing gas flow",
+      explanation: "Positive pressure helps keep water out and maintains steady gas flow.",
+      points: 3,
+      order: 46
+    },
+    {
+      id: "cad-47",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Safe entry and exit from a wet bell requires:",
+      options: ["Clear signals, controlled movement, and umbilical management","Rapid exit without checks","Disconnecting the umbilical","No communication with the bellman"],
+      correctAnswer: "Clear signals, controlled movement, and umbilical management",
+      explanation: "Controlled entry and exit prevent entanglement and confusion.",
+      points: 3,
+      order: 47
+    },
+    {
+      id: "cad-48",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Tool handling safety emphasizes:",
+      options: ["Tethering tools and staying out of the line of fire","Increasing lift speed","Ignoring hand signals","Reducing communications"],
+      correctAnswer: "Tethering tools and staying out of the line of fire",
+      explanation: "Tethered tools and line-of-fire awareness prevent injuries.",
+      points: 3,
+      order: 48
+    },
+    {
+      id: "cad-49",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A common lift bag hazard is:",
+      options: ["Uncontrolled ascent and entanglement","Improved buoyancy control","Reduced gas consumption","Increased visibility"],
+      correctAnswer: "Uncontrolled ascent and entanglement",
+      explanation: "Lift bags can accelerate and entangle divers if not managed properly.",
+      points: 3,
+      order: 49
+    },
+    {
+      id: "cad-50",
+      type: "WRITTEN",
+      prompt: "Explain decompression planning for air diving with wet bell operations.",
+      points: 5,
+      order: 50
+    },
+    {
+      id: "cad-51",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Air quality analysis should include:",
+      options: ["Oxygen content, CO, CO2, and hydrocarbons","Only oxygen","Only humidity","Only nitrogen"],
+      correctAnswer: "Oxygen content, CO, CO2, and hydrocarbons",
+      explanation: "Air quality checks must cover oxygen and contaminant levels.",
+      points: 3,
+      order: 51
+    },
+    {
+      id: "cad-52",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Surface decompression is advantageous because it:",
+      options: ["Reduces in-water exposure while completing required decompression","Eliminates decompression","Increases narcosis","Requires no equipment"],
+      correctAnswer: "Reduces in-water exposure while completing required decompression",
+      explanation: "Surface decompression reduces time in the water while completing required stops.",
+      points: 3,
+      order: 52
+    },
+    {
+      id: "cad-53",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Compared with a closed bell, a wet bell:",
+      options: ["Is open to water and used for staging and top-up","Provides full pressurized transfer","Eliminates the need for a supervisor","Is a hyperbaric lifeboat"],
+      correctAnswer: "Is open to water and used for staging and top-up",
+      explanation: "Wet bells are open and used for staging and top-up, not pressurized transfer.",
+      points: 3,
+      order: 53
+    },
+    {
+      id: "cad-54",
+      type: "MULTIPLE_CHOICE",
+      prompt: "If the bell hoist fails, the response is to:",
+      options: ["Secure the bell, communicate, and initiate recovery procedures","Increase depth immediately","Disconnect the umbilical","Ignore and continue work"],
+      correctAnswer: "Secure the bell, communicate, and initiate recovery procedures",
+      explanation: "Hoist failures require immediate communication and recovery actions.",
+      points: 3,
+      order: 54
+    },
+    {
+      id: "cad-55",
+      type: "TRUE_FALSE",
+      prompt: "A diver may ignore a recall signal if finishing a task.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Recall signals require immediate response for safety.",
+      points: 2,
+      order: 55
+    },
+    {
+      id: "cad-56",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Check valves in the gas system prevent:",
+      options: ["Backflow and contamination of the supply","Loss of comms","Loss of lighting","Umbilical damage"],
+      correctAnswer: "Backflow and contamination of the supply",
+      explanation: "Check valves prevent reverse flow and contamination.",
+      points: 3,
+      order: 56
+    },
+    {
+      id: "cad-57",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Nitrogen narcosis risk is mitigated by:",
+      options: ["Limiting depth and reducing task loading","Increasing work rate","Reducing supervision","Increasing oxygen fraction without control"],
+      correctAnswer: "Limiting depth and reducing task loading",
+      explanation: "Narcosis is controlled by limiting depth and workload.",
+      points: 3,
+      order: 57
+    },
+    {
+      id: "cad-58",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Dive logs should capture:",
+      options: ["Depth, time, gas data, and incidents","Only diver names","Only weather","Only equipment serials"],
+      correctAnswer: "Depth, time, gas data, and incidents",
+      explanation: "Detailed logs support safety review and traceability.",
+      points: 3,
+      order: 58
+    },
+    {
+      id: "cad-59",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Post-dive medical checks help to identify:",
+      options: ["Signs of decompression illness or fatigue","Only equipment damage","Only gas usage","Only navigation errors"],
+      correctAnswer: "Signs of decompression illness or fatigue",
+      explanation: "Post-dive checks help identify early signs of DCI or fatigue.",
+      points: 3,
+      order: 59
+    },
+    {
+      id: "cad-60",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Clear communications are essential to:",
+      options: ["Coordinate tasks and respond quickly to hazards","Reduce gas consumption only","Eliminate the need for a supervisor","Increase noise for motivation"],
+      correctAnswer: "Coordinate tasks and respond quickly to hazards",
+      explanation: "Reliable communications enable coordination and rapid hazard response.",
+      points: 3,
+      order: 60
+    }
   ]
 };
