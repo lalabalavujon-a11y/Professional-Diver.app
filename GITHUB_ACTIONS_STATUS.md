@@ -2,6 +2,30 @@
 
 ## Workflows Configured
 
+### 0. ✅ iOS Build Workflow (`.github/workflows/ios-build.yml`) - NEW
+**Status**: ✅ Configured and ready  
+**Triggers**: 
+- Push to `main`/`master` with changes to `ios/`, `client/`, `capacitor.config.ts`, or `package.json`
+- Pull requests with iOS/client changes
+- Manual trigger (`workflow_dispatch`)
+
+**Jobs**:
+- `ios-build` - Build iOS app on **macOS 13** runner
+  - ✅ Xcode 15.2 setup
+  - ✅ Web app build and Capacitor sync
+  - ✅ iOS Debug/Release builds
+  - ✅ Build artifact upload
+- `ios-test` - iOS unit tests (on PRs only)
+
+**macOS Version**: `macos-13` (Ventura) - Required for Xcode 15.2 and iOS 17 SDK
+
+**Why macOS 12+?**
+- GitHub deprecated `macos-11` runners (January 2024)
+- iOS 15.0 deployment target requires modern Xcode
+- Capacitor 8 requires Swift 5.9+ toolchain
+
+---
+
 ### 1. ✅ CI Workflow (`.github/workflows/ci.yml`)
 **Status**: ✅ Configured and ready  
 **Triggers**: 

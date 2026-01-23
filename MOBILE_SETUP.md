@@ -153,3 +153,64 @@ If you encounter iOS sync issues, try:
 
 Ensure you've run `npm run build` before syncing to native projects.
 
+## CI/CD for iOS Builds
+
+### macOS Runner Requirements
+
+<!-- TODO: Completed - macOS 12+ upgrade for iOS CI/CD builds -->
+
+For automated iOS builds in GitHub Actions, we use **macOS 12 (Monterey) or above**:
+
+| macOS Version | Codename | Supported Xcode Versions |
+|---------------|----------|--------------------------|
+| macOS 12 | Monterey | Xcode 13.1 - 14.2 |
+| macOS 13 | Ventura | Xcode 14.1 - 15.2 |
+| macOS 14 | Sonoma | Xcode 15.0+ |
+
+**Why macOS 12+?**
+- GitHub deprecated `macos-11` runners in January 2024
+- iOS 15.0 deployment target requires Xcode 13+ (available on macOS 11+)
+- Modern Capacitor 8 requires Swift 5.9+ toolchain
+- Better performance and newer iOS Simulator support
+
+### GitHub Actions Workflow
+
+The iOS build workflow is located at `.github/workflows/ios-build.yml` and includes:
+
+1. **Automatic triggers** on changes to:
+   - `ios/` directory
+   - `client/` directory (web app changes)
+   - `capacitor.config.ts`
+   - `package.json`
+
+2. **Build steps**:
+   - Setup Node.js and Xcode
+   - Install npm dependencies
+   - Build web application
+   - Sync Capacitor to iOS
+   - Build iOS app (Debug or Release)
+   - Upload build artifacts
+
+3. **Manual triggers** via `workflow_dispatch`:
+   ```bash
+   # Using GitHub CLI
+   gh workflow run ios-build.yml -f build_type=release
+   ```
+
+### Local Development Requirements
+
+For local iOS development on macOS:
+
+| Requirement | Minimum Version | Recommended |
+|-------------|-----------------|-------------|
+| macOS | 12.0 (Monterey) | 14.0 (Sonoma) |
+| Xcode | 14.0 | 15.2+ |
+| Node.js | 18.x | 20.x |
+| iOS Deployment Target | 15.0 | 15.0 |
+
+**Setup steps:**
+1. Install Xcode from the App Store
+2. Accept Xcode license: `sudo xcodebuild -license accept`
+3. Install Command Line Tools: `xcode-select --install`
+4. Install iOS Simulators via Xcode > Settings > Platforms
+

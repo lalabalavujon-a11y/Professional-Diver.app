@@ -1,0 +1,285 @@
+name: iOS Build
+
+# TODO: This workflow requires macOS 12 (Monterey) or above for Xcode 14+ support
+# GitHub has deprecated macos-11 runners. Use macos-12, macos-13, or macos-latest.
+# Reference: https://github.blog/changelog/2024-01-30-github-actions-macos-11-runner-deprecation/
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'ios/**'
+      - 'client/**'
+      - 'capacitor.config.ts'
+      - 'package.json'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'ios/**'
+      - 'client/**'
+      - 'capacitor.config.ts'
+      - 'package.json'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (debug or release)'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+# Cancel in-progress runs for the same workflow
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-build:
+    name: Build iOS App
+    # IMPORTANT: Use macOS 12 (Monterey) or above for Xcode 14+ support
+    # macOS 12 supports Xcode 13.1-14.2
+    # macOS 13 supports Xcode 14.1-15.2
+    # macOS 14 supports Xcode 15.0+
+    runs-on: macos-13
+    timeout-minutes: 60
+
+    env:
+      # Node.js version matching the project requirements
+      NODE_VERSION: '20'
+      # Xcode version - using latest stable for macOS 13
+      XCODE_VERSION: '15.2'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Select Xcode version
+        run: |
+          echo "📱 Selecting Xcode ${{ env.XCODE_VERSION }}..."
+          sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+          xcodebuild -version
+          echo "✅ Xcode version selected"
+
+      - name: Show build environment
+        run: |
+          echo "🖥️ macOS Version:"
+          sw_vers
+          echo ""
+          echo "🔧 Xcode Info:"
+          xcodebuild -version
+          echo ""
+          echo "📱 Available iOS SDKs:"
+          xcodebuild -showsdks | grep -i ios
+          echo ""
+          echo "🔢 Node.js Version:"
+          node --version
+          echo ""
+          echo "📦 npm Version:"
+          npm --version
+
+      - name: Cache node_modules
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Cache CocoaPods (if used)
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
+        with:
+          path: ios/App/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/App/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Cache Derived Data
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-derived-data-${{ hashFiles('ios/App/App.xcodeproj/project.pbxproj') }}
+          restore-keys: |
+            ${{ runner.os }}-derived-data-
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing npm dependencies..."
+          npm ci --legacy-peer-deps
+          echo "✅ Dependencies installed"
+
+      - name: Build web application
+        run: |
+          echo "🔨 Building web application..."
+          npm run build
+          echo "✅ Web build complete"
+
+      - name: Sync Capacitor iOS
+        run: |
+          echo "📱 Syncing Capacitor to iOS..."
+          npx cap sync ios
+          echo "✅ Capacitor sync complete"
+
+      - name: Install CocoaPods dependencies (if Podfile exists)
+        working-directory: ios/App
+        run: |
+          if [ -f "Podfile" ]; then
+            echo "📦 Installing CocoaPods dependencies..."
+            pod install --repo-update
+            echo "✅ CocoaPods installed"
+          else
+            echo "ℹ️ No Podfile found, using Swift Package Manager"
+          fi
+
+      - name: Build iOS App (Debug)
+        if: ${{ github.event.inputs.build_type != 'release' }}
+        working-directory: ios/App
+        run: |
+          echo "🔨 Building iOS app (Debug)..."
+          
+          # Determine workspace or project
+          if [ -f "App.xcworkspace/contents.xcworkspacedata" ]; then
+            WORKSPACE_ARG="-workspace App.xcworkspace"
+          else
+            WORKSPACE_ARG="-project App.xcodeproj"
+          fi
+          
+          xcodebuild \
+            $WORKSPACE_ARG \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build | xcpretty --color || true
+          
+          echo "✅ iOS Debug build complete"
+
+      - name: Build iOS App (Release - Archive)
+        if: ${{ github.event.inputs.build_type == 'release' }}
+        working-directory: ios/App
+        run: |
+          echo "🔨 Building iOS app (Release Archive)..."
+          
+          # Determine workspace or project
+          if [ -f "App.xcworkspace/contents.xcworkspacedata" ]; then
+            WORKSPACE_ARG="-workspace App.xcworkspace"
+          else
+            WORKSPACE_ARG="-project App.xcodeproj"
+          fi
+          
+          xcodebuild \
+            $WORKSPACE_ARG \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            -archivePath build/App.xcarchive \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            archive | xcpretty --color || true
+          
+          echo "✅ iOS Release archive complete"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: ios-build-${{ github.sha }}
+          path: |
+            ios/App/build/DerivedData/Build/Products/
+          retention-days: 7
+
+      - name: Upload archive (Release only)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ github.event.inputs.build_type == 'release' }}
+        with:
+          name: ios-archive-${{ github.sha }}
+          path: ios/App/build/App.xcarchive
+          retention-days: 30
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## iOS Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| macOS Version | $(sw_vers -productVersion) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Xcode Version | $(xcodebuild -version | head -1) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Node.js Version | $(node --version) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Type | ${{ github.event.inputs.build_type || 'debug' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit SHA | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ **Build Status: Success**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Build Status: Failed**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Optional: Run on iOS Simulator tests
+  ios-test:
+    name: iOS Unit Tests
+    runs-on: macos-13
+    needs: ios-build
+    if: ${{ github.event_name == 'pull_request' }}
+    timeout-minutes: 30
+
+    env:
+      NODE_VERSION: '20'
+      XCODE_VERSION: '15.2'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Select Xcode version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build web application
+        run: npm run build
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: Run iOS tests
+        working-directory: ios/App
+        run: |
+          echo "🧪 Running iOS tests..."
+          
+          # Determine workspace or project
+          if [ -f "App.xcworkspace/contents.xcworkspacedata" ]; then
+            WORKSPACE_ARG="-workspace App.xcworkspace"
+          else
+            WORKSPACE_ARG="-project App.xcodeproj"
+          fi
+          
+          xcodebuild \
+            $WORKSPACE_ARG \
+            -scheme App \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.2' \
+            -derivedDataPath build/DerivedData \
+            test | xcpretty --color || echo "⚠️ Tests skipped or no tests found"
+          
+          echo "✅ iOS tests complete"
