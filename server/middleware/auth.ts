@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import type { IncomingHttpHeaders } from "http";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { sessions as pgSessions, users as pgUsers } from "@shared/schema";
@@ -24,6 +25,9 @@ const isSQLiteDev = env === "development" && !hasDatabaseUrl;
 const sessionsTable = isSQLiteDev ? sqliteSessions : pgSessions;
 const usersTable = isSQLiteDev ? sqliteUsers : pgUsers;
 
+const ADMIN_ROLES = new Set(["SUPER_ADMIN", "ADMIN"]);
+const CRM_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "AFFILIATE", "ENTERPRISE"]);
+
 function parseCookie(header: string | undefined, key: string): string | undefined {
   if (!header) return undefined;
   const parts = header.split(";").map((p) => p.trim());
@@ -37,7 +41,7 @@ function parseCookie(header: string | undefined, key: string): string | undefine
   return undefined;
 }
 
-async function getUserFromSessionToken(sessionToken: string): Promise<AuthUser | null> {
+export async function getUserFromSessionToken(sessionToken: string): Promise<AuthUser | null> {
   const sessionResult = await db
     .select()
     .from(sessionsTable)
@@ -76,13 +80,25 @@ async function getUserFromSessionToken(sessionToken: string): Promise<AuthUser |
   };
 }
 
-function getSessionToken(req: Request): string | undefined {
-  const bearer = req.headers.authorization?.replace("Bearer ", "").trim();
-  const headerToken = (req.headers["x-session-token"] as string | undefined)?.trim();
-  const cookieHeader = req.headers.cookie;
+export function getSessionTokenFromHeaders(headers: IncomingHttpHeaders): string | undefined {
+  const bearer = headers.authorization?.replace("Bearer ", "").trim();
+  const headerToken = (headers["x-session-token"] as string | undefined)?.trim();
+  const cookieHeader = headers.cookie;
   const cookieToken = parseCookie(cookieHeader, "sessionToken");
 
   return bearer || headerToken || cookieToken;
+}
+
+function getSessionToken(req: Request): string | undefined {
+  return getSessionTokenFromHeaders(req.headers);
+}
+
+export async function getAuthUserFromHeaders(
+  headers: IncomingHttpHeaders
+): Promise<AuthUser | null> {
+  const sessionToken = getSessionTokenFromHeaders(headers);
+  if (!sessionToken) return null;
+  return await getUserFromSessionToken(sessionToken);
 }
 
 async function authenticateRequest(req: AuthenticatedRequest): Promise<AuthUser | null> {
@@ -120,6 +136,44 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     res.status(401).json({ error: "Authentication required" });
   }
 }
+
+export function isAdminRole(role: string | null | undefined): boolean {
+  return !!role && ADMIN_ROLES.has(role);
+}
+
+export function isCrmRole(role: string | null | undefined): boolean {
+  return !!role && CRM_ROLES.has(role);
+}
+
+export function hasAnyRole(
+  user: AuthUser | null | undefined,
+  roles: Iterable<string>
+): boolean {
+  if (!user?.role) return false;
+  const roleSet = roles instanceof Set ? roles : new Set(roles);
+  return roleSet.has(user.role);
+}
+
+export function requireRoles(roles: Iterable<string>) {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const user = await authenticateRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      if (!hasAnyRole(user, roles)) {
+        return res.status(403).json({ error: "Insufficient privileges" });
+      }
+      next();
+    } catch (error) {
+      console.error("requireRoles error:", error);
+      res.status(401).json({ error: "Authentication required" });
+    }
+  };
+}
+
+export const requireAdmin = requireRoles(ADMIN_ROLES);
+export const requireCrmAccess = requireRoles(CRM_ROLES);
 
 declare global {
   namespace Express {

@@ -24,7 +24,7 @@ import { z } from "zod";
 import { insertLessonSchema, insertInviteSchema, insertAttemptSchema, insertWidgetLocationSchema, insertNavigationWaypointSchema, insertNavigationRouteSchema, insertWidgetPreferencesSchema, widgetLocations, navigationWaypoints, navigationRoutes, users, sessions, widgetPreferences, diveTeamMembers, diveOperations, diveOperationContacts, diveOperationPermits, diveTeamRosters, divePlans, dailyProjectReports, casEvacDrills, toolBoxTalks, diveOperationHazards, welfareRecords, shippingInfo, ramsDocuments } from "@shared/schema";
 import { insertLessonSchema as insertLessonSchemaSQLite, widgetLocations as widgetLocationsSQLite, navigationWaypoints as navigationWaypointsSQLite, navigationRoutes as navigationRoutesSQLite, users as usersSQLite, sessions as sessionsSQLite, widgetPreferences as widgetPreferencesSQLite, supportTickets, type InsertSupportTicket } from "@shared/schema-sqlite";
 import { eq, and, desc } from "drizzle-orm";
-import { randomBytes, createHash } from "crypto";
+import { randomBytes, createHash, createHmac, timingSafeEqual } from "crypto";
 import { nanoid } from "nanoid";
 import { db } from "./db";
 import { lessons } from "@shared/schema";
@@ -38,6 +38,127 @@ import { getWeatherData, timezoneToCoordinates as weatherTimezoneToCoordinates }
 import { getTideData, timezoneToCoordinates as tidesTimezoneToCoordinates, clearTidesCache } from "./tides-service";
 import { getPorts, getPortsNearLocation } from "./ports-service";
 import { getNoticesToMariners } from "./notices-to-mariners-service";
+import {
+  optionalAuth,
+  requireAdmin,
+  requireAuth,
+  requireCrmAccess,
+  isAdminRole,
+  type AuthenticatedRequest,
+} from "./middleware/auth";
+
+type DevAuthUser = {
+  email: string;
+  password: string;
+  name?: string;
+  role?: string;
+  subscriptionType?: string;
+  id?: string;
+};
+
+function loadDevAuthUsers(): DevAuthUser[] {
+  const rawUsers = process.env.DEV_AUTH_USERS;
+  if (rawUsers) {
+    try {
+      const parsed = JSON.parse(rawUsers);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((u) => ({
+            email: String(u?.email ?? "").trim(),
+            password: String(u?.password ?? "").trim(),
+            name: u?.name ? String(u.name) : undefined,
+            role: u?.role ? String(u.role) : undefined,
+            subscriptionType: u?.subscriptionType ? String(u.subscriptionType) : undefined,
+            id: u?.id ? String(u.id) : undefined,
+          }))
+          .filter((u) => u.email && u.password);
+      }
+    } catch (error) {
+      console.warn("Failed to parse DEV_AUTH_USERS JSON:", error);
+    }
+  }
+
+  const email = process.env.DEV_AUTH_EMAIL?.trim();
+  const password = process.env.DEV_AUTH_PASSWORD?.trim();
+  if (email && password) {
+    return [
+      {
+        email,
+        password,
+        name: process.env.DEV_AUTH_NAME?.trim(),
+        role: process.env.DEV_AUTH_ROLE?.trim(),
+        subscriptionType: process.env.DEV_AUTH_SUBSCRIPTION?.trim(),
+        id: process.env.DEV_AUTH_ID?.trim(),
+      },
+    ];
+  }
+
+  return [];
+}
+
+function getRawBodyBuffer(body: unknown): Buffer | null {
+  if (Buffer.isBuffer(body)) return body;
+  if (typeof body === "string") return Buffer.from(body, "utf8");
+  if (body && typeof body === "object") {
+    try {
+      return Buffer.from(JSON.stringify(body), "utf8");
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function extractSignatureValue(signature: string): string | null {
+  if (!signature) return null;
+  const trimmed = signature.trim();
+  const v1Match = trimmed.match(/(?:^|,)\s*v1=([a-f0-9]+)/i);
+  if (v1Match?.[1]) return v1Match[1];
+  const shaMatch = trimmed.match(/sha256=([a-f0-9]+)/i);
+  if (shaMatch?.[1]) return shaMatch[1];
+  const eqIdx = trimmed.lastIndexOf("=");
+  if (eqIdx > -1 && eqIdx < trimmed.length - 1) {
+    return trimmed.slice(eqIdx + 1);
+  }
+  return trimmed;
+}
+
+function safeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex"));
+}
+
+function safeEqualBase64(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a, "base64"), Buffer.from(b, "base64"));
+}
+
+function verifyHmacSignature(rawBody: Buffer, signature: string, secret: string): boolean {
+  const extracted = extractSignatureValue(signature);
+  if (!extracted) return false;
+  const hexDigest = createHmac("sha256", secret).update(rawBody).digest("hex");
+  if (/^[a-f0-9]{64}$/i.test(extracted)) {
+    return safeEqualHex(hexDigest, extracted);
+  }
+  const base64Digest = createHmac("sha256", secret).update(rawBody).digest("base64");
+  return safeEqualBase64(base64Digest, extracted);
+}
+
+function getHeaderValue(
+  headers: Record<string, string | string[] | undefined>,
+  names: string[]
+): string | null {
+  for (const name of names) {
+    const value = headers[name.toLowerCase()] ?? headers[name];
+    if (Array.isArray(value)) {
+      const first = value.find((v) => v);
+      if (first) return first;
+    } else if (value) {
+      return value;
+    }
+  }
+  return null;
+}
 import { 
   getMedicalFacilities, 
   getUserMedicalFacilities, 
@@ -539,144 +660,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================================================
-  // AUTHENTICATION - SUPER ADMIN CREDENTIALS
+  // AUTHENTICATION (DEVELOPMENT ONLY)
   // ============================================================================
-  // IMPORTANT: DO NOT CHANGE THESE CREDENTIALS - THEY ARE PERMANENT
-  // 
-  // Super Admin Account:
-  //   Email: lalabalavu.jon@gmail.com
-  //   Password: Admin123
-  //   Role: SUPER_ADMIN
-  //   Name: Jon Lalabalavu
-  //
-  // Secondary Super Admin Account:
-  //   Email: sephdee@hotmail.com
-  //   Password: Admin123
-  //   Role: SUPER_ADMIN
-  //   Name: Jon Lalabalavu
-  //
-  // These credentials are hardcoded and will NOT change with code updates.
-  // ============================================================================
-  
-  // Enhanced authentication route for credentials
+  // Development-only credential auth (use env-provided users)
   app.post("/api/auth/credentials", async (req, res) => {
     try {
-      // Log raw request body for debugging
-      console.log('[AUTH] Raw request body:', JSON.stringify(req.body));
-      console.log('[AUTH] Content-Type:', req.headers['content-type']);
-      
-      const { email, password, rememberMe } = req.body as { email: string; password: string; rememberMe?: boolean };
+      const env = process.env.NODE_ENV ?? "development";
+      if (env !== "development" || process.env.ALLOW_DEV_CREDENTIALS !== "true") {
+        return res.status(403).json({ error: "Credential auth disabled" });
+      }
+
+      const { email, password, rememberMe } = req.body as {
+        email: string;
+        password: string;
+        rememberMe?: boolean;
+      };
 
       if (!email || !password) {
-        console.error('[AUTH] Missing email or password');
         return res.status(400).json({ error: "Email and password are required" });
       }
 
-      // Normalize email (lowercase, trim)
-      const normalizedEmail = (email || '').toLowerCase().trim();
-      const normalizedPassword = password || '';
+      const normalizedEmail = String(email).toLowerCase().trim();
+      const normalizedPassword = String(password);
 
-      console.log(`[AUTH] Login attempt - Email: "${normalizedEmail}", Password length: ${normalizedPassword.length}`);
-
-      // Demo authentication - check against known accounts
-      if (normalizedEmail === 'admin@diverwell.app' && normalizedPassword === 'admin123') {
-        res.json({ 
-          success: true, 
-          user: {
-            id: 'admin-1',
-            name: 'Admin User',
-            email: 'admin@diverwell.app',
-            role: 'ADMIN',
-            subscriptionType: 'LIFETIME'
-          },
-          rememberMe 
-        });
-        return;
+      const devUsers = loadDevAuthUsers();
+      if (devUsers.length === 0) {
+        return res.status(500).json({ error: "DEV_AUTH_USERS not configured" });
       }
 
-      // SUPER ADMIN CREDENTIALS - DO NOT CHANGE
-      // Jon Lalabalavu - Super Admin
-      // Email: lalabalavu.jon@gmail.com
-      // Password: Admin123
-      // Role: SUPER_ADMIN
-      const superAdminCredentials: Record<string, string> = {
-        'lalabalavu.jon@gmail.com': 'Admin123',
-        'sephdee@hotmail.com': 'Admin123', // Secondary super admin account
-      };
+      const match = devUsers.find(
+        (u) => u.email.toLowerCase() === normalizedEmail && u.password === normalizedPassword
+      );
 
-      const expectedPassword = superAdminCredentials[normalizedEmail];
-      if (expectedPassword && normalizedPassword === expectedPassword) {
-        console.log(`[AUTH] ✅ SUPER_ADMIN login successful for: ${normalizedEmail}`);
-        res.json({ 
-          success: true, 
-          user: {
-            id: normalizedEmail === 'sephdee@hotmail.com' ? 'super-admin-2' : 'super-admin-1',
-            name: normalizedEmail === 'lalabalavu.jon@gmail.com' ? 'Jon Lalabalavu' : 'Jon Lalabalavu',
-            email: normalizedEmail,
-            role: 'SUPER_ADMIN',
-            subscriptionType: 'LIFETIME'
-          },
-          rememberMe 
-        });
-        return;
-      } else if (expectedPassword) {
-        console.log(`[AUTH] ❌ Password mismatch for ${normalizedEmail}. Expected: "${expectedPassword}", Got: "${normalizedPassword}"`);
+      if (!match) {
+        return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      // Check for lifetime users with their specific passwords
-      const lifetimeUserCredentials: Record<string, string> = {
-        'eroni2519@gmail.com': 'lifetime123',
-        'jone.cirikidaveta@gmail.com': 'lifetime123',
-        'jone7898@gmail.com': 'lifetime123',
-        'samueltabuya35@gmail.com': 'lifetime123',
-        'jone.viti@gmail.com': 'lifetime123',
-      };
-      
-      if (lifetimeUserCredentials[normalizedEmail] && normalizedPassword === lifetimeUserCredentials[normalizedEmail]) {
-        res.json({ 
-          success: true, 
-          user: {
-            id: 'lifetime-user',
-            name: 'Lifetime Member',
-            email: normalizedEmail,
-            role: 'USER',
-            subscriptionType: 'LIFETIME'
-          },
-          rememberMe 
-        });
-        return;
-      }
+      const role = match.role || "ADMIN";
+      const subscriptionType = match.subscriptionType || "LIFETIME";
+      const id =
+        match.id ||
+        `dev-${createHash("sha256").update(match.email).digest("hex").slice(0, 12)}`;
 
-      // Demo trial user
-      if (normalizedPassword === 'trial123') {
-        res.json({ 
-          success: true, 
-          user: {
-            id: 'trial-user',
-            name: 'Trial User',
-            email: normalizedEmail,
-            role: 'USER',
-            subscriptionType: 'TRIAL',
-            trialExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-          },
-          rememberMe 
-        });
-        return;
-      }
-
-      console.log(`[AUTH] ❌ Invalid credentials for: ${normalizedEmail}`);
-      res.status(401).json({ error: "Invalid credentials" });
+      res.json({
+        success: true,
+        user: {
+          id,
+          name: match.name || "Dev User",
+          email: match.email,
+          role,
+          subscriptionType,
+        },
+        rememberMe,
+      });
     } catch (error: any) {
       console.error("Authentication error:", error);
-      console.error("Error stack:", error?.stack);
-      console.error("Request body:", req.body);
-      res.status(500).json({ error: "Authentication failed", details: error?.message || "Unknown error" });
+      res.status(500).json({ error: "Authentication failed" });
     }
   });
 
   // Password Change Endpoint
   app.post("/api/auth/change-password", async (req, res) => {
     try {
+      const env = process.env.NODE_ENV ?? "development";
+      if (env !== "development" || process.env.ALLOW_DEV_CREDENTIALS !== "true") {
+        return res.status(403).json({ error: "Password changes disabled" });
+      }
+
       const { email, currentPassword, newPassword } = req.body;
 
       if (!email || !currentPassword || !newPassword) {
@@ -689,13 +739,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const normalizedEmail = (email || '').toLowerCase().trim();
 
-      // Check against super admin credentials first
-      const superAdminCredentials: Record<string, string> = {
-        'lalabalavu.jon@gmail.com': 'Admin123',
-        'sephdee@hotmail.com': 'Admin123',
-      };
+      const devUsers = loadDevAuthUsers();
+      const devUser = devUsers.find((u) => u.email.toLowerCase() === normalizedEmail);
+      if (!devUser) {
+        return res.status(403).json({ error: "User not allowed for dev password changes" });
+      }
 
-      const storedPassword = passwordStore.get(normalizedEmail) || superAdminCredentials[normalizedEmail];
+      const storedPassword = passwordStore.get(normalizedEmail) || devUser.password;
 
       if (!storedPassword || storedPassword !== currentPassword) {
         return res.status(401).json({ error: "Current password is incorrect" });
@@ -703,11 +753,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update password in store
       passwordStore.set(normalizedEmail, newPassword);
-
-      // Update super admin credentials if it's a super admin
-      if (superAdminCredentials[normalizedEmail]) {
-        superAdminCredentials[normalizedEmail] = newPassword;
-      }
 
       res.json({ success: true, message: "Password changed successfully" });
     } catch (error: any) {
@@ -1065,24 +1110,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Support ticket endpoints
-  app.post('/api/support/ticket', async (req, res) => {
+  app.post('/api/support/ticket', optionalAuth, async (req, res) => {
     try {
+      const authUser = (req as AuthenticatedRequest).user;
       const { name, email, subject, message, priority = 'medium' } = req.body;
+
+      const normalizedAuthEmail = authUser?.email?.toLowerCase();
+      const normalizedEmail = email ? String(email).toLowerCase() : undefined;
+
+      if (normalizedAuthEmail && normalizedEmail && normalizedAuthEmail !== normalizedEmail) {
+        return res.status(403).json({ error: "Email does not match authenticated user" });
+      }
+
+      const ticketEmail = normalizedAuthEmail || normalizedEmail;
       
-      if (!name || !email || !subject || !message) {
+      if (!name || !ticketEmail || !subject || !message) {
         return res.status(400).json({ error: 'All fields are required' });
       }
 
       // Try to find user by email
-      let userId: string | undefined;
-      try {
-        const user = await db.select().from(usersSQLite).where(eq(usersSQLite.email, email)).limit(1);
-        if (user.length > 0) {
-          userId = user[0].id;
+      let userId: string | undefined = authUser?.id;
+      if (!userId) {
+        try {
+          const user = await db.select().from(usersSQLite).where(eq(usersSQLite.email, ticketEmail)).limit(1);
+          if (user.length > 0) {
+            userId = user[0].id;
+          }
+        } catch (e) {
+          // User not found, continue without userId
+          console.log('User not found for email:', ticketEmail);
         }
-      } catch (e) {
-        // User not found, continue without userId
-        console.log('User not found for email:', email);
       }
 
       // Use crypto.randomUUID() for ticket ID to avoid import side-effects, and ensure InsertSupportTicket type is correct.
@@ -1090,7 +1147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ticketData: InsertSupportTicket = {
         ticketId,
         userId: userId || null,
-        email,
+        email: ticketEmail,
         name,
         subject,
         message,
@@ -1105,7 +1162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send confirmation email
       const ticket = {
         userId: userId || 'unknown',
-        email,
+        email: ticketEmail,
         name,
         subject,
         message,
@@ -1132,7 +1189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all support tickets (admin only)
-  app.get('/api/support/tickets', async (req, res) => {
+  app.get('/api/support/tickets', requireAdmin, async (req, res) => {
     try {
       const { status, priority, assignedToLaura } = req.query;
       
@@ -1167,7 +1224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get single support ticket
-  app.get('/api/support/ticket/:id', async (req, res) => {
+  app.get('/api/support/ticket/:id', requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       
@@ -1191,7 +1248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update support ticket status
-  app.patch('/api/support/ticket/:id', async (req, res) => {
+  app.patch('/api/support/ticket/:id', requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const { status, response, assignedTo, assignedToLaura } = req.body;
@@ -1236,7 +1293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get support ticket statistics
-  app.get('/api/support/tickets/stats', async (req, res) => {
+  app.get('/api/support/tickets/stats', requireAdmin, async (req, res) => {
     try {
       const allTickets = await db.select().from(supportTickets);
       
@@ -1266,7 +1323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Laura auto-handle support ticket
-  app.post('/api/support/ticket/:id/laura-handle', async (req, res) => {
+  app.post('/api/support/ticket/:id/laura-handle', requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const { userContext } = req.body;
@@ -2519,7 +2576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Full exam attempts (used by the "Exam Interface" page)
-  app.post("/api/exam-attempts", async (req, res) => {
+  app.post("/api/exam-attempts", requireAuth, async (req, res) => {
     try {
       const env = process.env.NODE_ENV ?? "development";
       const isSQLiteDev = env === "development";
@@ -2554,6 +2611,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const parsed = examAttemptInput.parse(req.body);
+      const authUser = (req as AuthenticatedRequest).user;
+      if (!authUser || (!isAdminRole(authUser.role) && authUser.id !== parsed.userId)) {
+        return res.status(403).json({ error: "Not authorized to submit for this user" });
+      }
       const id = randomBytes(16).toString("hex");
       const completedAt = Date.now();
 
@@ -2585,7 +2646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Client Management routes
-  app.get("/api/clients", async (req, res) => {
+  app.get("/api/clients", requireCrmAccess, async (req, res) => {
     try {
       const clients = await tempStorage.getAllClients();
       res.json(clients);
@@ -2595,7 +2656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/clients", async (req, res) => {
+  app.post("/api/clients", requireCrmAccess, async (req, res) => {
     try {
       // Use CRM adapter for unified local + HighLevel sync
       const client = await crmAdapter.createClient(req.body);
@@ -2606,7 +2667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/clients/:id", async (req, res) => {
+  app.put("/api/clients/:id", requireCrmAccess, async (req, res) => {
     try {
       // Use CRM adapter for unified local + HighLevel sync
       const client = await crmAdapter.updateClient(req.params.id, req.body);
@@ -2617,7 +2678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/clients/:id", async (req, res) => {
+  app.delete("/api/clients/:id", requireCrmAccess, async (req, res) => {
     try {
       const result = await tempStorage.deleteClient(req.params.id);
       res.json(result);
@@ -2716,7 +2777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/clients/stats", async (req, res) => {
+  app.get("/api/clients/stats", requireCrmAccess, async (req, res) => {
     try {
       const stats = await tempStorage.getClientStats();
       res.json(stats);
@@ -2795,7 +2856,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Client Tags Routes
-  app.get("/api/clients/:id/tags", async (req, res) => {
+  app.get("/api/clients/:id/tags", requireCrmAccess, async (req, res) => {
     try {
       await ensureCrmTables();
       const { taggingService } = await import("./services/tagging-service");
@@ -2807,7 +2868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/clients/:id/tags", async (req, res) => {
+  app.post("/api/clients/:id/tags", requireCrmAccess, async (req, res) => {
     try {
       await ensureCrmTables();
       const { taggingService } = await import("./services/tagging-service");
@@ -2817,20 +2878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Tag name is required" });
       }
 
-      // Try to get user email from localStorage via header or from userEmail in body
-      const userEmail = (req.headers['x-user-email'] as string) || req.body.userEmail || undefined;
-      let createdBy = undefined;
-      if (userEmail) {
-        try {
-          const user = await db.select().from(usersSQLite).where(eq(usersSQLite.email, userEmail)).limit(1);
-          if (user.length > 0) {
-            createdBy = user[0].id;
-          }
-        } catch (e) {
-          // User not found, continue without createdBy
-          console.log('User not found for email:', userEmail);
-        }
-      }
+      const createdBy = (req as AuthenticatedRequest).user?.id;
       const tag = await taggingService.addTag(req.params.id, tagName.trim(), color, createdBy);
       res.json({ success: true, tag });
     } catch (error) {
@@ -2839,7 +2887,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/clients/:id/tags/:tagId", async (req, res) => {
+  app.delete("/api/clients/:id/tags/:tagId", requireCrmAccess, async (req, res) => {
     try {
       await ensureCrmTables();
       const { taggingService } = await import("./services/tagging-service");
@@ -2851,7 +2899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/tags/all", async (req, res) => {
+  app.get("/api/tags/all", requireCrmAccess, async (req, res) => {
     try {
       await ensureCrmTables();
       const { taggingService } = await import("./services/tagging-service");
@@ -2864,7 +2912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Communication Routes
-  app.get("/api/clients/:id/communications", async (req, res) => {
+  app.get("/api/clients/:id/communications", requireCrmAccess, async (req, res) => {
     try {
       await ensureCrmTables();
       const { communicationService } = await import("./services/communication-service");
@@ -2877,7 +2925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/clients/:id/communications", async (req, res) => {
+  app.post("/api/clients/:id/communications", requireCrmAccess, async (req, res) => {
     try {
       await ensureCrmTables();
       const { communicationService } = await import("./services/communication-service");
@@ -2887,20 +2935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Content is required" });
       }
 
-      // Try to get user email from localStorage via header or from userEmail in body
-      const userEmail = (req.headers['x-user-email'] as string) || req.body.userEmail || undefined;
-      let createdBy = undefined;
-      if (userEmail) {
-        try {
-          const user = await db.select().from(usersSQLite).where(eq(usersSQLite.email, userEmail)).limit(1);
-          if (user.length > 0) {
-            createdBy = user[0].id;
-          }
-        } catch (e) {
-          // User not found, continue without createdBy
-          console.log('User not found for email:', userEmail);
-        }
-      }
+      const createdBy = (req as AuthenticatedRequest).user?.id;
 
       let communication;
       if (type === "email" && direction === "outbound") {
@@ -2980,7 +3015,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/clients/:id/communications/stats", async (req, res) => {
+  app.get("/api/clients/:id/communications/stats", requireCrmAccess, async (req, res) => {
     try {
       await ensureCrmTables();
       const { communicationService } = await import("./services/communication-service");
@@ -2992,7 +3027,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/communications/:id/status", async (req, res) => {
+  app.patch("/api/communications/:id/status", requireCrmAccess, async (req, res) => {
     try {
       await ensureCrmTables();
       const { communicationService } = await import("./services/communication-service");
@@ -3006,9 +3041,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Partner routes
-  app.get("/api/partners/eligibility/:userId", async (req, res) => {
+  app.get("/api/partners/eligibility/:userId", requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
+      const authUser = (req as AuthenticatedRequest).user;
+      if (!authUser || (!isAdminRole(authUser.role) && authUser.id !== userId)) {
+        return res.status(403).json({ error: "Not authorized to view eligibility" });
+      }
       const eligibility = await partnerService.checkEligibility(userId);
       res.json(eligibility);
     } catch (error) {
@@ -3017,7 +3056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/partners/convert", async (req, res) => {
+  app.post("/api/partners/convert", requireAdmin, async (req, res) => {
     try {
       const { userId } = req.body;
       if (!userId) {
@@ -3035,11 +3074,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/partners/apply", async (req, res) => {
+  app.post("/api/partners/apply", requireAuth, async (req, res) => {
     try {
       const { userId, reason, experience } = req.body;
       if (!userId) {
         return res.status(400).json({ error: "User ID is required" });
+      }
+      const authUser = (req as AuthenticatedRequest).user;
+      if (!authUser || (!isAdminRole(authUser.role) && authUser.id !== userId)) {
+        return res.status(403).json({ error: "Not authorized to apply for this user" });
       }
       const result = await partnerService.applyToBecomePartner(userId, {
         reason,
@@ -3052,9 +3095,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/partners/stats/:userId", async (req, res) => {
+  app.get("/api/partners/stats/:userId", requireAuth, async (req, res) => {
     try {
       const { userId } = req.params;
+      const authUser = (req as AuthenticatedRequest).user;
+      if (!authUser || (!isAdminRole(authUser.role) && authUser.id !== userId)) {
+        return res.status(403).json({ error: "Not authorized to view partner stats" });
+      }
       const stats = await partnerService.getPartnerStats(userId);
       res.json(stats);
     } catch (error) {
@@ -3064,23 +3111,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // HighLevel webhook routes
-  app.post("/api/webhooks/highlevel/contact", async (req, res) => {
-    try {
-      await handleHighLevelContactWebhook(req, res);
-    } catch (error) {
-      console.error('HighLevel contact webhook error:', error);
-      res.status(500).json({ error: "Failed to process webhook" });
-    }
-  });
+  app.post(
+    "/api/webhooks/highlevel/contact",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      try {
+        const rawBody = getRawBodyBuffer(req.body);
+        if (!rawBody) {
+          return res.status(400).json({ error: "Missing webhook body" });
+        }
 
-  app.post("/api/webhooks/highlevel/tags", async (req, res) => {
-    try {
-      await handleHighLevelTagWebhook(req, res);
-    } catch (error) {
-      console.error('HighLevel tag webhook error:', error);
-      res.status(500).json({ error: "Failed to process webhook" });
+        const env = process.env.NODE_ENV ?? "development";
+        const secret = process.env.HIGHLEVEL_WEBHOOK_SECRET;
+        if (secret) {
+          const signature = getHeaderValue(req.headers, [
+            "x-highlevel-signature",
+            "x-highlevel-webhook-signature",
+            "x-webhook-signature",
+          ]);
+          if (!signature) {
+            return res.status(400).json({ error: "Missing webhook signature" });
+          }
+          if (!verifyHmacSignature(rawBody, signature, secret)) {
+            return res.status(403).json({ error: "Invalid webhook signature" });
+          }
+        } else if (env !== "development") {
+          return res.status(500).json({ error: "HIGHLEVEL_WEBHOOK_SECRET not configured" });
+        }
+
+        req.body = JSON.parse(rawBody.toString("utf8"));
+        await handleHighLevelContactWebhook(req, res);
+      } catch (error) {
+        console.error("HighLevel contact webhook error:", error);
+        res.status(500).json({ error: "Failed to process webhook" });
+      }
     }
-  });
+  );
+
+  app.post(
+    "/api/webhooks/highlevel/tags",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      try {
+        const rawBody = getRawBodyBuffer(req.body);
+        if (!rawBody) {
+          return res.status(400).json({ error: "Missing webhook body" });
+        }
+
+        const env = process.env.NODE_ENV ?? "development";
+        const secret = process.env.HIGHLEVEL_WEBHOOK_SECRET;
+        if (secret) {
+          const signature = getHeaderValue(req.headers, [
+            "x-highlevel-signature",
+            "x-highlevel-webhook-signature",
+            "x-webhook-signature",
+          ]);
+          if (!signature) {
+            return res.status(400).json({ error: "Missing webhook signature" });
+          }
+          if (!verifyHmacSignature(rawBody, signature, secret)) {
+            return res.status(403).json({ error: "Invalid webhook signature" });
+          }
+        } else if (env !== "development") {
+          return res.status(500).json({ error: "HIGHLEVEL_WEBHOOK_SECRET not configured" });
+        }
+
+        req.body = JSON.parse(rawBody.toString("utf8"));
+        await handleHighLevelTagWebhook(req, res);
+      } catch (error) {
+        console.error("HighLevel tag webhook error:", error);
+        res.status(500).json({ error: "Failed to process webhook" });
+      }
+    }
+  );
 
   // Rate limiter for Calendly webhook endpoint
   const calendlyWebhookRateLimiter = rateLimit({
@@ -3185,29 +3288,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Payment webhook handlers - integrate with Stripe/PayPal when payment processing is implemented
-  app.post("/api/webhooks/stripe", async (req, res) => {
+  app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), async (req, res) => {
     try {
-      // Verify webhook signature if secret is set
+      const env = process.env.NODE_ENV ?? "development";
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      let event = req.body;
+      const signature = req.headers["stripe-signature"] as string | undefined;
+      const rawBody = getRawBodyBuffer(req.body);
+      if (!rawBody) {
+        return res.status(400).json({ error: "Missing webhook body" });
+      }
 
+      let event: any;
       if (webhookSecret) {
-        const signature = req.headers['stripe-signature'] as string;
         if (!signature) {
-          return res.status(400).json({ error: 'Missing stripe-signature header' });
+          return res.status(400).json({ error: "Missing stripe-signature header" });
         }
-
         try {
-          const { stripeConnectService } = await import('./stripe-connect-service');
-          event = stripeConnectService.verifyWebhookSignature(
-            JSON.stringify(req.body),
-            signature,
-            webhookSecret
-          );
+          const { stripeConnectService } = await import("./stripe-connect-service");
+          event = stripeConnectService.verifyWebhookSignature(rawBody, signature, webhookSecret);
         } catch (error) {
-          console.error('Webhook signature verification failed:', error);
-          return res.status(400).json({ error: 'Invalid webhook signature' });
+          console.error("Webhook signature verification failed:", error);
+          return res.status(400).json({ error: "Invalid webhook signature" });
         }
+      } else if (env !== "development") {
+        return res.status(500).json({ error: "STRIPE_WEBHOOK_SECRET not configured" });
+      } else {
+        event = JSON.parse(rawBody.toString("utf8"));
       }
       
       // Handle different Stripe event types
@@ -3342,9 +3448,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/webhooks/paypal", async (req, res) => {
+  app.post("/api/webhooks/paypal", express.raw({ type: "application/json" }), async (req, res) => {
     try {
-      const event = req.body;
+      const rawBody = getRawBodyBuffer(req.body);
+      if (!rawBody) {
+        return res.status(400).json({ error: "Missing webhook body" });
+      }
+
+      const env = process.env.NODE_ENV ?? "development";
+      const secret = process.env.PAYPAL_WEBHOOK_SECRET;
+      if (secret) {
+        const signature = getHeaderValue(req.headers, [
+          "paypal-transmission-sig",
+          "paypal-signature",
+          "x-paypal-signature",
+          "x-webhook-signature",
+        ]);
+        if (!signature) {
+          return res.status(400).json({ error: "Missing webhook signature" });
+        }
+        if (!verifyHmacSignature(rawBody, signature, secret)) {
+          return res.status(403).json({ error: "Invalid webhook signature" });
+        }
+      } else if (env !== "development") {
+        return res.status(500).json({ error: "PAYPAL_WEBHOOK_SECRET not configured" });
+      }
+
+      const event = JSON.parse(rawBody.toString("utf8"));
       
       // TODO: Implement PayPal webhook handling
       // Similar structure to Stripe webhook but using PayPal event types

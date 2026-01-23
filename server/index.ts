@@ -27,7 +27,7 @@ app.use((req, res, next) => {
   }
   
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email, x-session-token');
   res.header('Access-Control-Allow-Credentials', 'true');
   
   if (req.method === 'OPTIONS') {
@@ -36,10 +36,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Body parsing middleware - skip for multipart/form-data (file uploads handled by multer)
+// Body parsing middleware - skip for multipart/form-data and webhook raw bodies
 app.use((req, res, next) => {
-  // Skip body parsing for multipart/form-data
-  if (req.headers['content-type']?.includes('multipart/form-data')) {
+  const contentType = req.headers['content-type'] || '';
+  if (contentType.includes('multipart/form-data')) {
+    return next();
+  }
+  if (req.path.startsWith('/api/webhooks/')) {
     return next();
   }
   // Apply JSON parser
@@ -47,8 +50,11 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res, next) => {
-  // Skip body parsing for multipart/form-data
-  if (req.headers['content-type']?.includes('multipart/form-data')) {
+  const contentType = req.headers['content-type'] || '';
+  if (contentType.includes('multipart/form-data')) {
+    return next();
+  }
+  if (req.path.startsWith('/api/webhooks/')) {
     return next();
   }
   // Apply URL-encoded parser

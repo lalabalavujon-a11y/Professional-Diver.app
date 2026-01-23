@@ -1,9 +1,40 @@
 import type { Server as HttpServer, IncomingMessage } from "http";
 import WebSocket, { WebSocketServer } from "ws";
 import type { AddressInfo } from "net";
+import {
+  getAuthUserFromHeaders,
+  isAdminRole,
+  type AuthUser,
+} from "../middleware/auth";
 import { fallbackToOpenAIVoice, shouldFallbackToOpenAI } from "./voice-connection-manager";
 
 type VoiceAgentId = "laura-oracle" | "diver-well";
+
+const DEFAULT_ALLOWED_ORIGINS = new Set([
+  "https://professional-diver-app.pages.dev",
+  "https://professionaldiver.app",
+  "http://127.0.0.1:3000",
+  "http://localhost:3000",
+  "http://127.0.0.1:3001",
+  "http://localhost:3001",
+]);
+
+function getAllowedOrigins(): Set<string> {
+  const override = process.env.WS_ALLOWED_ORIGINS;
+  if (!override) return DEFAULT_ALLOWED_ORIGINS;
+  return new Set(
+    override
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  );
+}
+
+function isAllowedOrigin(origin: string | undefined | null): boolean {
+  if (!origin) return process.env.NODE_ENV === "development";
+  if (process.env.NODE_ENV === "development") return true;
+  return getAllowedOrigins().has(origin);
+}
 
 const GEMINI_URL_BASE =
   "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent";
@@ -481,7 +512,7 @@ function buildAgentSystemInstruction(agent: VoiceAgentId): string {
   ].join("\n");
 }
 
-function buildToolDeclarations(agent: VoiceAgentId) {
+function buildToolDeclarations(agent: VoiceAgentId, authUser: AuthUser | null) {
   // These tools let Gemini (voice loop) delegate “heavy lifting” to your existing services.
   // Note: Field casing in v1alpha bidi payloads can vary; we use snake_case as commonly used in examples.
   const common = [
@@ -528,20 +559,30 @@ function buildToolDeclarations(agent: VoiceAgentId) {
     },
   ];
 
-  return agent === "laura-oracle" ? [...common, ...lauraOnly] : common;
+  if (agent === "laura-oracle" && authUser && isAdminRole(authUser.role)) {
+    return [...common, ...lauraOnly];
+  }
+  return common;
 }
 
-async function runToolCall(call: GeminiToolCall): Promise<unknown> {
+async function runToolCall(
+  call: GeminiToolCall,
+  authUser: AuthUser | null,
+  agent: VoiceAgentId
+): Promise<unknown> {
   const name = call.name;
   const args = isRecord(call.args) ? call.args : {};
 
   if (name === "background_agent_chat") {
-    const agent = args.agent;
+    if (!authUser) {
+      return { error: "Unauthorized" };
+    }
+    const targetAgent = args.agent;
     const message = args.message;
     const sessionId = args.sessionId;
     const userContext = args.userContext;
 
-    if (agent === "laura-oracle") {
+    if (targetAgent === "laura-oracle") {
       const LauraOracleService = (await import("../laura-oracle-service")).default;
       const laura = LauraOracleService.getInstance();
       const result = await laura.chatWithOracle(
@@ -552,7 +593,7 @@ async function runToolCall(call: GeminiToolCall): Promise<unknown> {
       return result;
     }
 
-    if (agent === "diver-well") {
+    if (targetAgent === "diver-well") {
       const DiverWellService = (await import("../diver-well-service")).default;
       const diver = DiverWellService.getInstance();
       const result = await diver.chatWithConsultant(
@@ -562,10 +603,16 @@ async function runToolCall(call: GeminiToolCall): Promise<unknown> {
       return result;
     }
 
-    return { error: `Unknown agent "${String(agent)}"` };
+    return { error: `Unknown agent "${String(targetAgent)}"` };
   }
 
   if (name === "laura_admin_task") {
+    if (!authUser || !isAdminRole(authUser.role)) {
+      return { error: "Unauthorized" };
+    }
+    if (agent !== "laura-oracle") {
+      return { error: "Admin tasks are only available on laura-oracle" };
+    }
     const task = args.task;
     const parameters = args.parameters;
     const LauraOracleService = (await import("../laura-oracle-service")).default;
@@ -576,7 +623,7 @@ async function runToolCall(call: GeminiToolCall): Promise<unknown> {
   return { error: `Unknown tool "${name}"` };
 }
 
-function buildSetupMessage(agent: VoiceAgentId) {
+function buildSetupMessage(agent: VoiceAgentId, authUser: AuthUser | null) {
   // Prefer a "live" model by default; can be overridden per environment.
   // If your project only has access to different model IDs, set GEMINI_LIVE_MODEL.
   const model =
@@ -594,7 +641,7 @@ function buildSetupMessage(agent: VoiceAgentId) {
       },
       tools: [
         {
-          function_declarations: buildToolDeclarations(agent),
+          function_declarations: buildToolDeclarations(agent, authUser),
         },
       ],
     },
@@ -626,6 +673,7 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
   httpServer.on("upgrade", (req, socket, head) => {
     const url = getWsUrl(req);
     const pathname = url.pathname;
+    const origin = req.headers.origin;
 
     console.log(`🔌 WebSocket upgrade request: ${req.method} ${pathname} from ${req.headers.origin || 'unknown origin'}`);
 
@@ -637,11 +685,34 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
       return;
     }
 
-    console.log(`✅ WebSocket upgrade accepted for ${isLaura ? 'laura-oracle' : 'diver-well'}`);
+    if (!isAllowedOrigin(origin)) {
+      console.warn(`🚫 WebSocket rejected due to origin: ${origin || "unknown"}`);
+      socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+      socket.destroy();
+      return;
+    }
 
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      wss.emit("connection", ws, req, pathname);
-    });
+    void getAuthUserFromHeaders(req.headers)
+      .then((authUser) => {
+        if (!authUser) {
+          console.warn("🚫 WebSocket rejected: missing auth session");
+          socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");
+          socket.destroy();
+          return;
+        }
+
+        (req as IncomingMessage & { user?: AuthUser }).user = authUser;
+        console.log(`✅ WebSocket upgrade accepted for ${isLaura ? "laura-oracle" : "diver-well"}`);
+
+        wss.handleUpgrade(req, socket, head, (ws) => {
+          wss.emit("connection", ws, req, pathname);
+        });
+      })
+      .catch((error) => {
+        console.error("WebSocket auth error:", error);
+        socket.write("HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\n\r\n");
+        socket.destroy();
+      });
   });
   
   console.log("✅ Gemini Live Voice WebSocket routes registered");
@@ -652,6 +723,18 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
     const pathname = url.pathname;
     const agent: VoiceAgentId =
       pathname === "/api/laura-oracle/live" ? "laura-oracle" : "diver-well";
+    const authUser = (req as IncomingMessage & { user?: AuthUser }).user ?? null;
+
+    if (!authUser) {
+      sendClientError(clientWs, "unauthorized", "Authentication required", () => {
+        try {
+          clientWs.close(1008, "Unauthorized");
+        } catch {
+          // ignore
+        }
+      });
+      return;
+    }
 
     let upstreamWs: WebSocket | null = null;
     let closed = false;
@@ -708,7 +791,7 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
         console.log(
           `🎙️ Gemini Live upstream connected for ${agent} (model=${model})`
         );
-        upstreamWs?.send(JSON.stringify(buildSetupMessage(agent)));
+        upstreamWs?.send(JSON.stringify(buildSetupMessage(agent, authUser)));
       } catch (err) {
         sendClientError(
           clientWs,
@@ -743,7 +826,7 @@ export function registerGeminiLiveVoiceWsRoutes(httpServer: HttpServer): void {
 
       for (const call of toolCalls) {
         try {
-          const result = await runToolCall(call);
+          const result = await runToolCall(call, authUser, agent);
           if (upstreamWs?.readyState === WebSocket.OPEN) {
             upstreamWs.send(
               JSON.stringify({

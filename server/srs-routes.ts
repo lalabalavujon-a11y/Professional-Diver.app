@@ -2,6 +2,11 @@ import type { Express } from "express";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { db } from "./db";
+import {
+  isAdminRole,
+  requireAuth,
+  type AuthenticatedRequest,
+} from "./middleware/auth";
 
 type EnvMode = "development" | "production" | "test";
 
@@ -23,6 +28,15 @@ function dayMs(days: number): number {
 
 function generateId(): string {
   return randomBytes(16).toString("hex");
+}
+
+function resolveUserId(req: AuthenticatedRequest, requestedUserId: string): string | null {
+  const authUser = req.user;
+  if (!authUser) return null;
+  if (authUser.id === requestedUserId || isAdminRole(authUser.role)) {
+    return requestedUserId;
+  }
+  return null;
 }
 
 async function ensureSrsTables(): Promise<void> {
@@ -325,7 +339,7 @@ export function registerSrsRoutes(app: Express): void {
   // Phase 2–4 endpoints are currently implemented for SQLite dev.
   // Production support will require Postgres schema + migrations.
 
-  app.get("/api/srs/decks", async (_req, res) => {
+  app.get("/api/srs/decks", requireAuth, async (_req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -343,7 +357,7 @@ export function registerSrsRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/srs/decks", async (req, res) => {
+  app.post("/api/srs/decks", requireAuth, async (req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -376,7 +390,7 @@ export function registerSrsRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/srs/decks/:deckId/options", async (req, res) => {
+  app.get("/api/srs/decks/:deckId/options", requireAuth, async (req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -389,7 +403,7 @@ export function registerSrsRoutes(app: Express): void {
     }
   });
 
-  app.put("/api/srs/decks/:deckId/options", async (req, res) => {
+  app.put("/api/srs/decks/:deckId/options", requireAuth, async (req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -449,7 +463,7 @@ export function registerSrsRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/srs/tags", async (_req, res) => {
+  app.get("/api/srs/tags", requireAuth, async (_req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -461,7 +475,7 @@ export function registerSrsRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/srs/tags", async (req, res) => {
+  app.post("/api/srs/tags", requireAuth, async (req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -487,7 +501,7 @@ export function registerSrsRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/srs/decks/:deckId/cards", async (req, res) => {
+  app.get("/api/srs/decks/:deckId/cards", requireAuth, async (req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -507,7 +521,7 @@ export function registerSrsRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/srs/cards", async (req, res) => {
+  app.post("/api/srs/cards", requireAuth, async (req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -554,7 +568,7 @@ export function registerSrsRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/srs/due", async (req, res) => {
+  app.get("/api/srs/due", requireAuth, async (req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -565,6 +579,10 @@ export function registerSrsRoutes(app: Express): void {
         limit: z.coerce.number().int().min(1).max(100).optional(),
       });
       const { userId, deckId, limit } = query.parse(req.query);
+      const scopedUserId = resolveUserId(req as AuthenticatedRequest, userId);
+      if (!scopedUserId) {
+        return res.status(403).json({ error: "Not authorized to access this user" });
+      }
       const opts = await getDeckOptions(deckId);
       const max = limit ?? 20;
 
@@ -591,7 +609,7 @@ export function registerSrsRoutes(app: Express): void {
            AND s.due_at <= $3
          ORDER BY s.due_at ASC
          LIMIT $4`,
-        [userId, deckId, now, max],
+        [scopedUserId, deckId, now, max],
       );
 
       const dueCards = due.rows as any[];
@@ -610,7 +628,7 @@ export function registerSrsRoutes(app: Express): void {
              AND s.card_id IS NULL
            ORDER BY c.created_at ASC
            LIMIT $4`,
-          [userId, deckId, now, newLimit],
+          [scopedUserId, deckId, now, newLimit],
         );
         newCards = rows.rows as any[];
       }
@@ -630,7 +648,7 @@ export function registerSrsRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/srs/review", async (req, res) => {
+  app.post("/api/srs/review", requireAuth, async (req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -644,8 +662,12 @@ export function registerSrsRoutes(app: Express): void {
       });
 
       const parsed = input.parse(req.body);
+      const scopedUserId = resolveUserId(req as AuthenticatedRequest, parsed.userId);
+      if (!scopedUserId) {
+        return res.status(403).json({ error: "Not authorized to review for this user" });
+      }
       const opts = await getDeckOptions(parsed.deckId);
-      const state = await getOrCreateCardState(parsed.userId, parsed.cardId);
+      const state = await getOrCreateCardState(scopedUserId, parsed.cardId);
 
       if (state.suspended) {
         return res.status(409).json({ error: "Card is suspended (leech)" });
@@ -733,7 +755,7 @@ export function registerSrsRoutes(app: Express): void {
            last_reviewed_at = excluded.last_reviewed_at,
            updated_at = excluded.updated_at`,
         [
-          parsed.userId,
+          scopedUserId,
           parsed.cardId,
           nextState,
           nextDueAt,
@@ -755,7 +777,7 @@ export function registerSrsRoutes(app: Express): void {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
         [
           eventId,
-          parsed.userId,
+          scopedUserId,
           parsed.deckId,
           parsed.cardId,
           grade,
@@ -797,7 +819,7 @@ export function registerSrsRoutes(app: Express): void {
   });
 
   // Filtered sessions (Phase 2): tag-based queue for targeted study
-  app.get("/api/srs/filtered", async (req, res) => {
+  app.get("/api/srs/filtered", requireAuth, async (req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -810,6 +832,10 @@ export function registerSrsRoutes(app: Express): void {
         limit: z.coerce.number().int().min(1).max(100).optional(),
       });
       const { userId, deckId, tagId, dueOnly, limit } = query.parse(req.query);
+      const scopedUserId = resolveUserId(req as AuthenticatedRequest, userId);
+      if (!scopedUserId) {
+        return res.status(403).json({ error: "Not authorized to access this user" });
+      }
       const now = nowMs();
       const max = limit ?? 50;
 
@@ -833,7 +859,7 @@ export function registerSrsRoutes(app: Express): void {
         ORDER BY COALESCE(s.due_at, $4) ASC, c.created_at ASC
         LIMIT $5
         `,
-        tagId ? [userId, deckId, tagId, now, max] : [userId, deckId, now, max],
+        tagId ? [scopedUserId, deckId, tagId, now, max] : [scopedUserId, deckId, now, max],
       );
 
       res.json({ items: rows.rows, now });
@@ -847,7 +873,7 @@ export function registerSrsRoutes(app: Express): void {
   });
 
   // Phase 4 groundwork: pull/push review events (for offline/cross-device later)
-  app.get("/api/srs/sync/pull", async (req, res) => {
+  app.get("/api/srs/sync/pull", requireAuth, async (req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS not enabled for production yet" });
       await ensureSrsTables();
@@ -857,6 +883,10 @@ export function registerSrsRoutes(app: Express): void {
         since: z.coerce.number().int().min(0).optional(),
       });
       const { userId, since } = query.parse(req.query);
+      const scopedUserId = resolveUserId(req as AuthenticatedRequest, userId);
+      if (!scopedUserId) {
+        return res.status(403).json({ error: "Not authorized to sync this user" });
+      }
       const cursor = since ?? 0;
 
       const events = await db.execute(
@@ -865,7 +895,7 @@ export function registerSrsRoutes(app: Express): void {
          WHERE user_id = $1 AND reviewed_at > $2
          ORDER BY reviewed_at ASC
          LIMIT 1000`,
-        [userId, cursor],
+        [scopedUserId, cursor],
       );
 
       const states = await db.execute(
@@ -874,7 +904,7 @@ export function registerSrsRoutes(app: Express): void {
          WHERE user_id = $1 AND updated_at > $2
          ORDER BY updated_at ASC
          LIMIT 2000`,
-        [userId, cursor],
+        [scopedUserId, cursor],
       );
 
       const nextCursor = Math.max(
@@ -894,7 +924,7 @@ export function registerSrsRoutes(app: Express): void {
   });
 
   // Phase 2 analytics: SRS deck stats + recent reviews (near real-time)
-  app.get("/api/analytics/srs", async (req, res) => {
+  app.get("/api/analytics/srs", requireAuth, async (req, res) => {
     try {
       if (!isSQLiteDev()) return res.status(501).json({ error: "SRS analytics not enabled for production yet" });
       await ensureSrsTables();
@@ -903,6 +933,10 @@ export function registerSrsRoutes(app: Express): void {
         userId: z.string().min(1),
       });
       const { userId } = query.parse(req.query);
+      const scopedUserId = resolveUserId(req as AuthenticatedRequest, userId);
+      if (!scopedUserId) {
+        return res.status(403).json({ error: "Not authorized to view analytics for this user" });
+      }
       const now = nowMs();
       const since7d = now - 7 * 24 * 60 * 60 * 1000;
 
@@ -920,7 +954,7 @@ export function registerSrsRoutes(app: Express): void {
         GROUP BY d.id, d.title
         ORDER BY d.created_at DESC
         `,
-        [userId, now],
+        [scopedUserId, now],
       );
 
       const recentReviews = await db.execute(
@@ -938,7 +972,7 @@ export function registerSrsRoutes(app: Express): void {
         ORDER BY e.reviewed_at DESC
         LIMIT 50
         `,
-        [userId],
+        [scopedUserId],
       );
 
       const reviewStats7d = await db.execute(
@@ -951,7 +985,7 @@ export function registerSrsRoutes(app: Express): void {
         WHERE e.user_id = $1 AND e.reviewed_at >= $2
         GROUP BY e.deck_id
         `,
-        [userId, since7d],
+        [scopedUserId, since7d],
       );
 
       // Handle drizzle results - SQLite returns array directly, PostgreSQL returns .rows

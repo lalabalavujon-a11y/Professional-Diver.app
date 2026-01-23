@@ -72,14 +72,29 @@ if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && serviceAccountJson) {
       console.warn('⚠️ Service account JSON missing "client_email" field');
     }
     
-    const tmpDir = os.tmpdir();
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'google-creds-'));
     const credsPath = path.join(tmpDir, 'google-service-account.json');
-    fs.writeFileSync(credsPath, serviceAccountJson, { encoding: 'utf8' });
+    fs.writeFileSync(credsPath, serviceAccountJson, { encoding: 'utf8', mode: 0o600 });
     process.env.GOOGLE_APPLICATION_CREDENTIALS = credsPath;
     console.log('🔐 Google credentials loaded from env (temp file created)');
     console.log(`   Project ID: ${parsedJson.project_id || 'NOT SET'}`);
     console.log(`   Client Email: ${parsedJson.client_email || 'NOT SET'}`);
     console.log(`   Credentials file: ${credsPath}`);
+    const cleanup = () => {
+      try {
+        fs.unlinkSync(credsPath);
+      } catch {
+        // ignore
+      }
+      try {
+        fs.rmdirSync(tmpDir);
+      } catch {
+        // ignore
+      }
+    };
+    process.on('exit', cleanup);
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
   } catch (e) {
     console.error(
       '❌ Failed to write service account JSON to temp file; Google ADC may not work:',
