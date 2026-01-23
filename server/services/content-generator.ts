@@ -38,14 +38,18 @@ const DEFAULT_MODEL = process.env.CONTENT_GENERATION_MODEL || 'gpt-4o';
 const DEFAULT_TEMPERATURE = Number(process.env.CONTENT_GENERATION_TEMPERATURE || 0.7);
 
 export class ContentGeneratorService {
-  private openai: OpenAI;
+  private openai: OpenAI | null = null;
 
   constructor() {
     if (!process.env.OPENAI_API_KEY) {
       // The service can still be constructed, but any generate() call will throw.
       console.warn('⚠️ OPENAI_API_KEY missing. Content generation will fail until provided.');
+    } else {
+      // Only create OpenAI client if API key is present
+      this.openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
     }
-    this.openai = new OpenAI();
   }
 
   async generateLesson(
@@ -143,6 +147,10 @@ export class ContentGeneratorService {
   private async callOpenAI(
     request: ChatCompletionCreateParams.CreateChatCompletionRequest
   ): Promise<{ content?: string; quiz?: any[] }> {
+    if (!this.openai) {
+      throw new Error('OpenAI API key is not configured. Please set OPENAI_API_KEY environment variable.');
+    }
+    
     const response = await this.openai.chat.completions.create(request);
     const raw = response.choices[0]?.message?.content;
     if (!raw) {

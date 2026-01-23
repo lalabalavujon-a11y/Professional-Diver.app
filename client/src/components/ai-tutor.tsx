@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Brain, Lightbulb, HelpCircle } from "lucide-react";
+import { MessageSquare, Brain, Lightbulb, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // AI Tutor data for each track
@@ -206,6 +206,26 @@ const AI_TUTORS = {
         "👥 Team coordination in life support operations is essential for success."
       ]
     }
+  },
+  "content-editor": {
+    name: "Diver Well",
+    specialty: "Content Creation Assistant - a highly trained AI expert ready to help with content creation, editing, and professional diving education",
+    avatar: "✍️",
+    background: "Content creation and educational specialist",
+    traits: ["Helpful", "Creative", "Detail-oriented"],
+    responses: {
+      greeting: "I'm Diver Well, your content creation assistant. I'm here to help you create professional, engaging, and accurate content for the Professional Diver Training Platform. How can I assist you today?",
+      concepts: [
+        "Effective content structure helps learners understand complex diving concepts step by step.",
+        "Visual aids and examples make technical information more accessible and memorable.",
+        "Clear, concise writing with proper formatting enhances learning outcomes."
+      ],
+      tips: [
+        "💡 Use headings and subheadings to organize content logically.",
+        "📝 Include real-world examples and scenarios to illustrate concepts.",
+        "✅ Review content for accuracy and clarity before publishing."
+      ]
+    }
   }
 };
 
@@ -218,12 +238,158 @@ export default function AITutor({ trackSlug, lessonTitle }: AITutorProps) {
   const [activeTab, setActiveTab] = useState<"chat" | "concepts" | "tips">("chat");
   const [messages, setMessages] = useState<Array<{ type: "tutor" | "user"; content: string }>>([]);
   const [inputMessage, setInputMessage] = useState("");
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const recognitionRef = useRef<{
+    stop(): void;
+  } | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const tutor = AI_TUTORS[trackSlug as keyof typeof AI_TUTORS];
+
+  // Cleanup: stop recording when component unmounts
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   if (!tutor) {
     return null;
   }
+
+  const playVoiceResponse = async (text: string) => {
+    if (!voiceEnabled) return;
+
+    try {
+      // Call OpenAI TTS API (voice is handled server-side, defaults to Alloy)
+      const response = await fetch('/api/diver-well/voice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+        
+        setIsSpeaking(true);
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        
+        await audio.play();
+      }
+    } catch (error) {
+      console.error('Error playing voice response:', error);
+      setIsSpeaking(false);
+    }
+  };
+
+  const stopVoice = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsSpeaking(false);
+    }
+  };
+
+  const toggleVoiceRecording = () => {
+    if (!isRecording) {
+      // Start voice recording
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        interface SpeechRecognitionConstructor {
+          new (): {
+            continuous: boolean;
+            interimResults: boolean;
+            lang: string;
+            start(): void;
+            stop(): void;
+            onstart: (() => void) | null;
+            onresult: ((event: { resultIndex: number; results: Array<{ isFinal: boolean; [index: number]: { transcript: string } }> }) => void) | null;
+            onerror: ((event: { error: string }) => void) | null;
+            onend: (() => void) | null;
+          };
+        }
+        const SpeechRecognition = ((window as typeof window & { SpeechRecognition?: SpeechRecognitionConstructor; webkitSpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition || 
+          (window as typeof window & { webkitSpeechRecognition?: SpeechRecognitionConstructor }).webkitSpeechRecognition) as SpeechRecognitionConstructor | undefined;
+        
+        if (!SpeechRecognition) {
+          alert('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
+          return;
+        }
+        
+        const recognitionInstance = new SpeechRecognition();
+        
+        recognitionInstance.continuous = false;
+        recognitionInstance.interimResults = true;
+        recognitionInstance.lang = 'en-US';
+        
+        recognitionInstance.onstart = () => {
+          setIsRecording(true);
+        };
+        
+        recognitionInstance.onresult = (event: { resultIndex: number; results: Array<{ isFinal: boolean; [index: number]: { transcript: string } }> }) => {
+          let finalTranscript = '';
+          
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0]?.transcript || '';
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + ' ';
+            }
+          }
+          
+          // Update the input text with transcribed speech
+          if (finalTranscript) {
+            setInputMessage((prev) => prev + finalTranscript.trim());
+          }
+        };
+        
+        recognitionInstance.onerror = (event: { error: string }) => {
+          console.error('Speech recognition error:', event.error);
+          setIsRecording(false);
+          if (event.error !== 'no-speech') {
+            alert('Speech recognition error. Please try again.');
+          }
+        };
+        
+        recognitionInstance.onend = () => {
+          setIsRecording(false);
+        };
+        
+        recognitionInstance.start();
+        recognitionRef.current = recognitionInstance;
+      } else {
+        alert('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
+      }
+    } else {
+      // Stop voice recording
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+        setIsRecording(false);
+      }
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
@@ -278,6 +444,11 @@ export default function AITutor({ trackSlug, lessonTitle }: AITutorProps) {
         const withoutLoading = prev.slice(0, -1);
         return [...withoutLoading, { type: "tutor" as const, content: data.response }];
       });
+
+      // Play voice response if enabled
+      if (voiceEnabled && data.response) {
+        await playVoiceResponse(data.response);
+      }
 
     } catch (error) {
       console.error('Error calling AI Tutor API:', error);
@@ -385,19 +556,57 @@ export default function AITutor({ trackSlug, lessonTitle }: AITutorProps) {
             )}
             
             {messages.length > 0 && (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                  placeholder="Ask your tutor a question..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  data-testid="input-chat-message"
-                />
-                <Button onClick={handleSendMessage} data-testid="button-send-message">
-                  Send
-                </Button>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                    placeholder="Ask your tutor a question..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    data-testid="input-chat-message"
+                  />
+                  <Button
+                    onClick={toggleVoiceRecording}
+                    variant={isRecording ? "destructive" : "outline"}
+                    size="sm"
+                    title={isRecording ? "Stop Recording" : "Start Voice Input"}
+                    data-testid="button-voice-input"
+                  >
+                    {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </Button>
+                  <Button onClick={handleSendMessage} data-testid="button-send-message">
+                    Send
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => setVoiceEnabled(!voiceEnabled)}
+                      variant={voiceEnabled ? "default" : "outline"}
+                      size="sm"
+                      title={voiceEnabled ? "Disable Voice Output" : "Enable Voice Output"}
+                      data-testid="button-voice-toggle"
+                    >
+                      {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                    </Button>
+                    {isSpeaking && (
+                      <Button
+                        onClick={stopVoice}
+                        variant="outline"
+                        size="sm"
+                        title="Stop Speaking"
+                        data-testid="button-stop-voice"
+                      >
+                        Stop
+                      </Button>
+                    )}
+                  </div>
+                  {voiceEnabled && (
+                    <span className="text-xs text-slate-500">Voice enabled (Alloy)</span>
+                  )}
+                </div>
               </div>
             )}
           </div>

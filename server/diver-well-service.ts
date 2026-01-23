@@ -1118,6 +1118,44 @@ export class DiverWellService {
   getConsultantInfo(): DiverWellConfig {
     return this.config;
   }
+
+  /**
+   * Update Diver Well's knowledge with new content
+   * Called automatically by AIKnowledgeUpdater when content changes
+   */
+  async updateKnowledge(contentSummary: {
+    tracks: Array<{ id: string; title: string; slug: string; summary: string | null }>;
+    lessons: Array<{ id: string; title: string; trackId: string }>;
+    quizzes: Array<{ id: string; title: string; lessonId: string }>;
+    lastUpdated: Date;
+  }): Promise<void> {
+    // Rebuild system prompt with updated content
+    const contentSection = this.buildContentSection(contentSummary);
+    const basePrompt = buildComprehensiveDivingSystemPrompt();
+    this.config.systemPrompt = basePrompt + contentSection;
+    
+    console.log(`[DiverWellService] Knowledge updated with ${contentSummary.tracks.length} tracks, ${contentSummary.lessons.length} lessons`);
+  }
+
+  /**
+   * Build content section for system prompt
+   */
+  private buildContentSection(contentSummary: any): string {
+    let section = '\n\nCURRENT TRAINING CONTENT AVAILABLE:\n\n';
+    
+    section += `TRAINING TRACKS (${contentSummary.tracks.length} total):\n`;
+    contentSummary.tracks.forEach((track: any) => {
+      section += `- ${track.title} (${track.slug}): ${track.summary || 'Professional diving training'}\n`;
+    });
+    
+    section += `\nLESSONS (${contentSummary.lessons.length} total across all tracks)\n`;
+    section += `QUIZZES (${contentSummary.quizzes.length} total for assessment)\n`;
+    
+    section += `\nContent Last Updated: ${contentSummary.lastUpdated.toISOString()}\n`;
+    section += 'When users ask about specific tracks or lessons, reference the current content available.\n';
+    
+    return section;
+  }
 }
 
 // Export singleton instance

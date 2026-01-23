@@ -28,6 +28,7 @@ import { Link, useLocation } from "wouter";
 import type { Invite, Track } from "@shared/schema";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileNotSupported } from "@/components/mobile-not-supported";
+import BackButton from "@/components/ui/back-button";
 
 type DashboardStats = {
   activeUsers: number;
@@ -41,6 +42,13 @@ interface User {
   email: string;
   role: 'ADMIN' | 'SUPER_ADMIN' | 'USER' | 'LIFETIME' | 'AFFILIATE' | 'ENTERPRISE';
   subscriptionType: 'TRIAL' | 'MONTHLY' | 'ANNUAL' | 'LIFETIME';
+}
+
+interface UserPermission {
+  id: string;
+  name?: string;
+  email: string;
+  role: string;
 }
 
 export default function AdminDashboard() {
@@ -127,11 +135,11 @@ export default function AdminDashboard() {
   const { hasFeature } = useFeaturePermissions();
   const canAccessUserManagement = true; // ALWAYS allow - we're forcing SUPER_ADMIN
 
-  const pendingInvites = invites?.filter((invite: any) => !invite.usedAt).length || 0;
+  const pendingInvites = invites?.filter((invite: Invite) => !invite.usedAt).length || 0;
 
   // Partner Admins and Enterprise Users counts
-  const partnerAdmins = userPermissionsData?.users?.filter((u: any) => u.role === "Partner Admin" || u.role === "AFFILIATE") || [];
-  const enterpriseUsers = userPermissionsData?.users?.filter((u: any) => u.role === "Enterprise User" || u.role === "ENTERPRISE") || [];
+  const partnerAdmins = userPermissionsData?.users?.filter((u: UserPermission) => u.role === "Partner Admin" || u.role === "AFFILIATE") || [];
+  const enterpriseUsers = userPermissionsData?.users?.filter((u: UserPermission) => u.role === "Enterprise User" || u.role === "ENTERPRISE") || [];
 
   // Sync Partners to CRM mutation
   const syncPartnersMutation = useMutation({
@@ -213,6 +221,11 @@ export default function AdminDashboard() {
       <RoleBasedNavigation />
       <div className="min-h-screen bg-background" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton fallbackRoute="/dashboard" label="Back to Dashboard" />
+        </div>
+        
         {/* Trial User Management - HIDDEN for Super Admin */}
         {/* Super Admin NEVER sees trial messages - removed TrialCountdown */}
 
@@ -291,7 +304,7 @@ export default function AdminDashboard() {
             />
           ) : (
             <div className="space-y-3">
-              {invites.slice(0, 3).map((invite: any) => (
+              {invites.slice(0, 3).map((invite: Invite) => (
                 <div
                   key={invite.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -489,7 +502,7 @@ export default function AdminDashboard() {
                 </div>
                 {partnerAdmins.length > 0 && (
                   <div className="mt-3 text-xs text-slate-600">
-                    {partnerAdmins.slice(0, 3).map((p: any) => p.name || p.email).join(", ")}
+                    {partnerAdmins.slice(0, 3).map((p: UserPermission) => p.name || p.email).join(", ")}
                     {partnerAdmins.length > 3 && ` +${partnerAdmins.length - 3} more`}
                   </div>
                 )}

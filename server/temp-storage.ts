@@ -12,6 +12,8 @@ export class TempDatabaseStorage {
         slug: tracks.slug,
         summary: tracks.summary,
         isPublished: tracks.isPublished,
+        difficulty: tracks.difficulty,
+        estimatedHours: tracks.estimatedHours,
         createdAt: tracks.createdAt,
         aiTutor: {
           id: aiTutors.id,
@@ -23,7 +25,22 @@ export class TempDatabaseStorage {
         .leftJoin(aiTutors, eq(tracks.aiTutorId, aiTutors.id))
         .where(eq(tracks.isPublished, true))
         .orderBy(tracks.title);
-      return result;
+      
+      // Get lesson counts for each track
+      const tracksWithLessonCounts = await Promise.all(
+        result.map(async (track) => {
+          const lessonCount = await db.select({ count: sql<number>`count(*)` })
+            .from(lessons)
+            .where(eq(lessons.trackId, track.id));
+          
+          return {
+            ...track,
+            lessonCount: lessonCount[0]?.count || 0,
+          };
+        })
+      );
+      
+      return tracksWithLessonCounts;
     } catch (error) {
       console.error('Error fetching tracks:', error);
       throw error;

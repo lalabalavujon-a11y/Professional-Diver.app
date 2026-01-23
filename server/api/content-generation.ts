@@ -6,8 +6,25 @@ import { validateLesson } from '../services/content-validator';
 import { generateLessonPDF } from '../services/gamma-api';
 import { generateLessonPodcast } from '../services/podcast-generator';
 import { eq, desc } from 'drizzle-orm';
+import ContentSyncService from '../services/content-sync-service';
 
-const generator = new ContentGeneratorService();
+const contentSync = ContentSyncService.getInstance();
+
+// Lazy initialization - only create when needed and handle missing API key gracefully
+let generator: ContentGeneratorService | null = null;
+
+function getGenerator(): ContentGeneratorService {
+  if (!generator) {
+    try {
+      generator = new ContentGeneratorService();
+    } catch (error) {
+      // If initialization fails, create a dummy instance that will throw on use
+      console.warn('⚠️ ContentGeneratorService initialization failed, will throw on use');
+      generator = new ContentGeneratorService();
+    }
+  }
+  return generator;
+}
 
 // Helper functions for generation history logging
 async function logGenerationStart(
@@ -233,6 +250,12 @@ export async function generatePodcast(req: Request, res: Response) {
         podcastDuration: result.durationSeconds,
       })
       .where(eq(lessons.id, lesson.id));
+
+    // Notify content sync service of lesson update
+    await contentSync.recordLessonChange('updated', lesson.id, {
+      podcastUrl: result.filePath,
+      podcastDuration: result.durationSeconds
+    });
 
     // Log completion
     if (logId) {
@@ -587,6 +610,11 @@ export async function regenerateTrackPdfs(req: Request, res: Response) {
           }
 
           await db.update(lessons).set({ pdfUrl: result.pdfUrl }).where(eq(lessons.id, lesson.id));
+
+          // Notify content sync service of lesson update
+          await contentSync.recordLessonChange('updated', lesson.id, {
+            pdfUrl: result.pdfUrl
+          });
 
           await logGenerationComplete(logId, result.pdfUrl, {
             fileSizeBytes,

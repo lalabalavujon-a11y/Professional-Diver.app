@@ -31,6 +31,7 @@ import { lessons } from "@shared/schema";
 import { registerSrsRoutes } from "./srs-routes";
 import { registerEquipmentRoutes } from "./routes/equipment-routes";
 import { registerOperationsCalendarRoutes } from "./routes/operations-calendar-routes";
+import { registerUnifiedCalendarRoutes } from "./routes/unified-calendar-routes";
 import { registerCallingRoutes } from "./routes/calling-routes";
 import { registerSponsorRoutes } from "./sponsor-routes";
 import { getWeatherData, timezoneToCoordinates as weatherTimezoneToCoordinates } from "./weather-service";
@@ -990,6 +991,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updated) {
         return res.status(404).json({ error: "Track not found" });
       }
+      
+      // Notify content sync service of track update
+      await contentSync.recordTrackChange('updated', id, {
+        isPublished: updated.isPublished === 1 || updated.isPublished === true
+      });
       
       res.json({
         ...updated,
@@ -2024,6 +2030,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Lesson not found" });
       }
       console.log('PATCH /api/lessons/:id - Updated lesson:', JSON.stringify(lesson, null, 2));
+      
+      // Notify content sync service of lesson update
+      await contentSync.recordLessonChange('updated', id, {
+        title: lesson.title,
+        trackId: lesson.trackId
+      });
+      
       res.json(lesson);
     } catch (error) {
       console.error('Lesson update error:', error);
@@ -2363,6 +2376,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'Failed to process bulk upload',
         message: error.message || 'Unknown error',
       });
+    }
+  });
+
+  // Exam questions endpoint for Client Representative (fetches from database)
+  app.get("/api/exams/client-representative/questions", async (req, res) => {
+    try {
+      const { tracks, lessons, quizzes, questions } = await import('@shared/schema-sqlite');
+      
+      // Get Client Representative track
+      const [track] = await db.select({ id: tracks.id })
+        .from(tracks)
+        .where(eq(tracks.slug, 'client-representative'))
+        .limit(1);
+      
+      if (!track) {
+        return res.status(404).json({ error: "Client Representative track not found" });
+      }
+
+      // Get all questions for this track (including explanation if available)
+      const trackQuestions = await db.select({
+        id: questions.id,
+        prompt: questions.prompt,
+        options: questions.options,
+        correctAnswer: questions.correctAnswer,
+        order: questions.order,
+        explanation: (questions as any).explanation, // Include explanation if field exists
+      })
+        .from(questions)
+        .innerJoin(quizzes, eq(questions.quizId, quizzes.id))
+        .innerJoin(lessons, eq(quizzes.lessonId, lessons.id))
+        .where(eq(lessons.trackId, track.id))
+        .orderBy(questions.order);
+
+      // Convert database questions to ExamQuestion format
+      const examQuestions = trackQuestions.map((q, index) => {
+        let optionsArray: string[] = [];
+        try {
+          optionsArray = JSON.parse(q.options || '[]');
+        } catch {
+          optionsArray = [];
+        }
+
+        // Determine question type based on options
+        let questionType: 'MULTIPLE_CHOICE' | 'WRITTEN' | 'TRUE_FALSE' = 'MULTIPLE_CHOICE';
+        if (optionsArray.length === 2 && (optionsArray[0] === 'True' || optionsArray[0] === 'False')) {
+          questionType = 'TRUE_FALSE';
+        } else if (optionsArray.length === 0) {
+          questionType = 'WRITTEN';
+        }
+
+        // Get explanation from database if available, otherwise provide generic one
+        let explanation = `This question tests your understanding of Client Representative course material.`;
+        // Try to get explanation from the question record if it exists
+        if ((q as any).explanation) {
+          explanation = (q as any).explanation;
+        }
+
+        return {
+          id: q.id,
+          type: questionType,
+          prompt: q.prompt || '',
+          options: optionsArray.length > 0 ? optionsArray : undefined,
+          correctAnswer: q.correctAnswer || undefined,
+          explanation: explanation,
+          points: questionType === 'WRITTEN' ? 5 : (questionType === 'TRUE_FALSE' ? 1 : 1), // Standardized: MCQs and T/F = 1 point, Short Answer = 5 points
+          order: q.order || index + 1,
+        };
+      });
+
+      res.json({ questions: examQuestions });
+    } catch (error: any) {
+      console.error('Client Representative exam questions API error:', error);
+      res.status(500).json({ error: "Failed to fetch exam questions", message: error.message });
     }
   });
 

@@ -5,6 +5,7 @@ import RoleBasedNavigation from "@/components/role-based-navigation";
 import { PageHeader, StatCard, PageSection } from "@/components/ui/page-header";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileNotSupported } from "@/components/mobile-not-supported";
+import BackButton from "@/components/ui/back-button";
 import { DataTable } from "@/components/ui/data-table";
 import { LoadingSpinner, SkeletonTable } from "@/components/ui/loading-states";
 import { EmptyState, ErrorState } from "@/components/ui/empty-states";
@@ -351,6 +352,11 @@ export default function CRMDashboard() {
       <RoleBasedNavigation />
       <div className="min-h-screen bg-background" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+          {/* Back Button */}
+          <div className="mb-4">
+            <BackButton fallbackRoute="/admin" label="Back to Admin" />
+          </div>
+          
           <PageHeader
             title="Client Management (CRM)"
             description="Manage your clients, subscriptions, and revenue"
@@ -559,7 +565,7 @@ export default function CRMDashboard() {
 // Client Form Component
 interface ClientFormProps {
   client?: Client;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: Partial<Client>) => void;
   loading: boolean;
 }
 
@@ -621,7 +627,7 @@ function ClientForm({ client, onSubmit, loading }: ClientFormProps) {
         <Label htmlFor="subscription_type">Subscription Type</Label>
         <Select 
           value={formData.subscription_type} 
-          onValueChange={(value: any) => setFormData(prev => ({ ...prev, subscription_type: value }))}
+          onValueChange={(value: Client["subscription_type"]) => setFormData(prev => ({ ...prev, subscription_type: value }))}
         >
           <SelectTrigger data-testid="select-subscription-type">
             <SelectValue />
@@ -638,7 +644,7 @@ function ClientForm({ client, onSubmit, loading }: ClientFormProps) {
         <Label htmlFor="status">Status</Label>
         <Select 
           value={formData.status} 
-          onValueChange={(value: any) => setFormData(prev => ({ ...prev, status: value }))}
+          onValueChange={(value: Client["status"]) => setFormData(prev => ({ ...prev, status: value }))}
         >
           <SelectTrigger data-testid="select-client-status">
             <SelectValue />
