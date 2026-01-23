@@ -6,7 +6,7 @@ import { validateLesson } from '../services/content-validator';
 import { generateLessonPDF } from '../services/gamma-api';
 import { generateLessonPodcast } from '../services/podcast-generator';
 import { eq, desc } from 'drizzle-orm';
-import ContentSyncService from '../services/content-sync-service';
+import { ContentSyncService } from '../services/content-sync-service';
 
 const contentSync = ContentSyncService.getInstance();
 

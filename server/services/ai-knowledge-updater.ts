@@ -11,7 +11,7 @@
  * @date 2025
  */
 
-import ContentSyncService, { ContentChange } from './content-sync-service';
+import { ContentSyncService, type ContentChange } from './content-sync-service';
 import { LauraOracleService } from '../laura-oracle-service';
 import { DiverWellService } from '../diver-well-service';
 
