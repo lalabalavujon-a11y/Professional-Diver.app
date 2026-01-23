@@ -4,6 +4,7 @@ import RoleBasedNavigation from "@/components/role-based-navigation";
 import AITutor from "@/components/ai-tutor";
 import PracticeScenario from "@/components/practice-scenario";
 import EnhancedLessonContent from "@/components/enhanced-lesson-content";
+import KnowledgeCheck from "@/components/knowledge-check";
 import PodcastPlayerCompact from "@/components/podcast-player-compact";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Bookmark, FileText, Video, ChevronDown, ChevronUp } from "lucide-react";
@@ -306,6 +307,8 @@ export default function LessonDetail() {
                 pdfUrl={pdfUrl}
                 lessonId={lesson.id}
               />
+
+              <KnowledgeCheck lessonId={lesson.id} />
 
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <div className="flex items-center justify-between">

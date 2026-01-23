@@ -127,6 +127,31 @@ async function main() {
   } catch (error) {
     console.error("Warning: Core learning content check failed:", error);
   }
+
+  // Deployment-time content integrity gate
+  const gateStrict =
+    process.env.NODE_ENV === "production" &&
+    process.env.CONTENT_GATE_STRICT !== "false";
+  try {
+    const { runContentIntegrityAudit } = await import("./services/content-integrity-service");
+    const summary = await runContentIntegrityAudit({
+      autoRepair: true,
+      regenerateMedia: false,
+      sendAlerts: true,
+      trigger: "startup",
+    });
+    if (gateStrict && !summary.ok) {
+      throw new Error(
+        `Content gate failed: ${summary.blockingIssues} blocking issue(s) detected.`,
+      );
+    }
+  } catch (error) {
+    if (gateStrict) {
+      console.error("❌ Content integrity gate failed. Aborting startup.");
+      throw error;
+    }
+    console.error("Warning: Content integrity gate check failed:", error);
+  }
   
   // Mount AI Tutor router
   app.use('/api/ai-tutor', aiTutorRouter);
@@ -166,6 +191,14 @@ async function main() {
   } catch (error) {
     console.error('Warning: Failed to start calendar sync scheduler:', error);
     // Continue startup - sync is non-critical
+  }
+
+  // Start content integrity scheduler
+  try {
+    const { startContentIntegrityScheduler } = await import("./services/content-integrity-service");
+    startContentIntegrityScheduler();
+  } catch (error) {
+    console.error("Warning: Failed to start content integrity scheduler:", error);
   }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

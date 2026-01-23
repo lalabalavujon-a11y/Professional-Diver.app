@@ -42,7 +42,7 @@ type BackupPayload = {
 
 const BACKUP_PATH = join(process.cwd(), "backups", "tracks-lessons-backup-2025-12-30.json");
 
-const CORE_TRACK_SLUGS = [
+export const CORE_TRACK_SLUGS = [
   "ndt-inspection",
   "diver-medic",
   "commercial-supervisor",
@@ -54,7 +54,7 @@ const CORE_TRACK_SLUGS = [
   "air-diver-certification",
 ];
 
-const EXPECTED_LESSON_COUNTS: Record<string, number> = {
+export const EXPECTED_LESSON_COUNTS: Record<string, number> = {
   "ndt-inspection": 12,
   "diver-medic": 12,
   "commercial-supervisor": 12,
@@ -76,7 +76,7 @@ const DEFAULT_DISTRACTORS = [
   "Follow emergency response protocols and reporting",
 ];
 
-function slugify(value: string): string {
+export function slugify(value: string): string {
   if (!value || typeof value !== "string") return "lesson";
   let sanitized = value.toLowerCase().trim();
   sanitized = sanitized.replace(/[\s_]+/g, "-");
@@ -89,11 +89,11 @@ function slugify(value: string): string {
   return sanitized || "lesson";
 }
 
-function buildPodcastUrl(trackSlug: string, lessonTitle: string): string {
+export function buildPodcastUrl(trackSlug: string, lessonTitle: string): string {
   return `/uploads/podcasts/${trackSlug}-${slugify(lessonTitle)}.mp3`;
 }
 
-function buildPdfUrl(lessonTitle: string): string {
+export function buildPdfUrl(lessonTitle: string): string {
   return `/uploads/diver-well-training/${slugify(lessonTitle)}.pdf`;
 }
 
@@ -193,36 +193,56 @@ async function upsertQuizForLesson({
   const { quizzes, questions } = tables;
   const [existingQuiz] = await db.select().from(quizzes).where(eq(quizzes.lessonId, lessonId));
 
-  if (existingQuiz) {
-    await db.delete(questions).where(eq(questions.quizId, existingQuiz.id));
-    await db.delete(quizzes).where(eq(quizzes.id, existingQuiz.id));
+  let quiz = existingQuiz;
+  if (!quiz) {
+    const [createdQuiz] = await db
+      .insert(quizzes)
+      .values(
+        usePostgres
+          ? {
+              lessonId,
+              title: `${lessonTitle} Quiz`,
+              timeLimit: 10,
+              examType: "QUIZ",
+              passingScore: 70,
+              maxAttempts: 3,
+              showFeedback: true,
+            }
+          : {
+              lessonId,
+              title: `${lessonTitle} Quiz`,
+              timeLimit: 10,
+              examType: "QUIZ",
+              passingScore: 70,
+            },
+      )
+      .returning();
+    quiz = createdQuiz;
   }
 
-  const [quiz] = await db.insert(quizzes).values(
-    usePostgres
-      ? {
-          lessonId,
-          title: `${lessonTitle} Quiz`,
-          timeLimit: 10,
-          examType: "QUIZ",
-          passingScore: 70,
-          maxAttempts: 3,
-          showFeedback: true,
-        }
-      : {
-          lessonId,
-          title: `${lessonTitle} Quiz`,
-          timeLimit: 10,
-          examType: "QUIZ",
-          passingScore: 70,
-        },
-  ).returning();
+  const existingQuestions = await db
+    .select()
+    .from(questions)
+    .where(eq(questions.quizId, quiz.id))
+    .orderBy(questions.order);
+
+  if (existingQuestions.length >= 5) {
+    return;
+  }
 
   const objectives = extractObjectives(lessonContent);
-  const quizQuestions = buildQuizQuestions(lessonTitle, objectives);
+  const quizQuestions = buildQuizQuestions(lessonTitle, objectives).slice(
+    existingQuestions.length,
+  );
+  const startingOrder =
+    existingQuestions.length > 0
+      ? Math.max(...existingQuestions.map((question: any) => question.order || 0)) + 1
+      : 1;
 
-  for (const question of quizQuestions) {
-    await db.insert(questions).values(
+  for (const [index, question] of quizQuestions.entries()) {
+    await db
+      .insert(questions)
+      .values(
       usePostgres
         ? {
             quizId: quiz.id,
@@ -232,14 +252,14 @@ async function upsertQuizForLesson({
             correctAnswer: question.correctAnswer,
             explanation: "Refer to the lesson objectives for guidance.",
             points: 1,
-            order: question.order,
+            order: startingOrder + index,
           }
         : {
             quizId: quiz.id,
             prompt: question.prompt,
             options: JSON.stringify(question.options),
             correctAnswer: question.correctAnswer,
-            order: question.order,
+            order: startingOrder + index,
           },
     );
   }
