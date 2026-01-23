@@ -149,6 +149,12 @@ If you encounter iOS sync issues, try:
    npm run cap:sync
    ```
 
+### macOS Version / Xcode Compatibility
+
+If Xcode will not install or the iOS toolchain won’t work, you may need to upgrade macOS.
+
+- Runbook: `docs/MACOS_12_PLUS_LOCAL_UPGRADE.md`
+
 ### Build Errors
 
 Ensure you've run `npm run build` before syncing to native projects.

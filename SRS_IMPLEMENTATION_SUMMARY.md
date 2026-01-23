@@ -52,11 +52,82 @@
 ### **SRS Algorithm Framework (Ready for Implementation):**
 
 ```typescript
-// TODO: Full SRS Implementation
-// 1. Get user's question performance history
-// 2. Calculate next review dates for each question
-// 3. Select questions due for review + new questions
-// 4. Shuffle and return optimized question set
+/**
+ * Full SRS Implementation (implementation-ready outline)
+ *
+ * Goal: return an optimized mix of (a) due review questions and (b) new questions,
+ * using a stable scheduling algorithm driven by per-user per-question history.
+ *
+ * Data model (minimal):
+ * - Question: { id, subjectId, difficulty?, ... }
+ * - UserQuestionState: {
+ *     userId, questionId,
+ *     easeFactor: number,          // e.g. SM-2 style, default ~2.5
+ *     intervalDays: number,        // last scheduled interval
+ *     repetitions: number,         // consecutive successful reviews
+ *     lastReviewedAt?: Date,
+ *     dueAt?: Date,                // next scheduled review time
+ *     lapses: number               // count of failed recalls
+ *   }
+ * - ReviewLog: { userId, questionId, grade: 0|1|2|3|4|5, reviewedAt: Date }
+ *
+ * Scheduling (typical SM-2 adaptation; customize as needed):
+ * - If grade < 3:
+ *     repetitions = 0
+ *     intervalDays = 1
+ *     lapses += 1
+ *   Else:
+ *     repetitions += 1
+ *     intervalDays = repetitions === 1 ? 1 : repetitions === 2 ? 6 : round(intervalDays * easeFactor)
+ *     easeFactor = max(1.3, easeFactor + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02)))
+ * - dueAt = reviewedAt + intervalDays
+ *
+ * Question selection (per session):
+ * 1) Load states for the user+subject: UserQuestionState for all questions in subject.
+ * 2) Partition into:
+ *    - dueReviews: state.dueAt <= now (or lastReviewedAt exists with dueAt missing => treat as due)
+ *    - newQuestions: no state exists yet for (userId, questionId)
+ *    - upcoming: dueAt > now
+ * 3) Pick:
+ *    - reviews = take up to SRS_CONFIG.REVIEW_QUESTIONS from dueReviews (prioritize most overdue first)
+ *    - news = take up to SRS_CONFIG.NEW_QUESTIONS from newQuestions (stable random per user/day to avoid repeats)
+ *    - if reviews < target: top up from upcoming by soonest dueAt (optional, to fill sessions)
+ * 4) Shuffle final set (but keep a deterministic seed per session for reproducibility/debugging).
+ * 5) Return questions + metadata (e.g., isReview, dueAt, intervalDays) for UI indicators.
+ */
+
+// Pseudocode shape:
+// async function selectQuestionsForSession({ userId, subjectId, now }: Params): Promise<SessionQuestion[]> {
+//   const allQuestions = await questionsRepo.listBySubject(subjectId);
+//   const states = await srsRepo.getStates(userId, allQuestions.map(q => q.id));
+//
+//   const dueReviews = [];
+//   const newQuestions = [];
+//   const upcoming = [];
+//
+//   for (const q of allQuestions) {
+//     const state = states.get(q.id);
+//     if (!state) newQuestions.push(q);
+//     else if (!state.dueAt || state.dueAt <= now) dueReviews.push({ q, state });
+//     else upcoming.push({ q, state });
+//   }
+//
+//   dueReviews.sort((a, b) => (a.state.dueAt?.getTime() ?? 0) - (b.state.dueAt?.getTime() ?? 0));
+//   upcoming.sort((a, b) => a.state.dueAt!.getTime() - b.state.dueAt!.getTime());
+//
+//   const reviews = dueReviews.slice(0, SRS_CONFIG.REVIEW_QUESTIONS);
+//   const news = stableSample(newQuestions, SRS_CONFIG.NEW_QUESTIONS, `${userId}:${subjectId}:${yyyyMMdd(now)}`);
+//   const toppedUp = reviews.length < SRS_CONFIG.REVIEW_QUESTIONS ? upcoming.slice(0, SRS_CONFIG.REVIEW_QUESTIONS - reviews.length) : [];
+//
+//   return seededShuffle(
+//     [
+//       ...reviews.map(({ q, state }) => ({ question: q, kind: 'review', dueAt: state.dueAt })),
+//       ...news.map(q => ({ question: q, kind: 'new' })),
+//       ...toppedUp.map(({ q, state }) => ({ question: q, kind: 'upcoming', dueAt: state.dueAt })),
+//     ],
+//     `${userId}:${subjectId}:${sessionId}`
+//   );
+// }
 ```
 
 ### **Current Status:**
