@@ -56,7 +56,8 @@ async function checkTracksStatus() {
       'hyperbaric-operations',
       'alst',
       'lst',
-      'air-diver-certification'
+      'air-diver-certification',
+      'client-representative',
     ];
 
     const existingSlugs = allTracks.map(t => t.slug);

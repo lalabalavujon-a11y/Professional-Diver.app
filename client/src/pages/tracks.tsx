@@ -25,7 +25,7 @@ interface Track {
   } | null;
 }
 
-// Mock data for tracks - All 8 Professional Diving Subjects
+// Mock data for tracks - All 10 Learning Tracks (fallback when API is empty)
 const mockTracks = [
   {
     id: "ndt-inspection",
@@ -138,6 +138,34 @@ const mockTracks = [
     progress: 0,
     completed: false,
     category: "Life Support Systems"
+  },
+  {
+    id: "air-diver-certification",
+    title: "Air Diver Certification",
+    slug: "air-diver-certification",
+    summary: "Essential air diving skills including diving physics review, gas management concepts, ascent best practices, problem-solving drills, and tool handling safety.",
+    description: "Foundational professional air diver training covering diving physics, decompression theory, gas planning, safety calculations, and operational best practices.",
+    level: "Beginner",
+    duration: "8 weeks",
+    lessons: 12,
+    students: 1684,
+    progress: 0,
+    completed: false,
+    category: "Core Fundamentals"
+  },
+  {
+    id: "client-representative",
+    title: "Client Representative",
+    slug: "client-representative",
+    summary: "Comprehensive brand-neutral training covering offshore project assurance, regulatory compliance, diving operations, risk management, and contract administration.",
+    description: "52-module Client Representative course with assessments across governance, assurance, and operational oversight. Designed to be brand-neutral and aligned to assessment blueprints.",
+    level: "Intermediate",
+    duration: "12 weeks",
+    lessons: 52,
+    students: 418,
+    progress: 0,
+    completed: false,
+    category: "Governance & Assurance"
   }
 ];
 
