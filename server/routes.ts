@@ -3461,6 +3461,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  /**
+   * Super Admin Ops / Monitoring status
+   * - Never returns secret values (presence only)
+   * - Intended for Super Admin dashboard "Ops Monitoring" container
+   */
+  app.get("/api/admin/ops-status", async (req, res) => {
+    try {
+      const userEmail =
+        (req.query.email as string) ||
+        (req.headers["x-user-email"] as string);
+
+      if (!userEmail) {
+        return res.status(401).json({ error: "User email is required" });
+      }
+
+      const user = userManagement.getSpecialUser(userEmail);
+      if (!user || user.role !== "SUPER_ADMIN") {
+        return res
+          .status(403)
+          .json({ error: "Access denied. SUPER_ADMIN role required." });
+      }
+
+      const now = new Date();
+      const openaiKeyPresent = !!process.env.OPENAI_API_KEY;
+      const gammaKeyPresent = !!process.env.GAMMA_API_KEY;
+      const langsmithKeyPresent = !!process.env.LANGSMITH_API_KEY;
+      const langsmithProjectPresent = !!process.env.LANGSMITH_PROJECT;
+
+      // LangSmith "enabled" means the key + project are configured.
+      const langsmithEnabled = langsmithKeyPresent && langsmithProjectPresent;
+
+      // If LangSmith is configured, tracing should be enabled for LangChain.
+      // We compute a best-effort flag that does NOT depend on importing/initializing LangChainConfig.
+      const langchainTracingV2 =
+        (process.env.LANGCHAIN_TRACING_V2 || "").toLowerCase() === "true" ||
+        langsmithEnabled;
+
+      const alerts: Array<{
+        level: "info" | "warning" | "error";
+        code: string;
+        message: string;
+      }> = [];
+
+      if (!openaiKeyPresent) {
+        alerts.push({
+          level: "warning",
+          code: "OPENAI_KEY_MISSING",
+          message:
+            "OPENAI_API_KEY not found. OpenAI-powered features (LangChain chat/embeddings, voice, content generation) may fail.",
+        });
+      }
+
+      if (!gammaKeyPresent) {
+        alerts.push({
+          level: "info",
+          code: "GAMMA_KEY_MISSING",
+          message:
+            "GAMMA_API_KEY not found. PDF generation via Gamma will be unavailable.",
+        });
+      }
+
+      if (!langsmithEnabled) {
+        alerts.push({
+          level: "info",
+          code: "LANGSMITH_DISABLED",
+          message:
+            "LangSmith is not fully configured (LANGSMITH_API_KEY and LANGSMITH_PROJECT). Tracing/observability will be disabled.",
+        });
+      }
+
+      const memory = process.memoryUsage();
+
+      res.json({
+        timestamp: now.toISOString(),
+        runtime: {
+          node: process.version,
+          platform: process.platform,
+          arch: process.arch,
+          pid: process.pid,
+          uptimeSec: Math.round(process.uptime()),
+          memory: {
+            rssMB: Math.round((memory.rss / 1024 / 1024) * 10) / 10,
+            heapUsedMB:
+              Math.round((memory.heapUsed / 1024 / 1024) * 10) / 10,
+            heapTotalMB:
+              Math.round((memory.heapTotal / 1024 / 1024) * 10) / 10,
+          },
+        },
+        env: {
+          nodeEnv: process.env.NODE_ENV || "development",
+          openaiKeyPresent,
+          gammaKeyPresent,
+          langsmithKeyPresent,
+          langsmithProjectPresent,
+          langsmithProject: process.env.LANGSMITH_PROJECT || null,
+          langchainTracingV2,
+          langchainProject:
+            process.env.LANGCHAIN_PROJECT ||
+            (langsmithEnabled ? process.env.LANGSMITH_PROJECT : null) ||
+            null,
+        },
+        monitoring: {
+          langsmithEnabled,
+        },
+        alerts,
+      });
+    } catch (error) {
+      console.error("Ops status API error:", error);
+      res.status(500).json({ error: "Failed to fetch ops status" });
+    }
+  });
+
   app.post("/api/admin/invites", async (req, res) => {
     try {
       const inviteData = insertInviteSchema.parse(req.body);

@@ -21,6 +21,9 @@ import {
   Building2,
   RefreshCw,
   Upload,
+  Activity,
+  KeyRound,
+  AlertTriangle,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +37,40 @@ type DashboardStats = {
   activeUsers: number;
   totalLessons: number;
   completions: { month: string; completed: number }[];
+};
+
+type OpsStatus = {
+  timestamp: string;
+  runtime: {
+    node: string;
+    platform: string;
+    arch: string;
+    pid: number;
+    uptimeSec: number;
+    memory: {
+      rssMB: number;
+      heapUsedMB: number;
+      heapTotalMB: number;
+    };
+  };
+  env: {
+    nodeEnv: string;
+    openaiKeyPresent: boolean;
+    gammaKeyPresent: boolean;
+    langsmithKeyPresent: boolean;
+    langsmithProjectPresent: boolean;
+    langsmithProject: string | null;
+    langchainTracingV2: boolean;
+    langchainProject: string | null;
+  };
+  monitoring: {
+    langsmithEnabled: boolean;
+  };
+  alerts: Array<{
+    level: "info" | "warning" | "error";
+    code: string;
+    message: string;
+  }>;
 };
 
 interface User {
@@ -94,6 +131,27 @@ export default function AdminDashboard() {
 
   const { data: stats } = useQuery<DashboardStats>({
     queryKey: ["/api/admin/stats"],
+  });
+
+  const {
+    data: opsStatus,
+    isLoading: opsLoading,
+    error: opsError,
+  } = useQuery<OpsStatus>({
+    queryKey: ["/api/admin/ops-status"],
+    queryFn: async () => {
+      const email = "lalabalavu.jon@gmail.com";
+      localStorage.setItem("userEmail", email);
+      const response = await fetch(
+        `/api/admin/ops-status?email=${encodeURIComponent(email)}`
+      );
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch ops status");
+      }
+      return response.json();
+    },
+    refetchInterval: 30_000,
   });
 
   // Fetch tracks for Content Management (admin: get all tracks including unpublished)
@@ -280,6 +338,162 @@ export default function AdminDashboard() {
             data-testid="stat-completions"
           />
         </div>
+
+        {/* Ops Monitoring - SUPER_ADMIN only */}
+        {isSuperAdmin && (
+          <PageSection
+            title="Ops Monitoring"
+            description="LangChain/LangSmith status, key availability, and backend runtime signals"
+            actions={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  queryClient.invalidateQueries({
+                    queryKey: ["/api/admin/ops-status"],
+                  })
+                }
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            }
+          >
+            {opsLoading ? (
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <LoadingSpinner size="sm" />
+                Loading ops status…
+              </div>
+            ) : opsError ? (
+              <div className="text-sm text-destructive">
+                Failed to load ops status:{" "}
+                {opsError instanceof Error ? opsError.message : "Unknown error"}
+              </div>
+            ) : !opsStatus ? (
+              <EmptyState
+                icon={Activity}
+                title="No ops data"
+                description="Ops status is unavailable right now."
+              />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="font-semibold">API Keys</div>
+                    <KeyRound className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span>OpenAI</span>
+                      <Badge
+                        variant={opsStatus.env.openaiKeyPresent ? "default" : "destructive"}
+                      >
+                        {opsStatus.env.openaiKeyPresent ? "Present" : "Missing"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Gamma</span>
+                      <Badge
+                        variant={opsStatus.env.gammaKeyPresent ? "default" : "destructive"}
+                      >
+                        {opsStatus.env.gammaKeyPresent ? "Present" : "Missing"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>LangSmith</span>
+                      <Badge
+                        variant={
+                          opsStatus.monitoring.langsmithEnabled ? "default" : "secondary"
+                        }
+                      >
+                        {opsStatus.monitoring.langsmithEnabled ? "Enabled" : "Disabled"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xs text-muted-foreground">
+                    Updated {new Date(opsStatus.timestamp).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="font-semibold">Tracing & Runtime</div>
+                    <Activity className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span>LangChain Tracing v2</span>
+                      <Badge
+                        variant={opsStatus.env.langchainTracingV2 ? "default" : "secondary"}
+                      >
+                        {opsStatus.env.langchainTracingV2 ? "On" : "Off"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Project</span>
+                      <span className="text-muted-foreground truncate max-w-[180px]">
+                        {opsStatus.env.langchainProject || "—"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Uptime</span>
+                      <span className="text-muted-foreground">
+                        {opsStatus.runtime.uptimeSec}s
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Memory (RSS)</span>
+                      <span className="text-muted-foreground">
+                        {opsStatus.runtime.memory.rssMB} MB
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Env</span>
+                      <span className="text-muted-foreground">{opsStatus.env.nodeEnv}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="font-semibold">Alerts</div>
+                    <AlertTriangle className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  {opsStatus.alerts.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">
+                      No alerts reported.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {opsStatus.alerts.slice(0, 6).map((a) => (
+                        <div
+                          key={a.code}
+                          className="rounded-md border px-3 py-2 text-sm"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="font-medium">{a.code}</span>
+                            <Badge
+                              variant={
+                                a.level === "error"
+                                  ? "destructive"
+                                  : a.level === "warning"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                            >
+                              {a.level}
+                            </Badge>
+                          </div>
+                          <div className="mt-1 text-muted-foreground">{a.message}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </PageSection>
+        )}
 
         {/* Invites Management */}
         <PageSection
