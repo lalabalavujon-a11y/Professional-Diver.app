@@ -12,7 +12,7 @@
     "dev:api:workaround": "NODE_ENV=development PORT=5000 node server/index.js",
     "dev:api:tsnode": "NODE_ENV=development PORT=5000 NODE_OPTIONS='--loader ts-node/esm' node --loader ts-node/esm server/index.ts",
     "dev:api:swc": "NODE_ENV=development PORT=5000 node --loader @swc-node/register/esm server/index.ts",
-    "dev:web": "vite --host 127.0.0.1 --port 3000 --strictPort",
+    "dev:web": "vite --host 0.0.0.0 --port 3000 --strictPort",
     "dev:all": "npm-run-all -p dev:api dev:web",
     "build": "vite build",
     "start": "cross-env NODE_ENV=production HOST=0.0.0.0 tsx server/index.ts",

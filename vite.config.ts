@@ -37,7 +37,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    host: '127.0.0.1',
+    host: true,
     port: 3000,
     strictPort: true,
     proxy: {
