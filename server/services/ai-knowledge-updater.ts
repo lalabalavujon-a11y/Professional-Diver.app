@@ -11,7 +11,7 @@
  * @date 2025
  */
 
-import ContentSyncService, { ContentChange } from './content-sync-service';
+import contentSyncInstance, { ContentChange, ContentSyncService } from './content-sync-service';
 import { LauraOracleService } from '../laura-oracle-service';
 import { DiverWellService } from '../diver-well-service';
 
@@ -30,7 +30,7 @@ export class AIKnowledgeUpdater {
   private isUpdating = false;
 
   private constructor() {
-    this.contentSync = ContentSyncService.getInstance();
+    this.contentSync = contentSyncInstance;
     this.setupChangeListener();
   }
 
