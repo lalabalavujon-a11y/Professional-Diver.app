@@ -21,6 +21,7 @@ import {
 import { Link } from "wouter";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import AffiliatePaymentMethod from "@/components/affiliate-payment-method";
+import BackButton from "@/components/ui/back-button";
 
 interface DashboardData {
   stats: {
@@ -135,6 +136,11 @@ export default function AffiliateDashboard() {
       <RoleBasedNavigation />
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton fallbackRoute="/dashboard" label="Back to Dashboard" />
+        </div>
+        
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
@@ -279,7 +285,7 @@ export default function AffiliateDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(leaderboard || []).slice(0, 10).map((partner: any, index: number) => (
+                {(leaderboard || []).slice(0, 10).map((partner: { affiliateCode: string; name: string; earnings: number }, index: number) => (
                   <div key={partner.affiliateCode} className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
@@ -335,7 +341,7 @@ export default function AffiliateDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {recentReferrals.map((referral: any) => (
+                      {recentReferrals.map((referral) => (
                         <TableRow key={referral.id}>
                           <TableCell>
                             {new Date(referral.createdAt).toLocaleDateString()}
@@ -385,7 +391,7 @@ export default function AffiliateDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {recentClicks.map((click: any) => (
+                      {recentClicks.map((click: DashboardData["recentClicks"][0]) => (
                         <TableRow key={click.id}>
                           <TableCell>
                             {new Date(click.createdAt).toLocaleDateString()}

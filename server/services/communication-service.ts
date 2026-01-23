@@ -149,6 +149,13 @@ export class CommunicationService {
    * Log phone call
    */
   async logPhoneCall(data: {
+    clientId: string;
+    to: string;
+    subject: string;
+    content: string;
+    htmlContent?: string;
+    createdBy?: string;
+  }): Promise<any> {
     let communication;
     let emailSent = false;
 
@@ -236,11 +243,7 @@ export class CommunicationService {
       }
 
       throw new Error(`Failed to send email: ${errorMessage}`);
-      metadata: {
-        phoneNumber: data.phoneNumber,
-      },
-      createdBy: data.createdBy,
-    });
+    }
   }
 
   /**
@@ -290,6 +293,29 @@ export class CommunicationService {
    */
   async getCommunicationStats(clientId: string): Promise<{
     total: number;
+    byType: Record<string, number>;
+    byDirection: Record<string, number>;
+    lastCommunication?: Date;
+  }> {
+    const all = await this.getClientCommunications(clientId);
+    
+    const byType: Record<string, number> = {};
+    const byDirection: Record<string, number> = {};
+    
+    all.forEach((comm) => {
+      byType[comm.type] = (byType[comm.type] || 0) + 1;
+      byDirection[comm.direction] = (byDirection[comm.direction] || 0) + 1;
+    });
+
+    return {
+      total: all.length,
+      byType,
+      byDirection,
+      lastCommunication: all.length > 0 ? new Date(all[0].createdAt) : undefined,
+    };
+  }
+
+  /**
    * Send WhatsApp message and log it
    */
   async sendWhatsApp(data: {
@@ -391,25 +417,24 @@ export class CommunicationService {
 
   /**
    * Log WhatsApp message (for inbound messages)
-    byDirection: Record<string, number>;
-    lastCommunication?: Date;
-  }> {
-    const all = await this.getClientCommunications(clientId);
-    
-    const byType: Record<string, number> = {};
-    const byDirection: Record<string, number> = {};
-    
-    all.forEach((comm) => {
-      byType[comm.type] = (byType[comm.type] || 0) + 1;
-      byDirection[comm.direction] = (byDirection[comm.direction] || 0) + 1;
+   */
+  async logInboundWhatsApp(data: {
+    clientId: string;
+    from: string; // Phone number
+    content: string;
+    messageId?: string;
+  }): Promise<any> {
+    return await this.logCommunication({
+      clientId: data.clientId,
+      type: "whatsapp",
+      direction: "inbound",
+      content: data.content,
+      status: "delivered",
+      metadata: {
+        from: data.from,
+        messageId: data.messageId,
+      },
     });
-
-    return {
-      total: all.length,
-      byType,
-      byDirection,
-      lastCommunication: all.length > 0 ? new Date(all[0].createdAt) : undefined,
-    };
   }
 }
 

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Clock, FileText, Mic, Brain, BarChart3, Award, CheckCircle, Play, Timer, Volume2 } from "lucide-react";
 import { Link } from "wouter";
+import BackButton from "@/components/ui/back-button";
 
 interface ExamTrack {
   id: string;
@@ -162,6 +163,23 @@ const professionalExamTracks: ExamTrack[] = [
     srsBestScore: null,
     fullExamBestScore: null,
     hasVoiceQuestions: true
+  },
+  {
+    id: "client-representative",
+    title: "Client Representative",
+    slug: "client-representative",
+    description: "Comprehensive brand-neutral training covering all aspects of offshore project assurance, regulatory compliance, diving operations, risk management, and contract administration. 52 modules with 300+ questions.",
+    difficulty: 'Intermediate',
+    srsQuestions: 15,
+    fullExamQuestions: 199, // Actual: 199 questions (185 MCQs + 14 short-answer) from 52 modules
+    srsTimeLimit: 30,
+    fullExamTimeLimit: 90, // 90 minutes for full exam (75% passing score, 65% per component)
+    passingScore: 75, // Updated to 75% overall as per assessment blueprint
+    srsAttempts: 0,
+    fullExamAttempts: 0,
+    srsBestScore: null,
+    fullExamBestScore: null,
+    hasVoiceQuestions: true // Enable voice dictation for short-answer questions
   }
 ];
 
@@ -220,6 +238,11 @@ export default function ProfessionalExams() {
       <RoleBasedNavigation />
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton fallbackRoute="/dashboard" label="Back to Dashboard" />
+        </div>
+        
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2" data-testid="text-exams-title">

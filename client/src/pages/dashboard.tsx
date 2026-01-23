@@ -4,8 +4,9 @@ import UserStatusBadge from "@/components/user-status-badge";
 import WidgetBar from "@/components/widgets/widget-bar";
 import { PageHeader, PageSection, StatCard } from "@/components/ui/page-header";
 import { LoadingSpinner } from "@/components/ui/loading-states";
-import { CheckCircle, AlertTriangle, Flame, BookOpen, BarChart3, Award, FileText } from "lucide-react";
+import { CheckCircle, AlertTriangle, BookOpen, BarChart3, Award, FileText } from "lucide-react";
 import { Link } from "wouter";
+import BackButton from "@/components/ui/back-button";
 
 interface UserProgressData {
   lessonProgress: Array<{
@@ -99,6 +100,11 @@ export default function Dashboard() {
       <RoleBasedNavigation />
       <div className="min-h-screen bg-background" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton fallbackRoute="/" label="Back to Home" />
+        </div>
+        
         {/* User Status Badge */}
         <div className="mb-6">
           <UserStatusBadge 

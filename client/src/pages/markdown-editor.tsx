@@ -171,6 +171,11 @@ Happy writing! 🚀`);
       <RoleBasedNavigation />
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton fallbackRoute="/admin" label="Back to Admin" />
+        </div>
+        
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -280,6 +285,11 @@ Happy writing! 🚀`);
             </div>
           </CardContent>
         </Card>
+
+        {/* AI Tutor - Diver Well */}
+        <div className="mt-8">
+          <AITutor trackSlug="content-editor" />
+        </div>
         </main>
       </div>
     </>

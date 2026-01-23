@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRoute, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Timer, Mic, MicOff, Volume2, ChevronLeft, ChevronRight, Clock, Brain, FileText, ArrowLeft } from "lucide-react";
+import { Timer, Mic, MicOff, Volume2, ChevronLeft, ChevronRight, Clock, Brain, FileText } from "lucide-react";
 import RoleBasedNavigation from "@/components/role-based-navigation";
+import BackButton from "@/components/ui/back-button";
 import { apiRequest } from "@/lib/queryClient";
 // Import comprehensive exam questions for SRS (Spaced Repetition System)
 // @ts-ignore - Content file import
@@ -73,10 +74,46 @@ const expandQuestionsToCount = (questions: ExamQuestion[], targetCount: number):
   return expanded.slice(0, targetCount);
 };
 
+// Function to fetch questions from database for Client Representative
+const fetchClientRepresentativeQuestions = async (): Promise<ExamQuestion[]> => {
+  try {
+    const response = await fetch('/api/exams/client-representative/questions');
+    if (!response.ok) {
+      console.error('Failed to fetch Client Representative questions');
+      return [];
+    }
+    const data = await response.json();
+    return data.questions || [];
+  } catch (error) {
+    console.error('Error fetching Client Representative questions:', error);
+    return [];
+  }
+};
+
 // SRS Algorithm: Select questions based on spaced repetition principles
-const getQuestionsForExam = (slug: string, isSRS: boolean = false): ExamQuestion[] => {
+const getQuestionsForExam = async (slug: string, isSRS: boolean = false): Promise<ExamQuestion[]> => {
   console.log('Getting questions for slug:', slug, 'isSRS:', isSRS);
   console.log('Available exam questions keys:', Object.keys(examQuestions));
+  
+  // Handle Client Representative which fetches from database
+  if (slug === 'client-representative') {
+    const dbQuestions = await fetchClientRepresentativeQuestions();
+    if (dbQuestions.length === 0) {
+      console.warn(`No questions found for Client Representative exam`);
+      return [];
+    }
+    
+    if (isSRS) {
+      // SRS Test: Return exactly 15 questions
+      const srsQuestions = expandQuestionsToCount(dbQuestions, 15);
+      console.log('SRS: Returning 15 questions for SRS test:', srsQuestions.length);
+      return srsQuestions;
+    } else {
+      // Full Exam: Return all available questions
+      console.log('Full Exam: Returning all available questions:', dbQuestions.length);
+      return dbQuestions;
+    }
+  }
   
   const allQuestions = examQuestions[slug as keyof typeof examQuestions];
   if (!allQuestions) {
@@ -121,7 +158,8 @@ export default function ExamInterface() {
         'underwater-welding': 1500,    // 25 minutes
         'hyperbaric-operations': 1500, // 25 minutes
         'alst': 1800,                  // 30 minutes
-        'lst': 1500                    // 25 minutes
+        'lst': 1500,                   // 25 minutes
+        'client-representative': 1800  // 30 minutes (SRS test)
       };
       return srsTimeLimits[slug] || 1800; // Default to 30 minutes
     } else {
@@ -134,10 +172,27 @@ export default function ExamInterface() {
         'underwater-welding': 6000,       // 100 minutes
         'hyperbaric-operations': 5400,    // 90 minutes
         'alst': 7200,                     // 120 minutes
-        'lst': 6000                       // 100 minutes
+        'lst': 6000,                      // 100 minutes
+        'client-representative': 5400    // 90 minutes (full exam: 75% passing, 65% per component)
       };
       return fullExamTimeLimits[slug] || 5400; // Default to 90 minutes
     }
+  };
+
+  // Get passing score for exam (percentage)
+  const getPassingScore = (slug: string): number => {
+    const passingScores: Record<string, number> = {
+      'ndt-inspection': 80,
+      'diver-medic': 80,
+      'commercial-supervisor': 80,
+      'saturation-diving': 80,
+      'underwater-welding': 80,
+      'hyperbaric-operations': 80,
+      'alst': 80,
+      'lst': 80,
+      'client-representative': 75, // 75% overall, 65% per component per assessment blueprint
+    };
+    return passingScores[slug] || 80;
   };
 
   // Get questions based on exam slug (for both start and results views)
@@ -148,8 +203,9 @@ export default function ExamInterface() {
   
   useEffect(() => {
     if (currentSlug) {
-      const examQuestions = getQuestionsForExam(currentSlug, isSRS);
-      setQuestions(examQuestions);
+      getQuestionsForExam(currentSlug, isSRS).then(examQuestions => {
+        setQuestions(examQuestions);
+      });
     } else {
       setQuestions([]);
     }
@@ -172,7 +228,8 @@ export default function ExamInterface() {
       'underwater-welding': 'Advanced Underwater Welding Practice Test',
       'hyperbaric-operations': 'Hyperbaric Chamber Operations Practice Test',
       'alst': 'Assistant Life Support Technician Practice Test',
-      'lst': 'Life Support Technician (LST) Practice Test'
+      'lst': 'Life Support Technician (LST) Practice Test',
+      'client-representative': 'Client Representative Practice Test'
     };
     return titles[slug] || 'Professional Diving Practice Test';
   };
@@ -182,10 +239,10 @@ export default function ExamInterface() {
     if (timeRemaining > 0 && !examSubmitted) {
       const timer = setTimeout(() => setTimeRemaining(timeRemaining - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (timeRemaining === 0) {
+    } else if (timeRemaining === 0 && !examSubmitted) {
       handleSubmitExam();
     }
-  }, [timeRemaining, examSubmitted]);
+  }, [timeRemaining, examSubmitted, handleSubmitExam]);
 
   // Handle case when no questions are found
   if ((match || resultsMatch) && totalQuestions === 0) {
@@ -241,7 +298,48 @@ export default function ExamInterface() {
     if (!isRecording) {
       // Start voice recording
       if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        interface SpeechRecognitionConstructor {
+          new (): SpeechRecognition;
+        }
+        interface SpeechRecognition extends EventTarget {
+          continuous: boolean;
+          interimResults: boolean;
+          lang: string;
+          start(): void;
+          stop(): void;
+          onstart: (() => void) | null;
+          onresult: ((event: SpeechRecognitionEvent) => void) | null;
+          onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+          onend: (() => void) | null;
+        }
+        interface SpeechRecognitionEvent extends Event {
+          resultIndex: number;
+          results: SpeechRecognitionResultList;
+        }
+        interface SpeechRecognitionErrorEvent extends Event {
+          error: string;
+        }
+        interface SpeechRecognitionResultList {
+          length: number;
+          [index: number]: SpeechRecognitionResult;
+        }
+        interface SpeechRecognitionResult {
+          isFinal: boolean;
+          [index: number]: SpeechRecognitionAlternative;
+        }
+        interface SpeechRecognitionAlternative {
+          transcript: string;
+          confidence: number;
+        }
+        
+        const SpeechRecognition = ((window as typeof window & { SpeechRecognition?: SpeechRecognitionConstructor; webkitSpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition || 
+          (window as typeof window & { webkitSpeechRecognition?: SpeechRecognitionConstructor }).webkitSpeechRecognition) as SpeechRecognitionConstructor | undefined;
+        
+        if (!SpeechRecognition) {
+          alert('Speech recognition is not supported in your browser.');
+          return;
+        }
+        
         const recognition = new SpeechRecognition();
         
         recognition.continuous = true;
@@ -252,7 +350,7 @@ export default function ExamInterface() {
           setIsRecording(true);
         };
         
-        recognition.onresult = (event: any) => {
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
           let finalTranscript = '';
           let interimTranscript = '';
           
@@ -275,7 +373,7 @@ export default function ExamInterface() {
           }
         };
         
-        recognition.onerror = (event: any) => {
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
           console.error('Speech recognition error:', event.error);
           setIsRecording(false);
         };
@@ -294,7 +392,7 @@ export default function ExamInterface() {
     }
   };
 
-  const handleSubmitExam = async () => {
+  const handleSubmitExam = useCallback(async () => {
     setExamSubmitted(true);
     setShowExplanations(true);
 
@@ -304,8 +402,18 @@ export default function ExamInterface() {
       const totalGradable = gradableQuestions.length;
       const correct = gradableQuestions.reduce((sum, q) => {
         const userAnswer = answers[q.id];
-        return userAnswer && userAnswer === q.correctAnswer ? sum + 1 : sum;
+        // For short-answer questions, we can't auto-grade, so skip them for auto-grading
+        if (q.type === 'WRITTEN') {
+          return sum; // Don't auto-grade written/short-answer questions
+        }
+        return userAnswer && userAnswer.toLowerCase().trim() === q.correctAnswer?.toLowerCase().trim() ? sum + 1 : sum;
       }, 0);
+
+      const percentage = totalGradable > 0 ? Math.round((correct / totalGradable) * 100) : 0;
+      const passingScore = currentSlug ? getPassingScore(currentSlug) : 80;
+      const passed = percentage >= passingScore;
+
+      console.log(`Exam Results: ${correct}/${totalGradable} = ${percentage}% (Passing: ${passingScore}%, ${passed ? 'PASSED' : 'FAILED'})`);
 
       if (currentSlug) {
         await apiRequest("POST", "/api/exam-attempts", {
@@ -313,6 +421,9 @@ export default function ExamInterface() {
           examSlug: currentSlug,
           score: correct,
           totalQuestions: totalGradable,
+          percentage: percentage,
+          passed: passed,
+          passingScore: passingScore,
           answers: JSON.stringify(answers),
         });
       }
@@ -343,16 +454,11 @@ export default function ExamInterface() {
         {/* Exam Header */}
         <div className="mb-6">
           <div className="mb-4">
-            <Link href="/dashboard">
-              <Button 
-                variant="ghost" 
-                className="mb-4 text-slate-600 hover:text-slate-900"
-                data-testid="button-back-to-exams"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Professional Exams
-              </Button>
-            </Link>
+            <BackButton 
+              fallbackRoute="/exams"
+              label="Back to Professional Exams"
+              className="mb-4"
+            />
           </div>
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -555,16 +661,59 @@ export default function ExamInterface() {
         ) : (
           /* Results Interface */
           <div className="space-y-6">
-            <Card className="bg-green-50 border-green-200">
-              <CardHeader>
-                <CardTitle className="text-green-800">Practice Test Completed Successfully</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-green-700">
-                  Your practice test has been completed. Review the detailed explanations below to prepare for your certification exam.
-                </p>
-              </CardContent>
-            </Card>
+            {(() => {
+              // Calculate score for display
+              const gradableQuestions = questions.filter((q) => typeof q.correctAnswer === "string" && q.correctAnswer.length > 0 && q.type !== 'WRITTEN');
+              const totalGradable = gradableQuestions.length;
+              const correct = gradableQuestions.reduce((sum, q) => {
+                const userAnswer = answers[q.id];
+                return userAnswer && userAnswer.toLowerCase().trim() === q.correctAnswer?.toLowerCase().trim() ? sum + 1 : sum;
+              }, 0);
+              const percentage = totalGradable > 0 ? Math.round((correct / totalGradable) * 100) : 0;
+              const passingScore = currentSlug ? getPassingScore(currentSlug) : 75;
+              const passed = percentage >= passingScore;
+              
+              return (
+                <Card className={passed ? "bg-green-50 border-green-200" : "bg-orange-50 border-orange-200"}>
+                  <CardHeader>
+                    <CardTitle className={passed ? "text-green-800" : "text-orange-800"}>
+                      Practice Test Completed {passed ? 'Successfully' : '— Review Required'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-700 font-medium">Score:</span>
+                        <span className={`text-2xl font-bold ${passed ? 'text-green-700' : 'text-orange-700'}`}>
+                          {percentage}%
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-700 font-medium">Correct Answers:</span>
+                        <span className="text-slate-900 font-semibold">{correct} / {totalGradable}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-700 font-medium">Passing Score:</span>
+                        <span className="text-slate-900 font-semibold">{passingScore}%</span>
+                      </div>
+                      {currentSlug === 'client-representative' && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+                          <p className="text-sm text-blue-800">
+                            <strong>Note:</strong> Client Representative exam requires 75% overall and ≥65% in each component (MCQ, Short Answer, Scenarios).
+                          </p>
+                        </div>
+                      )}
+                      <p className={`mt-4 ${passed ? 'text-green-700' : 'text-orange-700'}`}>
+                        {passed 
+                          ? 'Congratulations! You have passed this practice test. Review the detailed explanations below to reinforce your understanding.'
+                          : `You scored ${percentage}%, which is below the required ${passingScore}%. Review the explanations below and retake the test to improve your score.`
+                        }
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* Question Review with AI Explanations */}
             <div className="space-y-4">

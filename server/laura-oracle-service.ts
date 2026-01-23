@@ -1750,6 +1750,68 @@ Return the subsections in a structured format. Each subsection should be clear a
       return [];
     }
   }
+
+  /**
+   * Update Laura's knowledge with new content and features
+   * Called automatically by AIKnowledgeUpdater when content changes
+   */
+  async updateKnowledge(contentSummary: {
+    tracks: Array<{ id: string; title: string; slug: string; summary: string | null }>;
+    lessons: Array<{ id: string; title: string; trackId: string }>;
+    quizzes: Array<{ id: string; title: string; lessonId: string }>;
+    lastUpdated: Date;
+  }, features?: string[], apiEndpoints?: string[]): Promise<void> {
+    // Rebuild system prompt with updated content
+    const contentSection = this.buildContentSection(contentSummary, features, apiEndpoints);
+    const basePrompt = buildComprehensiveSystemPrompt();
+    this.config.systemPrompt = basePrompt + contentSection;
+    
+    console.log(`[LauraOracleService] Knowledge updated with ${contentSummary.tracks.length} tracks, ${contentSummary.lessons.length} lessons`);
+  }
+
+  /**
+   * Build content section for system prompt
+   */
+  private buildContentSection(
+    contentSummary: any,
+    features?: string[],
+    apiEndpoints?: string[]
+  ): string {
+    let section = '\n\nCURRENT PLATFORM CONTENT:\n\n';
+    
+    section += `TRACKS (${contentSummary.tracks.length} total):\n`;
+    contentSummary.tracks.forEach((track: any) => {
+      section += `- ${track.title} (${track.slug}): ${track.summary || 'No summary'}\n`;
+    });
+    
+    section += `\nLESSONS (${contentSummary.lessons.length} total):\n`;
+    contentSummary.lessons.forEach((lesson: any) => {
+      section += `- ${lesson.title} (Track: ${lesson.trackId})\n`;
+    });
+    
+    section += `\nQUIZZES (${contentSummary.quizzes.length} total):\n`;
+    contentSummary.quizzes.forEach((quiz: any) => {
+      section += `- ${quiz.title} (Lesson: ${quiz.lessonId})\n`;
+    });
+    
+    if (features && features.length > 0) {
+      section += `\n\nNEW FEATURES:\n`;
+      features.forEach(feature => {
+        section += `- ${feature}\n`;
+      });
+    }
+    
+    if (apiEndpoints && apiEndpoints.length > 0) {
+      section += `\n\nNEW API ENDPOINTS:\n`;
+      apiEndpoints.forEach(endpoint => {
+        section += `- ${endpoint}\n`;
+      });
+    }
+    
+    section += `\nLast Updated: ${contentSummary.lastUpdated.toISOString()}\n`;
+    
+    return section;
+  }
 }
 
 // Export singleton instance

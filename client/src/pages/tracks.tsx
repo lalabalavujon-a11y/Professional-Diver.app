@@ -13,6 +13,9 @@ interface Track {
   slug: string;
   summary: string | null;
   isPublished: boolean;
+  difficulty?: string;
+  estimatedHours?: number;
+  lessonCount?: number;
   createdAt: string;
   aiTutor: {
     id: string;
@@ -153,21 +156,38 @@ export default function Tracks() {
 
   // Use API data if available, otherwise fall back to mock data
   const tracks = apiTracks && apiTracks.length > 0 ? 
-    apiTracks.map(track => ({
-      id: track.id,
-      title: track.title,
-      slug: track.slug,
-      summary: track.summary || "Professional diving training course",
-      description: track.summary || "Professional diving training course",
-      level: "Intermediate", // Default level
-      duration: "8 weeks",
-      lessons: 12,
-      students: Math.floor(Math.random() * 2000) + 500,
-      progress: Math.floor(Math.random() * 100),
-      completed: false,
-      category: "Professional Training",
-      aiTutor: track.aiTutor
-    })) : mockTracks.map(track => ({
+    apiTracks.map(track => {
+      // Map difficulty to level
+      const difficultyMap: { [key: string]: string } = {
+        'beginner': 'Beginner',
+        'intermediate': 'Intermediate',
+        'advanced': 'Advanced',
+        'expert': 'Expert'
+      };
+      const level = difficultyMap[track.difficulty || 'intermediate'] || 'Intermediate';
+      
+      // Calculate duration from estimated hours (assuming 2-3 hours per week)
+      const estimatedWeeks = track.estimatedHours 
+        ? Math.ceil(track.estimatedHours / 2.5) 
+        : 8;
+      const duration = `${estimatedWeeks} weeks`;
+      
+      return {
+        id: track.id,
+        title: track.title,
+        slug: track.slug,
+        summary: track.summary || "Professional diving training course",
+        description: track.summary || "Professional diving training course",
+        level: level,
+        duration: duration,
+        lessons: track.lessonCount || 0,
+        students: Math.floor(Math.random() * 2000) + 500,
+        progress: Math.floor(Math.random() * 100),
+        completed: false,
+        category: "Professional Training",
+        aiTutor: track.aiTutor
+      };
+    }) : mockTracks.map(track => ({
       ...track,
       aiTutor: undefined
     }));

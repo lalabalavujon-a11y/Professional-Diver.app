@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useGenerationNotifications } from "@/hooks/use-generation-notifications";
-import { ChevronLeft, Save, Eye, Hash, Link, Bold, Italic, Upload, X, Volume2, ExternalLink, FileText, UploadCloud, RefreshCw } from "lucide-react";
+import { Save, Eye, Hash, Link, Bold, Italic, Upload, X, Volume2, ExternalLink, FileText, UploadCloud, RefreshCw } from "lucide-react";
 import { Link as RouterLink } from "wouter";
 import EnhancedMarkdownEditor from "@/components/enhanced-markdown-editor";
 import type { Lesson, Track, ContentGenerationLog } from "@shared/schema";
@@ -159,15 +159,15 @@ export default function AdminLessonEditor() {
       setOrder(lesson.order || 1);
       setContent(lesson.content || "");
       setTrackId(lesson.trackId || "");
-      setPodcastUrl((lesson as any).podcastUrl || null);
-      setPodcastDuration((lesson as any).podcastDuration || undefined);
-      setNotebookLmUrl((lesson as any).notebookLmUrl || null);
-      setPdfUrl((lesson as any).pdfUrl || null);
+      setPodcastUrl(lesson.podcastUrl || null);
+      setPodcastDuration(lesson.podcastDuration || undefined);
+      setNotebookLmUrl(lesson.notebookLmUrl || null);
+      setPdfUrl(lesson.pdfUrl || null);
     }
   }, [lesson]);
 
   const updateLessonMutation = useMutation({
-    mutationFn: async (lessonData: any) => {
+    mutationFn: async (lessonData: Partial<Lesson>) => {
       console.log('Saving lesson data:', lessonData);
       return apiRequest("PATCH", `/api/lessons/${params?.id}`, lessonData);
     },
@@ -178,12 +178,19 @@ export default function AdminLessonEditor() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/lessons", params?.id] });
     },
-    onError: (error: any) => {
+    onError: (error: Error | unknown) => {
       console.error('Save error:', error);
-      const errorMessage = error?.error || error?.message || error?.details || "Failed to update lesson. Please try again.";
+      let errorMessage = "Failed to update lesson. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        if ('error' in error) errorMessage = String(error.error);
+        else if ('message' in error) errorMessage = String(error.message);
+        else if ('details' in error) errorMessage = String(error.details);
+      }
       toast({
         title: "Error",
-        description: typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage),
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -210,7 +217,7 @@ export default function AdminLessonEditor() {
         description: "The PDF has been generated and saved to the lesson.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error | unknown) => {
       console.error('PDF generation error:', error);
       setPdfGenerationProgress(null);
       const errorMessage = error?.error || error?.message || error?.details || "Failed to generate PDF. Please try again.";
@@ -253,10 +260,17 @@ export default function AdminLessonEditor() {
         description: `The podcast has been generated from PDF content${newDuration ? ` (${Math.round(newDuration / 60)} minutes)` : ''} and saved to the lesson.`,
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error | unknown) => {
       console.error('Podcast generation error:', error);
       setPodcastGenerationProgress(null);
-      const errorMessage = error?.error || error?.message || error?.details || "Failed to generate podcast. Please try again.";
+      let errorMessage = "Failed to generate podcast. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        if ('error' in error) errorMessage = String(error.error);
+        else if ('message' in error) errorMessage = String(error.message);
+        else if ('details' in error) errorMessage = String(error.details);
+      }
       setPodcastGenerationError(errorMessage);
       toast({
         title: "Podcast Generation Failed",
@@ -498,14 +512,18 @@ export default function AdminLessonEditor() {
         title: "Podcast Uploaded!",
         description: "The podcast file has been uploaded successfully.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Podcast Upload error:', error);
       // Extract error message from response if available
       let errorMessage = 'Failed to upload podcast. Please try again.';
-      if (error.message) {
+      if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (error.error) {
-        errorMessage = error.error;
+      } else if (typeof error === 'object' && error !== null) {
+        if ('message' in error) {
+          errorMessage = String(error.message);
+        } else if ('error' in error) {
+          errorMessage = String(error.error);
+        }
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
@@ -625,7 +643,7 @@ export default function AdminLessonEditor() {
           description: "The PDF file has been uploaded successfully. Remember to save the lesson.",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('PDF Upload error:', error);
       // Extract error message from response if available
       let errorMessage = 'Failed to upload PDF. Please try again.';
@@ -713,11 +731,11 @@ export default function AdminLessonEditor() {
           <div className="border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <RouterLink href="/admin">
-                  <button className="text-slate-500 hover:text-slate-700" data-testid="button-back">
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                </RouterLink>
+                <BackButton 
+                  fallbackRoute="/admin"
+                  label=""
+                  className="text-slate-500 hover:text-slate-700 p-0"
+                />
                 <div>
                   <h2 className="text-xl font-semibold text-slate-900" data-testid="text-editor-title">
                     Edit Lesson: {title || lesson.title}

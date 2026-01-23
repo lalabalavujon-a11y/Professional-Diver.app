@@ -6,13 +6,13 @@ import { join } from 'path';
 import { homedir } from 'os';
 
 /**
- * Import Client Representative Course Content
+ * Import Client Representative Content
  * 
- * This script imports brand-neutral Client Representative course content
+ * This script imports brand-neutral Client Representative content
  * from the Downloads folder into the Professional Diver Training app.
  * 
  * Content includes:
- * - 1 track: Client Representative Course
+ * - 1 track: Client Representative
  * - 6 lessons (modules)
  * - 6 quizzes (assessments)
  * - 60 questions (10 per module)
@@ -95,7 +95,7 @@ function formatLessonContent(module: CourseModule): string {
 }
 
 async function importClientRepCourse() {
-  console.log('📚 Starting Client Representative Course import...\n');
+    console.log('📚 Starting Client Representative import...\n');
 
   try {
     // Read the JSON file from Downloads
@@ -127,7 +127,7 @@ async function importClientRepCourse() {
       // Update the track
       await db.update(tracks)
         .set({
-          title: 'Client Representative Course',
+          title: 'Client Representative',
           summary: 'Comprehensive brand-neutral training for Client Representatives covering lifting operations, hazardous substances control, confined spaces, daily progress reporting, SIMOPS matrices, and ISM code interface.',
           difficulty: 'intermediate',
           isPublished: true,
@@ -243,7 +243,7 @@ async function importClientRepCourse() {
 
     // Verification
     console.log('\n📊 Import Summary:');
-    console.log(`   Track: 1 (Client Representative Course)`);
+    console.log(`   Track: 1 (Client Representative)`);
     console.log(`   Lessons: ${totalLessons}`);
     console.log(`   Quizzes: ${totalQuizzes}`);
     console.log(`   Questions: ${totalQuestions}`);
@@ -275,7 +275,7 @@ async function importClientRepCourse() {
     }
 
   } catch (error: any) {
-    console.error('\n❌ Error importing Client Representative course:', error);
+    console.error('\n❌ Error importing Client Representative content:', error);
     if (error.code === 'ENOENT') {
       console.error(`   File not found. Please ensure the course JSON file exists at:`);
       console.error(`   ~/Downloads/cr_course_brand_neutral_export/cr_course_sample.json`);

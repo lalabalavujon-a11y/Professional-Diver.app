@@ -3,11 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Track, Lesson } from "@shared/schema";
+import BackButton from "@/components/ui/back-button";
+import AITutor from "@/components/ai-tutor";
 
 type TrackWithLessons = Track & { lessons: Lesson[] };
 
@@ -43,10 +45,11 @@ export default function TrackDetail() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/tracks", params?.slug] });
     },
-    onError: (error: any) => {
+    onError: (error: Error | unknown) => {
+      const errorMessage = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'error' in error ? String(error.error) : "Failed to start PDF regeneration");
       toast({
         title: "Regeneration Failed",
-        description: error?.error || error?.message || "Failed to start PDF regeneration",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -121,12 +124,9 @@ export default function TrackDetail() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50" data-sidebar-content="true">
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <Link href="/tracks">
-            <Button variant="ghost" className="mb-4" data-testid="button-back">
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Back to Tracks
-            </Button>
-          </Link>
+          <div className="mb-4">
+            <BackButton fallbackRoute="/tracks" label="Back to Tracks" />
+          </div>
           
           <h1 className="text-2xl font-bold text-slate-900" data-testid="text-track-title">
             {track.title}
@@ -168,7 +168,7 @@ export default function TrackDetail() {
               <h2 className="text-lg font-semibold text-slate-900">Lessons</h2>
             </div>
             <ul className="divide-y divide-gray-200">
-              {track.lessons.map((lesson: any, index: number) => (
+              {track.lessons.map((lesson: Lesson, index: number) => (
                 <li key={lesson.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -207,6 +207,11 @@ export default function TrackDetail() {
             </p>
           </div>
         )}
+
+        {/* AI Tutor - Diver Well */}
+        <div className="mt-8">
+          <AITutor trackSlug={params?.slug || ''} />
+        </div>
       </main>
     </div>
     </>

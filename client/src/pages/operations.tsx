@@ -64,6 +64,7 @@ import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_17560
 import RoleBasedNavigation from "@/components/role-based-navigation";
 import { useUnitsPreference } from "@/hooks/use-units-preference";
 import { formatDepthFromString } from "@/lib/units-converter";
+import BackButton from "@/components/ui/back-button";
 import OperationsCalendarWidget from "@/components/widgets/operations-calendar-widget";
 import EquipmentDashboard from "@/components/equipment/EquipmentDashboard";
 import EquipmentInventory from "@/components/equipment/EquipmentInventory";
@@ -597,18 +598,11 @@ export default function Operations() {
         {/* Main Content Area - Shows grid of cards or selected app */}
         {selectedApp ? (
           <div className="space-y-4">
-            <Button 
-              onClick={() => {
-                setSelectedApp(null);
-                // Update URL to remove app parameter
-                const newUrl = window.location.pathname;
-                window.history.pushState({}, '', newUrl);
-              }}
-              variant="outline"
+            <BackButton 
+              fallbackRoute="/operations"
+              label="Back to Operations Centre"
               className="mb-4"
-            >
-              ← Back to Operations Centre
-            </Button>
+            />
             <div ref={appContentRef}>
               {selectedApp === "calendar" ? (
                 <PageSection title="Operations Calendar">
@@ -626,6 +620,11 @@ export default function Operations() {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Back Button */}
+            <div className="mb-4">
+              <BackButton fallbackRoute="/dashboard" label="Back to Dashboard" />
+            </div>
+            
             <PageHeader
               title="Operations Centre"
               description="Professional operational management applications for diving professionals"

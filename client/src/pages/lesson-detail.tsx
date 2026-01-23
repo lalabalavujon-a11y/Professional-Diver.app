@@ -11,9 +11,15 @@ import { Link } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
 import type { Lesson } from "@shared/schema";
+import BackButton from "@/components/ui/back-button";
 
-// Extended lesson type that includes trackSlug
-type LessonWithTrackSlug = Lesson & { trackSlug?: string };
+// Extended lesson type that includes trackSlug and media URLs
+type LessonWithTrackSlug = Lesson & { 
+  trackSlug?: string;
+  pdfUrl?: string | null;
+  podcastUrl?: string | null;
+  podcastDuration?: number | null;
+};
 
 // Track outlines for each professional diving subject
 const TRACK_OUTLINES = {
@@ -180,8 +186,8 @@ export default function LessonDetail() {
     console.log('Back button clicked, lesson:', lesson);
     console.log('trackSlug:', lesson?.trackSlug);
     
-    // Check if trackSlug exists (could be in different formats)
-    const trackSlug = (lesson as any)?.trackSlug || lesson?.trackSlug;
+    // Check if trackSlug exists
+    const trackSlug = lesson?.trackSlug;
     
     if (trackSlug) {
       console.log('Navigating to track detail:', `/tracks/${trackSlug}`);
@@ -241,8 +247,8 @@ export default function LessonDetail() {
   }
 
   // Debug: Log media URLs to help diagnose display issues
-  const pdfUrl = (lesson as any).pdfUrl || null;
-  const podcastUrl = (lesson as any).podcastUrl || null;
+  const pdfUrl = lesson.pdfUrl || null;
+  const podcastUrl = lesson.podcastUrl || null;
   console.log('Lesson Media URLs:', { pdfUrl, podcastUrl, lessonId: lesson.id });
 
   return (
@@ -254,13 +260,11 @@ export default function LessonDetail() {
           <div className="border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <button 
-                  onClick={handleBackClick}
-                  className="text-slate-500 hover:text-slate-700" 
-                  data-testid="button-back"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
+                <BackButton 
+                  fallbackRoute={lesson?.trackSlug ? `/tracks/${lesson.trackSlug}` : "/tracks"}
+                  label=""
+                  className="text-slate-500 hover:text-slate-700 p-0"
+                />
                 <div>
                   <h2 className="text-xl font-semibold text-slate-900" data-testid="text-lesson-title">
                     {lesson.title}
@@ -290,14 +294,14 @@ export default function LessonDetail() {
               {podcastUrl && (
                 <PodcastPlayerCompact
                   podcastUrl={podcastUrl}
-                  podcastDuration={(lesson as any).podcastDuration || undefined}
+                  podcastDuration={lesson.podcastDuration || undefined}
                   lessonTitle={lesson.title}
                 />
               )}
               
               <EnhancedLessonContent 
                 content={lesson.content || "No content available."}
-                trackSlug={(lesson as any).trackSlug || 'ndt-inspection'}
+                trackSlug={lesson.trackSlug || 'ndt-inspection'}
                 lessonTitle={lesson.title}
                 pdfUrl={pdfUrl}
                 lessonId={lesson.id}
@@ -369,7 +373,7 @@ export default function LessonDetail() {
                   <div className="mb-6">
                     <h3 className="font-semibold text-slate-900 mb-3">Track Outline</h3>
                     <div className="space-y-2">
-                      {getTrackOutline((lesson as any)?.trackSlug || 'ndt-inspection').map((item, index) => (
+                      {getTrackOutline(lesson?.trackSlug || 'ndt-inspection').map((item, index) => (
                         <div key={index} className={`flex items-center p-2 rounded-lg cursor-pointer ${
                           index === 0 
                             ? 'bg-primary-50 border border-primary-200' 
@@ -389,7 +393,7 @@ export default function LessonDetail() {
                   <div>
                     <h3 className="font-semibold text-slate-900 mb-3">Resources</h3>
                     <div className="space-y-2">
-                      {getSubjectResources((lesson as any)?.trackSlug || 'ndt-inspection').map((resource, index) => (
+                      {getSubjectResources(lesson?.trackSlug || 'ndt-inspection').map((resource, index) => (
                         <a key={index} href="#" className="flex items-center p-2 text-primary-600 hover:bg-primary-50 rounded-lg" data-testid={`link-resource-${index}`}>
                           {resource.icon}
                           <span className="text-sm">{resource.title}</span>
@@ -404,13 +408,13 @@ export default function LessonDetail() {
         </section>
 
         {/* Practice Scenarios */}
-        <PracticeScenario trackSlug={(lesson as any).trackSlug || 'ndt-inspection'} />
+        <PracticeScenario trackSlug={lesson.trackSlug || 'ndt-inspection'} />
       </main>
 
       {/* AI Tutor - Sticky at Bottom */}
       <div className="sticky bottom-0 z-50 w-full bg-white border-t border-gray-200 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <AITutor trackSlug={(lesson as any).trackSlug || 'ndt-inspection'} lessonTitle={lesson.title} />
+          <AITutor trackSlug={lesson.trackSlug || 'ndt-inspection'} lessonTitle={lesson.title} />
         </div>
       </div>
     </div>
