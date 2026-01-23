@@ -17,25 +17,34 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
         run: |
-          set -e
-          # If Railway credentials are missing, fall back to a conservative wait
+          # Don't exit on error - we want to continue to cache purge regardless
+          set +e
+          
+          # If Railway credentials are missing, wait briefly and continue
           if [ -z "$RAILWAY_TOKEN" ] || [ -z "$RAILWAY_SERVICE_ID" ]; then
-            echo "⚠️ RAILWAY_TOKEN or RAILWAY_SERVICE_ID not set; waiting 180 seconds as fallback..."
-            sleep 180
+            echo "⚠️ RAILWAY_TOKEN or RAILWAY_SERVICE_ID not set; waiting 60 seconds..."
+            sleep 60
             exit 0
           fi
 
-          echo "⏳ Polling Railway for latest deployment status..."
-          MAX_ATTEMPTS=30
+          echo "⏳ Polling Railway for deployment status..."
+          MAX_ATTEMPTS=12
           SLEEP_SECONDS=10
 
           for i in $(seq 1 $MAX_ATTEMPTS); do
             RESPONSE=$(curl -s -X POST "https://backboard.railway.app/graphql" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $RAILWAY_TOKEN" \
-              -d "{\"query\":\"query(\$serviceId:String!){ service(id:\$serviceId){ deployments(first:1){ edges{ node{ id status updatedAt } } } } }\",\"variables\":{\"serviceId\":\"$RAILWAY_SERVICE_ID\"}}")
+              -d "{\"query\":\"query(\$serviceId:String!){ service(id:\$serviceId){ deployments(first:1){ edges{ node{ id status updatedAt } } } } }\",\"variables\":{\"serviceId\":\"$RAILWAY_SERVICE_ID\"}}" 2>/dev/null || echo "{}")
 
-            STATUS=$(echo "$RESPONSE" | jq -r '.data.service.deployments.edges[0].node.status // empty')
+            # Check if response is valid JSON
+            if ! echo "$RESPONSE" | jq empty 2>/dev/null; then
+              echo "⚠️ Railway API returned invalid response (attempt $i/$MAX_ATTEMPTS)"
+              sleep $SLEEP_SECONDS
+              continue
+            fi
+
+            STATUS=$(echo "$RESPONSE" | jq -r '.data.service.deployments.edges[0].node.status // empty' 2>/dev/null || echo "")
             if [ -n "$STATUS" ]; then
               echo "🔎 Deployment status: $STATUS"
               case "$STATUS" in
@@ -44,20 +53,19 @@ jobs:
                   exit 0
                   ;;
                 FAILED|FAILURE)
-                  echo "❌ Railway deployment failed. Response: $RESPONSE"
-                  exit 1
+                  echo "⚠️ Railway deployment may have failed, but continuing to purge cache..."
+                  exit 0
                   ;;
               esac
             else
-              echo "ℹ️ No deployment status found (attempt $i/$MAX_ATTEMPTS). Response: $RESPONSE"
+              echo "ℹ️ Waiting for deployment (attempt $i/$MAX_ATTEMPTS)..."
             fi
 
-            echo "⏳ Waiting ${SLEEP_SECONDS}s before rechecking..."
             sleep $SLEEP_SECONDS
           done
 
-          echo "❌ Timed out waiting for Railway deployment to finish."
-          exit 1
+          echo "⚠️ Could not confirm Railway deployment status, but continuing to purge cache..."
+          exit 0
       
       - name: Purge Cloudflare Cache
         run: |
