@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { sql } from "drizzle-orm";
 import { db } from "./db";
 import { LangChainConfig } from "./langchain-config";
 import { ChatOpenAI } from "@langchain/openai";
@@ -19,6 +20,25 @@ const llm = new ChatOpenAI({
   apiKey: process.env.OPENAI_API_KEY || "dev-mode"
 });
 
+type SqliteHandle = {
+  prepare: (query: string) => { get: () => unknown };
+};
+
+const getSqliteHandle = (value: unknown): SqliteHandle | null => {
+  const sqlite = (value as { sqlite?: unknown }).sqlite;
+  if (!sqlite) {
+    return null;
+  }
+  const prepare = (sqlite as { prepare?: unknown }).prepare;
+  if (typeof prepare !== "function") {
+    return null;
+  }
+  return sqlite as SqliteHandle;
+};
+
+const hasExecute = (value: unknown): value is { execute: (query: unknown) => Promise<unknown> } =>
+  typeof (value as { execute?: unknown }).execute === "function";
+
 router.get("/", async (req, res) => {
   const health = {
     status: "ok",
@@ -36,17 +56,18 @@ router.get("/", async (req, res) => {
 
   // Database connectivity check
   try {
-    if (process.env.NODE_ENV === 'development') {
-      // SQLite check
-      await db.get("SELECT 1");
+    const sqliteHandle = getSqliteHandle(db);
+    if (sqliteHandle) {
+      sqliteHandle.prepare("SELECT 1").get();
       health.services.db = "sqlite-connected";
-    } else {
-      // PostgreSQL check
-      await db.get("SELECT 1");
+    } else if (hasExecute(db)) {
+      await db.execute(sql`select 1`);
       health.services.db = "postgresql-connected";
+    } else {
+      throw new Error("Database driver missing query method");
     }
   } catch (error) {
-    health.services.db = `database-error: ${error instanceof Error ? error.message : 'unknown'}`;
+    health.services.db = `database-error: ${error instanceof Error ? error.message : "unknown"}`;
   }
 
   // LangSmith connectivity check
