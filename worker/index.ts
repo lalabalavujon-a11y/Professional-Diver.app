@@ -17,6 +17,7 @@ export interface Env {
   DATABASE_URL?: string; // not used here but exists in your worker env
   ENVIRONMENT?: string;
   NODE_ENV?: string;
+  CORS_ALLOW_ORIGINS?: string;
 }
 
 const HOP_BY_HOP_HEADERS = new Set([
@@ -31,13 +32,25 @@ const HOP_BY_HOP_HEADERS = new Set([
   "host",
 ]);
 
-function withCors(headers: Headers): Headers {
-  // If you want to restrict origins, replace "*" with your Pages domain(s).
-  headers.set("Access-Control-Allow-Origin", "*");
-  headers.set("Access-Control-Allow-Credentials", "true");
+function parseAllowedOrigins(env: Env): string[] {
+  if (!env.CORS_ALLOW_ORIGINS) return [];
+  return env.CORS_ALLOW_ORIGINS.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function withCors(headers: Headers, origin: string | null, allowedOrigins: string[]): Headers {
+  if (origin && allowedOrigins.includes(origin)) {
+    headers.set("Access-Control-Allow-Origin", origin);
+    headers.set("Access-Control-Allow-Credentials", "true");
+    headers.set("Vary", "Origin");
+  } else {
+    headers.set("Access-Control-Allow-Origin", "*");
+    headers.delete("Access-Control-Allow-Credentials");
+  }
   headers.set(
     "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email"
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-email, x-session-token"
   );
   headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
   // Avoid caches interfering with auth/session flows.
@@ -61,9 +74,15 @@ export default {
       return new Response("Missing API_URL secret", { status: 500 });
     }
 
+    const allowedOrigins = parseAllowedOrigins(env);
+    const origin = request.headers.get("Origin");
+
     // Handle CORS preflight at the edge.
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: withCors(new Headers()) });
+      return new Response(null, {
+        status: 204,
+        headers: withCors(new Headers(), origin, allowedOrigins),
+      });
     }
 
     const upstreamBase = env.API_URL.startsWith("http")
@@ -92,7 +111,7 @@ export default {
     });
 
     const outHeaders = new Headers(resp.headers);
-    withCors(outHeaders);
+    withCors(outHeaders, origin, allowedOrigins);
 
     return new Response(resp.body, {
       status: resp.status,

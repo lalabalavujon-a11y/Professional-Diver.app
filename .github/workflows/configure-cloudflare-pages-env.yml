@@ -32,6 +32,10 @@ on:
         description: "Env var value (e.g. https://your-api.example.com or wss://your-api.example.com)"
         required: true
         type: string
+      var_secret_name:
+        description: "GitHub secret name for secret_text value (required if secret_text)"
+        required: false
+        type: string
       var_type:
         description: "plain_text is fine for public API host; use secret_text if sensitive"
         required: true
@@ -64,14 +68,26 @@ jobs:
           PROJECT_NAME: ${{ inputs.project_name }}
           ENVIRONMENT: ${{ inputs.environment }}
           VAR_NAME: ${{ inputs.var_name }}
-          VAR_VALUE: ${{ inputs.var_value }}
+          VAR_VALUE: ${{ inputs.var_type == 'secret_text' && secrets[inputs.var_secret_name] || inputs.var_value }}
           VAR_TYPE: ${{ inputs.var_type }}
+          VAR_SECRET_NAME: ${{ inputs.var_secret_name }}
         run: |
           set -euo pipefail
 
           if [[ "${VAR_NAME}" != VITE_* ]]; then
             echo "❌ VAR_NAME must start with VITE_ (Vite only exposes VITE_* to the client build)"
             exit 1
+          fi
+
+          if [[ "${VAR_TYPE}" == "secret_text" ]]; then
+            if [[ -z "${VAR_SECRET_NAME:-}" ]]; then
+              echo "❌ var_secret_name is required when var_type=secret_text"
+              exit 1
+            fi
+            if [[ -z "${VAR_VALUE:-}" ]]; then
+              echo "❌ Secret value is empty or missing (check GitHub secret: ${VAR_SECRET_NAME})"
+              exit 1
+            fi
           fi
 
           echo "🔧 Setting ${VAR_NAME} for Pages project ${PROJECT_NAME} (${ENVIRONMENT})"
@@ -94,7 +110,11 @@ jobs:
           SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
           if [ "$SUCCESS" != "true" ]; then
             echo "❌ Failed to update Pages project env var"
-            echo "$RESPONSE"
+            if [ "$VAR_TYPE" = "secret_text" ]; then
+              echo "Response omitted for secret_text."
+            else
+              echo "$RESPONSE"
+            fi
             exit 1
           fi
 
@@ -108,7 +128,11 @@ jobs:
           GET_SUCCESS=$(echo "$GET_RESPONSE" | jq -r '.success // false')
           if [ "$GET_SUCCESS" != "true" ]; then
             echo "⚠️ Updated but failed to re-fetch project for verification"
-            echo "$GET_RESPONSE"
+            if [ "$VAR_TYPE" = "secret_text" ]; then
+              echo "Response omitted for secret_text."
+            else
+              echo "$GET_RESPONSE"
+            fi
             exit 0
           fi
 
