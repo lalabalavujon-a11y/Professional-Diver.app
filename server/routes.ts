@@ -3,6 +3,12 @@ import { createServer, type Server } from "http";
 import rateLimit from "express-rate-limit";
 import { storage } from "./storage";
 import { tempStorage } from "./temp-storage";
+import {
+  getTracks,
+  getTrackBySlug,
+  getLessonById,
+  getQuizByLessonId,
+} from "./services/learning-track-storage";
 import { emailMarketing } from "./email-marketing";
 import { affiliateService } from "./affiliate-service";
 import { crmService } from "./crm-service";
@@ -897,35 +903,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if admin wants all tracks (including unpublished)
       const includeAll = req.query.all === 'true';
       
-      if (includeAll) {
-        // For admin: return all tracks
-        const { db } = await import('./db.js');
-        const { tracks, aiTutors } = await import('@shared/schema-sqlite');
-        const allTracks = await db.select({
-          id: tracks.id,
-          title: tracks.title,
-          slug: tracks.slug,
-          summary: tracks.summary,
-          isPublished: tracks.isPublished,
-          difficulty: tracks.difficulty,
-          estimatedHours: tracks.estimatedHours,
-          createdAt: tracks.createdAt,
-        }).from(tracks)
-          .leftJoin(aiTutors, eq(tracks.aiTutorId, aiTutors.id))
-          .orderBy(tracks.title);
-        
-        // Convert SQLite boolean to proper boolean
-        const formattedTracks = allTracks.map(track => ({
-          ...track,
-          isPublished: track.isPublished === 1 || track.isPublished === true
-        }));
-        
-        res.json(formattedTracks);
-      } else {
-        // For regular users: return only published tracks
-        const tracks = await tempStorage.getAllTracks();
-        res.json(tracks);
-      }
+      const tracks = await getTracks(includeAll);
+      res.json(tracks);
     } catch (error) {
       console.error('Tracks API error:', error);
       res.status(500).json({ error: "Failed to fetch tracks" });
@@ -935,7 +914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tracks/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
-      const track = await tempStorage.getTrackBySlug(slug);
+      const track = await getTrackBySlug(slug);
       
       if (!track) {
         return res.status(404).json({ error: "Track not found" });
@@ -951,22 +930,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tracks/:slug/lessons", async (req, res) => {
     try {
       const { slug } = req.params;
-      const { db } = await import('./db.js');
-      const { tracks, lessons } = await import('@shared/schema-sqlite');
-      
-      // First get the track
-      const track = await db.select().from(tracks).where(eq(tracks.slug, slug)).limit(1);
-      if (!track || track.length === 0) {
+      const track = await getTrackBySlug(slug);
+      if (!track) {
         return res.status(404).json({ error: "Track not found" });
       }
-      
-      // Then get all lessons for this track
-      const trackLessons = await db.select().from(lessons).where(eq(lessons.trackId, track[0].id)).orderBy(lessons.order);
-      
-      res.json({
-        ...track[0],
-        lessons: trackLessons
-      });
+      res.json(track);
     } catch (error) {
       console.error('Track lessons API error:', error);
       res.status(500).json({ error: "Failed to fetch track lessons" });
@@ -2004,7 +1972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/lessons/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const lesson = await tempStorage.getLessonById(id);
+      const lesson = await getLessonById(id);
       if (!lesson) {
         return res.status(404).json({ error: "Lesson not found" });
       }
@@ -2456,7 +2424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/quizzes/lesson/:lessonId", async (req, res) => {
     try {
       const { lessonId } = req.params;
-      const quiz = await tempStorage.getQuizByLessonId(lessonId);
+      const quiz = await getQuizByLessonId(lessonId);
       if (!quiz) {
         return res.status(404).json({ error: "Quiz not found" });
       }

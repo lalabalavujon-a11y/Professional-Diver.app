@@ -109,6 +109,24 @@ async function main() {
     console.error('Warning: Feature management initialization failed:', error);
     // Continue startup even if feature init fails
   }
+
+  // Ensure core learning content exists (safe, idempotent)
+  try {
+    const shouldRestore =
+      process.env.NODE_ENV !== "test" &&
+      process.env.AUTO_RESTORE_CORE_CONTENT !== "false";
+    if (shouldRestore) {
+      const { ensureCoreLearningContent } = await import("./services/core-learning-content");
+      const result = await ensureCoreLearningContent({ enforceCounts: true });
+      if (result.restoredTracks.length > 0) {
+        console.log(`📚 Restored core tracks: ${result.restoredTracks.join(", ")}`);
+      } else {
+        console.log("📚 Core learning content already present.");
+      }
+    }
+  } catch (error) {
+    console.error("Warning: Core learning content check failed:", error);
+  }
   
   // Mount AI Tutor router
   app.use('/api/ai-tutor', aiTutorRouter);
