@@ -52,11 +52,43 @@
 ### **SRS Algorithm Framework (Ready for Implementation):**
 
 ```typescript
-// TODO: Full SRS Implementation
-// 1. Get user's question performance history
-// 2. Calculate next review dates for each question
-// 3. Select questions due for review + new questions
-// 4. Shuffle and return optimized question set
+type ReviewRating = 'easy' | 'medium' | 'hard';
+
+interface QuestionPerformance {
+  questionId: string;
+  lastReviewedAt: Date | null;
+  lastRating: ReviewRating | null;
+  correctStreak: number;
+  nextReviewAt: Date | null;
+}
+
+const addDays = (date: Date, days: number) =>
+  new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+
+/** Compute the next review date using rating and streak. */
+function computeNextReview(
+  performance: QuestionPerformance,
+  rating: ReviewRating,
+  now = new Date()
+): Date {
+  const baseDays =
+    SRS_CONFIG[`${rating.toUpperCase()}_INTERVAL` as const];
+  const streakBonus = Math.min(performance.correctStreak, 4);
+  return addDays(now, baseDays + streakBonus);
+}
+
+function buildSessionQuestions(params: {
+  allQuestions: Question[];
+  performance: QuestionPerformance[];
+  limits: { newQuestions: number; reviewQuestions: number };
+}) {
+  const now = new Date();
+  // 1) Join questions with performance history (if any).
+  // 2) Due reviews: nextReviewAt <= now; sort by nextReviewAt asc, then hard first.
+  // 3) New questions: no history yet; pick newest or least seen.
+  // 4) Take reviewQuestions due, then fill with newQuestions new.
+  // 5) Shuffle final list to mix review and new items.
+}
 ```
 
 ### **Current Status:**
