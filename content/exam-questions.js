@@ -5174,6 +5174,56 @@ export const examQuestions = {
       explanation: "Detailed logs provide traceability and safety review information.",
       points: 3,
       order: 70
+    },
+    {
+      id: "sat-71",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Before opening a hatch between saturation system compartments, what is required?",
+      options: ["Pressure equalization, atmosphere verification, and supervisor authorization","Immediate opening to save time","Only a comms check","Reducing oxygen to zero"],
+      correctAnswer: "Pressure equalization, atmosphere verification, and supervisor authorization",
+      explanation: "Safe transfer requires equalized pressure, confirmed atmosphere, and supervisor control.",
+      points: 3,
+      order: 71
+    },
+    {
+      id: "sat-72",
+      type: "MULTIPLE_CHOICE",
+      prompt: "A permit-to-work system in saturation operations primarily ensures:",
+      options: ["Hazard controls, isolation, and authorization for critical tasks","Lower gas costs","Faster bell runs","Reduced documentation"],
+      correctAnswer: "Hazard controls, isolation, and authorization for critical tasks",
+      explanation: "Permit-to-work controls critical tasks by managing hazards and approvals.",
+      points: 3,
+      order: 72
+    },
+    {
+      id: "sat-73",
+      type: "TRUE_FALSE",
+      prompt: "Gas analysis equipment should be calibrated with certified reference gas, and calibration records must be logged.",
+      options: ["True","False"],
+      correctAnswer: "True",
+      explanation: "Calibration with certified gas and logging supports reliable monitoring and compliance.",
+      points: 2,
+      order: 73
+    },
+    {
+      id: "sat-74",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Incident and near-miss reporting is required to:",
+      options: ["Capture lessons learned and prevent recurrence","Reduce the need for audits","Replace medical checks","Avoid supervisor review"],
+      correctAnswer: "Capture lessons learned and prevent recurrence",
+      explanation: "Reporting supports continuous improvement and risk reduction.",
+      points: 3,
+      order: 74
+    },
+    {
+      id: "sat-75",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Before entering saturation, diver fitness-to-dive documentation should confirm:",
+      options: ["Medical clearance, current fitness status, and any operational limitations","Only the diver's signature","Only dive plan approval","Only gas analysis results"],
+      correctAnswer: "Medical clearance, current fitness status, and any operational limitations",
+      explanation: "Fitness-to-dive documentation confirms medical suitability and operational constraints.",
+      points: 3,
+      order: 75
     }
   ],
   "commercial-air-diver-wet-bell": [
@@ -5761,6 +5811,153 @@ export const examQuestions = {
       explanation: "Reliable communications enable coordination and rapid hazard response.",
       points: 3,
       order: 60
+    },
+    {
+      id: "cad-61",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The primary purpose of a pre-dive risk assessment is to:",
+      options: ["Identify hazards, assign controls, and confirm emergency procedures","Shorten bottom time","Eliminate the need for a standby diver","Reduce paperwork only"],
+      correctAnswer: "Identify hazards, assign controls, and confirm emergency procedures",
+      explanation: "Risk assessments identify hazards and confirm controls before diving.",
+      points: 3,
+      order: 61
+    },
+    {
+      id: "cad-62",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Surface-supplied air systems should provide:",
+      options: ["Primary and independent secondary gas supplies with non-return protection","Only a single compressor","Bailout only","No pressure monitoring"],
+      correctAnswer: "Primary and independent secondary gas supplies with non-return protection",
+      explanation: "Redundant supplies and non-return protection reduce loss-of-gas risk.",
+      points: 3,
+      order: 62
+    },
+    {
+      id: "cad-63",
+      type: "TRUE_FALSE",
+      prompt: "Bailout cylinder pressure should be checked and recorded before every dive.",
+      options: ["True","False"],
+      correctAnswer: "True",
+      explanation: "Bailout must be verified before entry to ensure emergency gas is available.",
+      points: 2,
+      order: 63
+    },
+    {
+      id: "cad-64",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Umbilical strain relief and weak links are used to:",
+      options: ["Prevent excessive load transfer to the helmet and protect the diver","Increase descent speed","Eliminate the need for a tender","Reduce breathing resistance"],
+      correctAnswer: "Prevent excessive load transfer to the helmet and protect the diver",
+      explanation: "Strain relief reduces load on the diver and helps avoid equipment damage.",
+      points: 3,
+      order: 64
+    },
+    {
+      id: "cad-65",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Compressor air intakes should be positioned:",
+      options: ["Upwind and away from exhausts, fumes, and contamination sources","Next to engine exhausts","Below deck with no ventilation","Anywhere as long as filters are fitted"],
+      correctAnswer: "Upwind and away from exhausts, fumes, and contamination sources",
+      explanation: "Proper intake placement reduces contamination risk in breathing air.",
+      points: 3,
+      order: 65
+    },
+    {
+      id: "cad-66",
+      type: "MULTIPLE_CHOICE",
+      prompt: "The dive plan should clearly define:",
+      options: ["Emergency procedures, recall signals, and lines of communication","Only tool lists","Only weather limits","Only diver names"],
+      correctAnswer: "Emergency procedures, recall signals, and lines of communication",
+      explanation: "Clear emergency and communication procedures are essential for safe operations.",
+      points: 3,
+      order: 66
+    },
+    {
+      id: "cad-67",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Wet bell top-up procedures should include:",
+      options: ["Diver status checks, comms confirmation, and gas pressure verification","Immediate return to work without checks","Disconnecting the umbilical","Skipping time logging"],
+      correctAnswer: "Diver status checks, comms confirmation, and gas pressure verification",
+      explanation: "Top-up checks confirm diver condition, communications, and gas supply.",
+      points: 3,
+      order: 67
+    },
+    {
+      id: "cad-68",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Breathing air quality testing should be conducted:",
+      options: ["Before diving and after compressor maintenance or changes in conditions","Only once per month","Only if a diver feels unwell","Only after the dive"],
+      correctAnswer: "Before diving and after compressor maintenance or changes in conditions",
+      explanation: "Routine testing verifies air quality prior to exposure.",
+      points: 3,
+      order: 68
+    },
+    {
+      id: "cad-69",
+      type: "TRUE_FALSE",
+      prompt: "In-water recompression is the standard routine treatment for decompression illness.",
+      options: ["True","False"],
+      correctAnswer: "False",
+      explanation: "Standard treatment is in a recompression chamber with medical oversight.",
+      points: 2,
+      order: 69
+    },
+    {
+      id: "cad-70",
+      type: "WRITTEN",
+      prompt: "Describe the emergency response for an unresponsive surface-supplied air diver, including standby diver actions, recovery, and post-recovery care.",
+      points: 5,
+      order: 70
+    },
+    {
+      id: "cad-71",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Before working on energized or pressurized subsea equipment, the correct control is to:",
+      options: ["Isolate, lock out, and verify zero energy state","Proceed immediately if the task is short","Increase umbilical slack","Only inform the diver"],
+      correctAnswer: "Isolate, lock out, and verify zero energy state",
+      explanation: "Isolation and lockout prevent accidental activation and injury.",
+      points: 3,
+      order: 71
+    },
+    {
+      id: "cad-72",
+      type: "MULTIPLE_CHOICE",
+      prompt: "When operating near lifts or moving loads, divers should:",
+      options: ["Maintain safe standoff, use clear comms, and coordinate with lifting operations","Position directly under the load","Ignore crane signals","Disconnect the umbilical"],
+      correctAnswer: "Maintain safe standoff, use clear comms, and coordinate with lifting operations",
+      explanation: "Clear coordination reduces crush and pinch hazards.",
+      points: 3,
+      order: 72
+    },
+    {
+      id: "cad-73",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Decompression schedules should be based on:",
+      options: ["Verified depth readings and recorded bottom time","Estimated depth only","Diver preference","Weather conditions only"],
+      correctAnswer: "Verified depth readings and recorded bottom time",
+      explanation: "Accurate depth and time are required for safe decompression planning.",
+      points: 3,
+      order: 73
+    },
+    {
+      id: "cad-74",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Incident and near-miss reporting is required to:",
+      options: ["Drive corrective actions and improve safety performance","Reduce supervisor workload","Replace medical checks","Eliminate audits"],
+      correctAnswer: "Drive corrective actions and improve safety performance",
+      explanation: "Reporting supports corrective action and continuous improvement.",
+      points: 3,
+      order: 74
+    },
+    {
+      id: "cad-75",
+      type: "MULTIPLE_CHOICE",
+      prompt: "Daily fitness-to-dive checks should include:",
+      options: ["Health status, hydration, fatigue, and any medication changes","Only diver signature","Only gas analysis results","Only equipment checks"],
+      correctAnswer: "Health status, hydration, fatigue, and any medication changes",
+      explanation: "Fitness checks reduce medical risk and support safe dive decisions.",
+      points: 3,
+      order: 75
     }
   ]
 };

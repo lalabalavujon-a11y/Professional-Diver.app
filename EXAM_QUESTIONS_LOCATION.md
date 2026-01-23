@@ -5,7 +5,7 @@
 ### Local File Location
 **File:** `content/exam-questions.js`
 
-**Total Questions:** 595 questions across 9 exam types
+**Total Questions:** 615 questions across 9 exam types
 
 **Question Breakdown:**
 - **NDT Inspection**: 75 questions
@@ -15,8 +15,8 @@
 - **Life Support Technician (LST)**: 60 questions
 - **Hyperbaric Operations**: 55 questions
 - **Underwater Welding**: 60 questions
-- **Saturation Diving Systems**: 70 questions
-- **Commercial Air Diver + Top Up (Wet Bell)**: 60 questions
+- **Saturation Diving Systems**: 75 questions
+- **Commercial Air Diver + Top Up (Wet Bell)**: 75 questions
 
 ### Question Format
 Each question includes:

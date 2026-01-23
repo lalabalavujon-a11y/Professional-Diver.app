@@ -86,7 +86,7 @@ const professionalExamTracks: ExamTrack[] = [
     description: "Saturation diving operations, life support systems, and decompression management",
     difficulty: 'Expert',
     srsQuestions: 15,
-    fullExamQuestions: 70, // Actual: 70 questions (uses ALST questions)
+    fullExamQuestions: 75, // Actual: 75 questions
     srsTimeLimit: 30,
     fullExamTimeLimit: 135,
     passingScore: 85,
@@ -171,7 +171,7 @@ const professionalExamTracks: ExamTrack[] = [
     description: "Surface-supplied air operations, wet bell procedures, gas management, and emergency response for commercial air diving",
     difficulty: 'Advanced',
     srsQuestions: 15,
-    fullExamQuestions: 60, // Actual: 60 questions
+    fullExamQuestions: 75, // Actual: 75 questions
     srsTimeLimit: 30,
     fullExamTimeLimit: 120,
     passingScore: 80,
