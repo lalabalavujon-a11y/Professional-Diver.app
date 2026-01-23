@@ -73,6 +73,7 @@ export abstract class CustomCalendarProvider implements CalendarSyncProvider {
       console.error('Error syncing custom calendar:', error);
       throw error;
     }
+  }
 }
 
 /**
