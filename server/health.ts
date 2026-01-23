@@ -31,6 +31,11 @@ router.get("/", async (req, res) => {
       langchain: "unknown",
       laura: "unknown",
       diverWell: "unknown"
+    },
+    integrations: {
+      openai: process.env.OPENAI_API_KEY ? "configured" : "missing",
+      gamma: process.env.GAMMA_API_KEY ? "configured" : "missing",
+      langsmith: process.env.LANGSMITH_API_KEY ? "configured" : "missing",
     }
   };
 

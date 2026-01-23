@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 // TrialCountdown removed - Super Admin never sees trial messages
 import UserManagementContainer from "@/components/user-management-container";
+import BackendOpsMonitoring from "@/components/admin/backend-ops-monitoring";
 import { useFeaturePermissions } from "@/hooks/use-feature-permissions";
 import { PageHeader, StatCard, PageSection } from "@/components/ui/page-header";
 import { LoadingSpinner } from "@/components/ui/loading-states";
@@ -280,6 +281,8 @@ export default function AdminDashboard() {
             data-testid="stat-completions"
           />
         </div>
+
+        <BackendOpsMonitoring />
 
         {/* Invites Management */}
         <PageSection
