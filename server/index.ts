@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { aiTutorRouter } from "./ai-tutor";
 import healthRouter from "./health";
 import monitoringRouter from "./routes/monitoring-routes";
+import studentAnalyticsRouter from "./routes/student-analytics-routes";
 import { initializeFeatureManagement } from "./feature-initialization";
 
 const app = express();
@@ -100,6 +101,10 @@ app.use('/api/health', healthRouter);
 // Mount monitoring analytics routes for Super Admin Dashboard
 app.use('/api/admin/monitoring', monitoringRouter);
 console.log('📊 Monitoring analytics routes mounted at /api/admin/monitoring');
+
+// Mount student analytics routes for Super Admin Dashboard
+app.use('/api/admin/student-analytics', studentAnalyticsRouter);
+console.log('📊 Student analytics routes mounted at /api/admin/student-analytics');
 
 app.get('/', (_req, res) => res.type('text/plain').send('OK'));
 

@@ -4,6 +4,7 @@ import RoleBasedNavigation from "@/components/role-based-navigation";
 // TrialCountdown removed - Super Admin never sees trial messages
 import UserManagementContainer from "@/components/user-management-container";
 import MonitoringAnalyticsContainer from "@/components/monitoring-analytics-container";
+import StudentAnalyticsContainer from "@/components/student-analytics-container";
 import { useFeaturePermissions } from "@/hooks/use-feature-permissions";
 import { PageHeader, StatCard, PageSection } from "@/components/ui/page-header";
 import { LoadingSpinner } from "@/components/ui/loading-states";
@@ -550,6 +551,23 @@ export default function AdminDashboard() {
             }
           >
             <MonitoringAnalyticsContainer />
+          </PageSection>
+        )}
+
+        {/* Student Progress Analytics - SUPER_ADMIN only */}
+        {isSuperAdmin && (
+          <PageSection
+            title="Student Progress Analytics"
+            description="Track student learning progress, quiz scores, exam results & SRS performance"
+            className="mt-6"
+            actions={
+              <Badge variant="outline" className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 text-emerald-600 border-emerald-200">
+                <Activity className="w-3 h-3 mr-1" />
+                Live Monitoring
+              </Badge>
+            }
+          >
+            <StudentAnalyticsContainer />
           </PageSection>
         )}
 
