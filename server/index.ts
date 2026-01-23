@@ -3,6 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { aiTutorRouter } from "./ai-tutor";
 import healthRouter from "./health";
+import monitoringRouter from "./routes/monitoring-routes";
 import { initializeFeatureManagement } from "./feature-initialization";
 
 const app = express();
@@ -95,6 +96,10 @@ app.use((req, res, next) => {
 app.use('/health', healthRouter);
 // Alias for Vite proxy sanity checks in CI (expects /api/health)
 app.use('/api/health', healthRouter);
+
+// Mount monitoring analytics routes for Super Admin Dashboard
+app.use('/api/admin/monitoring', monitoringRouter);
+console.log('📊 Monitoring analytics routes mounted at /api/admin/monitoring');
 
 app.get('/', (_req, res) => res.type('text/plain').send('OK'));
 

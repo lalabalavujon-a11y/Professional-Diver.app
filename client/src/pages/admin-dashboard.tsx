@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 // TrialCountdown removed - Super Admin never sees trial messages
 import UserManagementContainer from "@/components/user-management-container";
+import MonitoringAnalyticsContainer from "@/components/monitoring-analytics-container";
 import { useFeaturePermissions } from "@/hooks/use-feature-permissions";
 import { PageHeader, StatCard, PageSection } from "@/components/ui/page-header";
 import { LoadingSpinner } from "@/components/ui/loading-states";
@@ -21,6 +22,7 @@ import {
   Building2,
   RefreshCw,
   Upload,
+  Activity,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -531,6 +533,23 @@ export default function AdminDashboard() {
                 </Link>
               </div>
             </div>
+          </PageSection>
+        )}
+
+        {/* Backend Operations Monitoring - SUPER_ADMIN only */}
+        {isSuperAdmin && (
+          <PageSection
+            title="Backend Operations Monitoring"
+            description="LangChain, LangSmith & System Analytics"
+            className="mt-6"
+            actions={
+              <Badge variant="outline" className="bg-gradient-to-r from-violet-500/10 to-blue-500/10 text-violet-600 border-violet-200">
+                <Activity className="w-3 h-3 mr-1" />
+                Real-time Analytics
+              </Badge>
+            }
+          >
+            <MonitoringAnalyticsContainer />
           </PageSection>
         )}
 
