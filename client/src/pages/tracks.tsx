@@ -25,11 +25,11 @@ interface Track {
   } | null;
 }
 
-// Mock data for tracks - All 8 Professional Diving Subjects
+// Mock data for tracks - All 10 Professional Diving Learning Tracks
 const mockTracks = [
   {
     id: "ndt-inspection",
-    title: "NDT Inspection & Testing",
+    title: "Inspection & Non-Destructive Testing (NDT)",
     slug: "ndt-inspection",
     summary: "Master visual inspection, magnetic particle testing, and ultrasonic testing for professional certification.",
     description: "Comprehensive training in non-destructive testing methods for underwater structural inspection and quality assurance.",
@@ -49,7 +49,7 @@ const mockTracks = [
     description: "Professional medical training for diving emergencies, decompression sickness treatment, and hyperbaric medicine.",
     level: "Expert",
     duration: "12 weeks",
-    lessons: 20,
+    lessons: 13,
     students: 892,
     progress: 0,
     completed: false,
@@ -63,7 +63,7 @@ const mockTracks = [
     description: "Advanced leadership training for commercial dive supervisors, project management, and safety coordination.",
     level: "Expert",
     duration: "10 weeks",
-    lessons: 18,
+    lessons: 12,
     students: 623,
     progress: 0,
     completed: false,
@@ -71,13 +71,13 @@ const mockTracks = [
   },
   {
     id: "saturation-diving",
-    title: "Saturation Diving Systems",
+    title: "Saturation Diver Training",
     slug: "saturation-diving",
     summary: "Saturation diving operations, life support systems, and decompression management.",
     description: "Comprehensive training for saturation diving systems, life support operations, and extended underwater missions.",
     level: "Expert",
     duration: "16 weeks",
-    lessons: 24,
+    lessons: 13,
     students: 456,
     progress: 0,
     completed: false,
@@ -91,7 +91,7 @@ const mockTracks = [
     description: "Specialized training in underwater welding methods, marine welding procedures, and quality assurance protocols.",
     level: "Advanced",
     duration: "12 weeks",
-    lessons: 18,
+    lessons: 16,
     students: 1456,
     progress: 0,
     completed: false,
@@ -105,7 +105,7 @@ const mockTracks = [
     description: "Professional training in hyperbaric chamber operations, decompression therapy, and medical gas management.",
     level: "Intermediate",
     duration: "6 weeks",
-    lessons: 12,
+    lessons: 16,
     students: 734,
     progress: 0,
     completed: false,
@@ -113,13 +113,13 @@ const mockTracks = [
   },
   {
     id: "alst",
-    title: "Assistant Life Support Technician",
+    title: "Assistant Life Support Technician (ALST)",
     slug: "alst",
     summary: "Assistant life support operations, emergency response protocols, and life support system procedures.",
     description: "Comprehensive training in life support systems, emergency response procedures, and life support operations.",
     level: "Expert",
     duration: "14 weeks",
-    lessons: 22,
+    lessons: 12,
     students: 567,
     progress: 0,
     completed: false,
@@ -133,11 +133,39 @@ const mockTracks = [
     description: "Professional training in life support systems, gas management, and emergency response for diving operations.",
     level: "Advanced",
     duration: "10 weeks",
-    lessons: 16,
+    lessons: 15,
     students: 1023,
     progress: 0,
     completed: false,
     category: "Life Support Systems"
+  },
+  {
+    id: "air-diver-certification",
+    title: "Air Diver Certification",
+    slug: "air-diver-certification",
+    summary: "Essential air diving skills including diving physics, gas management, ascent procedures, and underwater communications.",
+    description: "Comprehensive air diver training covering physics, gas laws, decompression theory, and professional diving operations.",
+    level: "Intermediate",
+    duration: "8 weeks",
+    lessons: 13,
+    students: 2156,
+    progress: 0,
+    completed: false,
+    category: "Foundation Training"
+  },
+  {
+    id: "client-representative",
+    title: "Client Representative",
+    slug: "client-representative",
+    summary: "Comprehensive brand-neutral training for Client Representatives covering offshore project assurance, regulatory compliance, and diving operations oversight.",
+    description: "Professional training for Client Representatives covering all aspects of offshore project management, risk assessment, and contract administration.",
+    level: "Intermediate",
+    duration: "10 weeks",
+    lessons: 52,
+    students: 845,
+    progress: 0,
+    completed: false,
+    category: "Management & Oversight"
   }
 ];
 
