@@ -1,7 +1,23 @@
 import { Router } from "express";
 import { db } from "../db";
 import { tracks, lessons, quizzes, users } from "../../shared/schema-sqlite";
-import { eq, sql, desc, count, avg, sum } from "drizzle-orm";
+import { eq, sql, desc, count } from "drizzle-orm";
+
+// Helper to execute raw SQL on SQLite
+function executeRawSql(query: string, params?: any[]): any[] {
+  try {
+    const sqlite = (db as any).sqlite;
+    if (sqlite) {
+      // SQLite mode - use prepare().all()
+      const stmt = sqlite.prepare(query);
+      return params ? stmt.all(...params) : stmt.all();
+    }
+    return [];
+  } catch (error) {
+    console.error("Raw SQL execution error:", error);
+    return [];
+  }
+}
 
 const router = Router();
 
@@ -191,32 +207,33 @@ async function getPlatformOverview(): Promise<PlatformOverview> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayMs = today.getTime();
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
   try {
-    // Get total counts
+    // Get total counts using Drizzle
     const [userCount] = await db.select({ count: count() }).from(users);
     const [trackCount] = await db.select({ count: count() }).from(tracks).where(eq(tracks.isPublished, true));
     const [lessonCount] = await db.select({ count: count() }).from(lessons);
     const [quizCount] = await db.select({ count: count() }).from(quizzes);
     
-    // Get active users (users with activity in last 30 days)
-    const activeUsersResult = await db.execute(`
+    // Get active users using raw SQL
+    const activeUsersRows = executeRawSql(`
       SELECT COUNT(DISTINCT user_id) as active_count 
       FROM (
-        SELECT user_id FROM lesson_progress WHERE completed_at > ${Date.now() - 30 * 24 * 60 * 60 * 1000}
+        SELECT user_id FROM lesson_progress WHERE completed_at > ?
         UNION
-        SELECT user_id FROM quiz_attempts WHERE completed_at > ${Date.now() - 30 * 24 * 60 * 60 * 1000}
+        SELECT user_id FROM quiz_attempts WHERE completed_at > ?
       )
-    `);
+    `, [thirtyDaysAgo, thirtyDaysAgo]);
     
     // Get average quiz scores
-    const quizScoresResult = await db.execute(`
+    const quizScoresRows = executeRawSql(`
       SELECT AVG((score * 100.0) / NULLIF((SELECT COUNT(*) FROM questions WHERE quiz_id = qa.quiz_id), 0)) as avg_score
       FROM quiz_attempts qa
     `);
     
     // Get exam counts and scores
-    const examResult = await db.execute(`
+    const examRows = executeRawSql(`
       SELECT 
         COUNT(*) as total_exams,
         AVG((score * 100.0) / NULLIF(total_questions, 0)) as avg_score
@@ -224,36 +241,30 @@ async function getPlatformOverview(): Promise<PlatformOverview> {
     `);
     
     // Get today's completions
-    const todayLessonsResult = await db.execute(`
-      SELECT COUNT(*) as count FROM lesson_progress WHERE completed_at >= ${todayMs}
-    `);
+    const todayLessonsRows = executeRawSql(`
+      SELECT COUNT(*) as count FROM lesson_progress WHERE completed_at >= ?
+    `, [todayMs]);
     
-    const todayQuizzesResult = await db.execute(`
-      SELECT COUNT(*) as count FROM quiz_attempts WHERE completed_at >= ${todayMs}
-    `);
+    const todayQuizzesRows = executeRawSql(`
+      SELECT COUNT(*) as count FROM quiz_attempts WHERE completed_at >= ?
+    `, [todayMs]);
     
-    const todayExamsResult = await db.execute(`
-      SELECT COUNT(*) as count FROM exam_attempts WHERE completed_at >= ${todayMs}
-    `);
-
-    // Extract values safely
-    const getRowValue = (result: any, field: string, defaultVal: number = 0) => {
-      const rows = Array.isArray(result) ? result : result.rows || [];
-      return rows[0]?.[field] ?? defaultVal;
-    };
+    const todayExamsRows = executeRawSql(`
+      SELECT COUNT(*) as count FROM exam_attempts WHERE completed_at >= ?
+    `, [todayMs]);
 
     return {
       totalUsers: userCount?.count || 0,
-      activeUsers: getRowValue(activeUsersResult, 'active_count'),
+      activeUsers: activeUsersRows[0]?.active_count || 0,
       totalTracks: trackCount?.count || 0,
       totalLessons: lessonCount?.count || 0,
       totalQuizzes: quizCount?.count || 0,
-      totalExams: getRowValue(examResult, 'total_exams'),
-      averageQuizScore: Math.round(getRowValue(quizScoresResult, 'avg_score') * 10) / 10,
-      averageExamScore: Math.round(getRowValue(examResult, 'avg_score') * 10) / 10,
-      lessonsCompletedToday: getRowValue(todayLessonsResult, 'count'),
-      quizzesCompletedToday: getRowValue(todayQuizzesResult, 'count'),
-      examsCompletedToday: getRowValue(todayExamsResult, 'count'),
+      totalExams: examRows[0]?.total_exams || 0,
+      averageQuizScore: Math.round((quizScoresRows[0]?.avg_score || 0) * 10) / 10,
+      averageExamScore: Math.round((examRows[0]?.avg_score || 0) * 10) / 10,
+      lessonsCompletedToday: todayLessonsRows[0]?.count || 0,
+      quizzesCompletedToday: todayQuizzesRows[0]?.count || 0,
+      examsCompletedToday: todayExamsRows[0]?.count || 0,
       lastUpdated: new Date().toISOString()
     };
   } catch (error) {
@@ -277,7 +288,7 @@ async function getPlatformOverview(): Promise<PlatformOverview> {
 
 async function getTrackProgressAnalytics(): Promise<TrackProgress[]> {
   try {
-    const result = await db.execute(`
+    const rows = executeRawSql(`
       SELECT 
         t.id as track_id,
         t.title as track_title,
@@ -295,12 +306,10 @@ async function getTrackProgressAnalytics(): Promise<TrackProgress[]> {
       LEFT JOIN lesson_progress lp ON l.id = lp.lesson_id
       LEFT JOIN quizzes q ON l.id = q.lesson_id
       LEFT JOIN quiz_attempts qa ON q.id = qa.quiz_id
-      WHERE t.is_published = true
+      WHERE t.is_published = 1
       GROUP BY t.id, t.title, t.slug
       ORDER BY students_enrolled DESC, total_completions DESC
     `);
-
-    const rows = Array.isArray(result) ? result : result.rows || [];
     
     return rows.map((row: any) => ({
       trackId: row.track_id,
@@ -323,7 +332,7 @@ async function getTrackProgressAnalytics(): Promise<TrackProgress[]> {
 
 async function getTopStudents(limit: number = 10): Promise<StudentProgress[]> {
   try {
-    const result = await db.execute(`
+    const rows = executeRawSql(`
       SELECT 
         u.id as user_id,
         u.name as user_name,
@@ -348,10 +357,8 @@ async function getTopStudents(limit: number = 10): Promise<StudentProgress[]> {
       GROUP BY u.id, u.name, u.email, u.role, u.subscription_type
       HAVING lessons_completed > 0 OR quizzes_completed > 0
       ORDER BY avg_score DESC, lessons_completed DESC
-      LIMIT ${limit}
-    `);
-
-    const rows = Array.isArray(result) ? result : result.rows || [];
+      LIMIT ?
+    `, [limit]);
     
     return rows.map((row: any) => ({
       userId: row.user_id,
@@ -375,7 +382,7 @@ async function getTopStudents(limit: number = 10): Promise<StudentProgress[]> {
 
 async function getStrugglingStudents(limit: number = 10): Promise<StudentProgress[]> {
   try {
-    const result = await db.execute(`
+    const rows = executeRawSql(`
       SELECT 
         u.id as user_id,
         u.name as user_name,
@@ -400,10 +407,8 @@ async function getStrugglingStudents(limit: number = 10): Promise<StudentProgres
       GROUP BY u.id, u.name, u.email, u.role, u.subscription_type
       HAVING avg_score < 60 AND quizzes_completed > 0
       ORDER BY avg_score ASC
-      LIMIT ${limit}
-    `);
-
-    const rows = Array.isArray(result) ? result : result.rows || [];
+      LIMIT ?
+    `, [limit]);
     
     return rows.map((row: any) => ({
       userId: row.user_id,
@@ -431,7 +436,7 @@ async function getAllStudentProgress(limit: number, offset: number, sortBy: stri
                         sortBy === 'lessons' ? 'lessons_completed DESC' :
                         'last_activity DESC';
     
-    const result = await db.execute(`
+    const rows = executeRawSql(`
       SELECT 
         u.id as user_id,
         u.name as user_name,
@@ -454,10 +459,8 @@ async function getAllStudentProgress(limit: number, offset: number, sortBy: stri
       LEFT JOIN exam_attempts ea ON u.id = ea.user_id
       GROUP BY u.id, u.name, u.email, u.role, u.subscription_type
       ORDER BY ${orderClause}
-      LIMIT ${limit} OFFSET ${offset}
-    `);
-
-    const rows = Array.isArray(result) ? result : result.rows || [];
+      LIMIT ? OFFSET ?
+    `, [limit, offset]);
     
     return rows.map((row: any) => ({
       userId: row.user_id,
@@ -482,8 +485,7 @@ async function getAllStudentProgress(limit: number, offset: number, sortBy: stri
 async function getStudentDetails(userId: string) {
   try {
     // Get basic user info
-    const userResult = await db.execute(`SELECT * FROM users WHERE id = $1`, [userId]);
-    const userRows = Array.isArray(userResult) ? userResult : userResult.rows || [];
+    const userRows = executeRawSql(`SELECT * FROM users WHERE id = ?`, [userId]);
     const user = userRows[0];
     
     if (!user) {
@@ -491,7 +493,7 @@ async function getStudentDetails(userId: string) {
     }
 
     // Get lesson progress with track info
-    const lessonProgress = await db.execute(`
+    const lessonProgress = executeRawSql(`
       SELECT 
         lp.*,
         l.title as lesson_title,
@@ -500,12 +502,12 @@ async function getStudentDetails(userId: string) {
       FROM lesson_progress lp
       JOIN lessons l ON lp.lesson_id = l.id
       JOIN tracks t ON l.track_id = t.id
-      WHERE lp.user_id = $1
+      WHERE lp.user_id = ?
       ORDER BY lp.completed_at DESC
     `, [userId]);
 
     // Get quiz attempts
-    const quizAttempts = await db.execute(`
+    const quizAttempts = executeRawSql(`
       SELECT 
         qa.*,
         q.title as quiz_title,
@@ -516,31 +518,31 @@ async function getStudentDetails(userId: string) {
       JOIN quizzes q ON qa.quiz_id = q.id
       JOIN lessons l ON q.lesson_id = l.id
       JOIN tracks t ON l.track_id = t.id
-      WHERE qa.user_id = $1
+      WHERE qa.user_id = ?
       ORDER BY qa.completed_at DESC
     `, [userId]);
 
     // Get exam attempts
-    const examAttempts = await db.execute(`
-      SELECT * FROM exam_attempts WHERE user_id = $1 ORDER BY completed_at DESC
+    const examAttempts = executeRawSql(`
+      SELECT * FROM exam_attempts WHERE user_id = ? ORDER BY completed_at DESC
     `, [userId]);
 
     // Get SRS stats
-    const srsStats = await db.execute(`
+    const srsStats = executeRawSql(`
       SELECT 
         COUNT(DISTINCT deck_id) as decks_used,
         COUNT(*) as total_reviews,
         SUM(CASE WHEN grade >= 2 THEN 1 ELSE 0 END) as passed_reviews
       FROM srs_review_events
-      WHERE user_id = $1
+      WHERE user_id = ?
     `, [userId]);
 
     return {
       user,
-      lessonProgress: Array.isArray(lessonProgress) ? lessonProgress : lessonProgress.rows || [],
-      quizAttempts: Array.isArray(quizAttempts) ? quizAttempts : quizAttempts.rows || [],
-      examAttempts: Array.isArray(examAttempts) ? examAttempts : examAttempts.rows || [],
-      srsStats: (Array.isArray(srsStats) ? srsStats : srsStats.rows || [])[0] || { decks_used: 0, total_reviews: 0, passed_reviews: 0 }
+      lessonProgress,
+      quizAttempts,
+      examAttempts,
+      srsStats: srsStats[0] || { decks_used: 0, total_reviews: 0, passed_reviews: 0 }
     };
   } catch (error) {
     console.error("Error getting student details:", error);
@@ -551,7 +553,7 @@ async function getStudentDetails(userId: string) {
 async function getRecentActivity(limit: number = 50): Promise<RecentActivity[]> {
   try {
     // Combine lesson completions, quiz attempts, exam attempts into unified activity feed
-    const result = await db.execute(`
+    const rows = executeRawSql(`
       SELECT * FROM (
         SELECT 
           lp.id,
@@ -602,10 +604,8 @@ async function getRecentActivity(limit: number = 50): Promise<RecentActivity[]> 
         LEFT JOIN users u ON ea.user_id = u.id
       ) combined
       ORDER BY timestamp DESC
-      LIMIT ${limit}
-    `);
-
-    const rows = Array.isArray(result) ? result : result.rows || [];
+      LIMIT ?
+    `, [limit]);
     
     return rows.map((row: any) => ({
       id: row.id,
@@ -626,7 +626,8 @@ async function getRecentActivity(limit: number = 50): Promise<RecentActivity[]> 
 
 async function getSrsOverview() {
   try {
-    const result = await db.execute(`
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const rows = executeRawSql(`
       SELECT 
         COUNT(DISTINCT user_id) as active_users,
         COUNT(DISTINCT deck_id) as total_decks,
@@ -634,10 +635,9 @@ async function getSrsOverview() {
         SUM(CASE WHEN grade >= 2 THEN 1 ELSE 0 END) as passed_reviews,
         AVG(CASE WHEN grade >= 2 THEN 1.0 ELSE 0.0 END) * 100 as pass_rate
       FROM srs_review_events
-      WHERE reviewed_at > ${Date.now() - 7 * 24 * 60 * 60 * 1000}
-    `);
+      WHERE reviewed_at > ?
+    `, [sevenDaysAgo]);
 
-    const rows = Array.isArray(result) ? result : result.rows || [];
     const data = rows[0] || {};
 
     return {
@@ -663,7 +663,7 @@ async function getSrsOverview() {
 
 async function getExamAnalytics() {
   try {
-    const result = await db.execute(`
+    const rows = executeRawSql(`
       SELECT 
         exam_slug,
         COUNT(*) as total_attempts,
@@ -676,8 +676,6 @@ async function getExamAnalytics() {
       GROUP BY exam_slug
       ORDER BY total_attempts DESC
     `);
-
-    const rows = Array.isArray(result) ? result : result.rows || [];
     
     return rows.map((row: any) => ({
       examSlug: row.exam_slug,

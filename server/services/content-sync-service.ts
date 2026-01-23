@@ -233,4 +233,5 @@ export class ContentSyncService {
   }
 }
 
-export default ContentSyncService.getInstance();
+// Export the class for proper usage patterns
+export default ContentSyncService;
