@@ -50,11 +50,13 @@ if (env !== 'development' && hasDatabaseUrl) {
     const statement = sqlite.prepare(normalizedQuery);
 
     if (expectsRows) {
-      return statement.all(params);
+      const rows = statement.all(params);
+      return Object.assign(rows, { rows });
     }
 
     const result = statement.run(params);
     return {
+      rows: [],
       changes: result.changes,
       lastInsertRowid: result.lastInsertRowid,
     };
