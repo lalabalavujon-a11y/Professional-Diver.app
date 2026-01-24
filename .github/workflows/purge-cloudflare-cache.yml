@@ -71,19 +71,22 @@ jobs:
         run: |
           echo "🧹 Purging Cloudflare cache for professionaldiver.app..."
           
-          # Check if API token is set
-          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
-            echo "❌ Error: CLOUDFLARE_API_TOKEN secret is not set in GitHub Secrets"
-            echo "📝 To fix: Go to Settings → Secrets and variables → Actions → New repository secret"
-            echo "   Name: CLOUDFLARE_API_TOKEN"
-            echo "   Value: Your Cloudflare API token with Zone.Cache Purge permissions"
+          # Use CLOUDFLARE_CACHE_PURGE_TOKEN if available, otherwise fall back to CLOUDFLARE_API_TOKEN
+          CF_TOKEN="${{ secrets.CLOUDFLARE_CACHE_PURGE_TOKEN }}"
+          if [ -z "$CF_TOKEN" ]; then
+            CF_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          fi
+          
+          if [ -z "$CF_TOKEN" ]; then
+            echo "❌ Error: No Cloudflare API token found in GitHub Secrets"
+            echo "📝 Set CLOUDFLARE_CACHE_PURGE_TOKEN or CLOUDFLARE_API_TOKEN"
             exit 1
           fi
           
           # Get Zone ID for the domain
           echo "🔍 Looking up Zone ID for professionaldiver.app..."
           ZONE_RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=professionaldiver.app" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Authorization: Bearer $CF_TOKEN" \
             -H "Content-Type: application/json")
           
           # Check if API call was successful
@@ -93,7 +96,7 @@ jobs:
             echo "Response: $ZONE_RESPONSE"
             echo ""
             echo "Possible issues:"
-            echo "1. CLOUDFLARE_API_TOKEN is invalid or expired"
+            echo "1. API token is invalid or expired"
             echo "2. API token doesn't have Zone.Read permissions"
             echo "3. Check Cloudflare dashboard → My Profile → API Tokens"
             exit 1
@@ -107,7 +110,7 @@ jobs:
             echo ""
             echo "Available zones in account:"
             ALL_ZONES=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones" \
-              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+              -H "Authorization: Bearer $CF_TOKEN" \
               -H "Content-Type: application/json" | jq -r '.result[]?.name // empty')
             if [ -n "$ALL_ZONES" ]; then
               echo "$ALL_ZONES" | while read -r zone; do
@@ -128,7 +131,7 @@ jobs:
           
           # Purge everything
           RESPONSE=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/purge_cache" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Authorization: Bearer $CF_TOKEN" \
             -H "Content-Type: application/json" \
             --data '{"purge_everything":true}')
           
