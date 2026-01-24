@@ -12,17 +12,18 @@ import { eq } from "drizzle-orm";
 
 const isSQLiteDev = () => process.env.NODE_ENV === "development";
 
-export type SubscriptionTier = "DIVER" | "COMPANY" | "SERVICE_PROVIDER";
+export type SubscriptionTier = "DIVER" | "COMPANY" | "SERVICE_PROVIDER" | "ENTERPRISE";
 export type EntityType = "INDIVIDUAL" | "COMPANY" | "SERVICE_PROVIDER";
 export type SubscriptionType = "TRIAL" | "MONTHLY" | "ANNUAL" | "LIFETIME";
 
 /**
  * Pricing configuration for each tier
+ * Early Bird Beta Pricing - Prices will increase after beta period
  */
 export const TIER_PRICING = {
   DIVER: {
-    monthly: 1999, // $19.99 in cents
-    annual: 19900, // $199.00 in cents (17% discount)
+    monthly: 2500, // $25.00 in cents (Early Bird Beta Price)
+    annual: 25000, // $250.00 in cents (17% discount - Early Bird Beta Price)
   },
   COMPANY: {
     monthly: 4999, // $49.99 in cents
@@ -31,6 +32,25 @@ export const TIER_PRICING = {
   SERVICE_PROVIDER: {
     monthly: 7999, // $79.99 in cents
     annual: 79900, // $799.00 in cents (17% discount)
+  },
+  ENTERPRISE: {
+    monthly: 25000, // $250.00 in cents (Early Bird Beta Price)
+    annual: 250000, // $2500.00 in cents (17% discount - Early Bird Beta Price)
+  },
+} as const;
+
+/**
+ * Stripe Price IDs for each tier (to be configured in Stripe Dashboard)
+ * These are the payment links for checkout
+ */
+export const STRIPE_PRICE_LINKS = {
+  DIVER: {
+    monthly: "https://buy.stripe.com/8x24gzg9S2gG7WX4XugMw03",
+    annual: "https://buy.stripe.com/eVq8wP1eY2gG4KLblSgMw04",
+  },
+  ENTERPRISE: {
+    monthly: "https://buy.stripe.com/enterprise_monthly", // To be created in Stripe
+    annual: "https://buy.stripe.com/enterprise_annual", // To be created in Stripe
   },
 } as const;
 
@@ -212,6 +232,7 @@ export function hasTierAccess(
     DIVER: 1,
     COMPANY: 2,
     SERVICE_PROVIDER: 3,
+    ENTERPRISE: 4,
   };
   
   return tierHierarchy[userTier] >= tierHierarchy[requiredTier];
@@ -225,10 +246,110 @@ export function getTierDisplayName(tier: SubscriptionTier): string {
     DIVER: "Diver",
     COMPANY: "Company",
     SERVICE_PROVIDER: "Service Provider",
+    ENTERPRISE: "Enterprise",
   };
   
   return names[tier];
 }
+
+/**
+ * Enterprise tier features and benefits
+ */
+export const ENTERPRISE_FEATURES = {
+  training: [
+    "Unlimited team members",
+    "Custom learning paths",
+    "White-label training portal",
+    "API access for integrations",
+    "Custom content creation",
+    "Priority phone & email support",
+    "Dedicated account manager",
+    "Advanced analytics & reporting",
+    "SSO/SAML integration",
+    "Custom branding options",
+  ],
+  network: [
+    "Enterprise company profile",
+    "Unlimited job postings",
+    "Priority candidate matching",
+    "Advanced talent search",
+    "Bulk hiring tools",
+    "Custom interview workflows",
+    "Compliance reporting",
+    "Multi-location support",
+    "Team collaboration tools",
+    "Direct database access",
+  ],
+};
+
+/**
+ * All tier features for marketing pages
+ */
+export const TIER_FEATURES = {
+  DIVER: {
+    name: "Individual Diver",
+    tagline: "Perfect for professional divers preparing for certifications",
+    features: [
+      "All training courses & tracks",
+      "AI-powered tutors (Diver Well)",
+      "Interactive lessons & scenarios",
+      "Professional exams & quizzes",
+      "Progress tracking & certificates",
+      "Spaced Repetition System (SRS)",
+      "Mobile app access",
+      "Basic network profile",
+      "Job search & alerts",
+    ],
+  },
+  COMPANY: {
+    name: "Dive Company",
+    tagline: "For dive companies managing team training",
+    features: [
+      "Everything in Diver tier",
+      "Team management dashboard",
+      "Bulk user enrollment",
+      "Team progress tracking",
+      "Company branding options",
+      "Advanced analytics",
+      "Priority email support",
+      "Company network profile",
+      "Unlimited job postings",
+      "Candidate management",
+    ],
+  },
+  SERVICE_PROVIDER: {
+    name: "Service Provider",
+    tagline: "For training schools & service providers",
+    features: [
+      "Everything in Company tier",
+      "Custom content creation",
+      "White-label options",
+      "API access",
+      "Advanced reporting",
+      "Priority phone support",
+      "Premium network listing",
+      "Featured placement",
+      "Lead generation tools",
+    ],
+  },
+  ENTERPRISE: {
+    name: "Enterprise",
+    tagline: "For large organizations with 50+ users",
+    features: [
+      "Everything in Service Provider",
+      "Unlimited team members",
+      "Custom learning paths",
+      "SSO/SAML integration",
+      "Dedicated account manager",
+      "Custom integrations",
+      "SLA guarantees",
+      "Compliance reporting",
+      "Multi-location support",
+      "Direct database access",
+      "24/7 priority support",
+    ],
+  },
+};
 
 /**
  * Get tier price in cents

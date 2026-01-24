@@ -51,6 +51,7 @@ import SupportDocuments from "@/pages/support-documents";
 import ComingSoon from "@/pages/coming-soon";
 import PartnerInquiry from "@/pages/partner-inquiry";
 import Partners from "@/pages/partners";
+import Pricing from "@/pages/pricing";
 import FeatureRouteGuard from "@/components/feature-route-guard";
 
 function Router() {
@@ -239,6 +240,7 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/partner-inquiry" component={PartnerInquiry} />
       <Route path="/partners" component={Partners} />
+      <Route path="/pricing" component={Pricing} />
       <Route component={NotFound} />
     </Switch>
   );
