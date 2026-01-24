@@ -10,7 +10,7 @@ import { calendarConflictResolver } from '../services/calendar-conflict-resolver
 import { langSmithCalendarTracker } from './langsmith-calendar-tracker';
 import { db } from '../db';
 import { calendarSyncLogs, calendarConflicts } from '@shared/schema-sqlite';
-import { gte, lte } from 'drizzle-orm';
+import { and, gte, lte } from 'drizzle-orm';
 
 export interface DailyAnalysisInsights {
   date: Date;

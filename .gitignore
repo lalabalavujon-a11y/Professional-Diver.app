@@ -8,3 +8,4 @@ vite.config.ts.*
 .env.local# Trigger rebuild
 # Trigger Cloudflare Pages redeploy
 .env.bak*
+android/capacitor-cordova-android-plugins/.gradle

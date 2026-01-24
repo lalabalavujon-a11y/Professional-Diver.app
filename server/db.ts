@@ -21,7 +21,12 @@ const require = createRequire(import.meta.url);
 if (env !== 'development' && hasDatabaseUrl) {
   // connect to Postgres using process.env.DATABASE_URL
   console.log('🚀 Using PostgreSQL database for production');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  let connectionString = process.env.DATABASE_URL;
+  if (connectionString && !/sslmode=/.test(connectionString)) {
+    const separator = connectionString.includes('?') ? '&' : '?';
+    connectionString = `${connectionString}${separator}sslmode=require`;
+  }
+  const pool = new Pool({ connectionString });
   db = drizzle({ client: pool, schema });
 } else {
   // Use SQLite file in a local path that always exists
