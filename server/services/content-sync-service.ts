@@ -233,4 +233,6 @@ export class ContentSyncService {
   }
 }
 
+// Export singleton instance as default
+// The class is already exported via "export class ContentSyncService"
 export default ContentSyncService.getInstance();
