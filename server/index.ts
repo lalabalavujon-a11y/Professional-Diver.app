@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { aiTutorRouter } from "./ai-tutor";
 import healthRouter from "./health";
 import { initializeFeatureManagement } from "./feature-initialization";
+import { autoSeedIfEmpty } from "./auto-seed";
 
 const app = express();
 
@@ -108,6 +109,14 @@ async function main() {
   } catch (error) {
     console.error('Warning: Feature management initialization failed:', error);
     // Continue startup even if feature init fails
+  }
+  
+  // Auto-seed database if empty (ensures production has content)
+  try {
+    await autoSeedIfEmpty();
+  } catch (error) {
+    console.error('Warning: Auto-seed failed:', error);
+    // Continue startup even if seed fails
   }
   
   // Mount AI Tutor router
