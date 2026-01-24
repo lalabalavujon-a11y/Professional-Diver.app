@@ -1387,6 +1387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Affiliate Program Endpoints
+  // Every user at every level/role gets their own affiliate link automatically
   app.get('/api/affiliate/dashboard', async (req, res) => {
     try {
       // Get user email from query params (same pattern as /api/users/current)
@@ -1396,39 +1397,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Email is required' });
       }
 
-      // Get user info to get userId and name (same logic as /api/users/current)
+      // Get user info to get userId, name, and role (same logic as /api/users/current)
       let userId: string;
       let userName: string;
+      let userRole: string = 'USER';
       
       // SUPER ADMIN ACCOUNT - DO NOT CHANGE
       if (email === 'lalabalavu.jon@gmail.com') {
         userId = 'super-admin-1';
         userName = 'Jon Lalabalavu';
+        userRole = 'SUPER_ADMIN';
       } else if (email === 'sephdee@hotmail.com') {
         userId = 'super-admin-2';
         userName = 'Jon Lalabalavu';
+        userRole = 'SUPER_ADMIN';
       } else {
-        // For other users, use email as userId (consistent with current user endpoint)
-        userId = email;
-        // Extract name from email or use email
-        userName = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+        // Check if user exists in special users list
+        const specialUser = userManagement.getSpecialUser(email);
+        if (specialUser) {
+          userId = email;
+          userName = specialUser.name;
+          userRole = specialUser.role;
+        } else {
+          // For other users, use email as userId (consistent with current user endpoint)
+          userId = email;
+          // Extract name from email or use email
+          userName = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+          
+          // Try to get role from database
+          try {
+            const env = process.env.NODE_ENV ?? 'development';
+            const hasDatabaseUrl = !!process.env.DATABASE_URL;
+            const usersTable = (env === 'development' && !hasDatabaseUrl) ? usersSQLite : users;
+            
+            const [dbUser] = await db
+              .select()
+              .from(usersTable)
+              .where(eq(usersTable.email, email))
+              .limit(1);
+            
+            if (dbUser) {
+              userRole = dbUser.role || 'USER';
+              if (dbUser.name) userName = dbUser.name;
+            }
+          } catch (error) {
+            console.log('Could not fetch user role from database:', error);
+          }
+        }
       }
 
-      // Find or create affiliate for this user
+      // Find or create affiliate for this user - EVERY user gets an affiliate account
       let affiliate = await affiliateService.getAffiliateByUserId(userId);
       
       if (!affiliate) {
-        // Create new affiliate account
+        // Create new affiliate account with role-based commission
         affiliate = await affiliateService.createAffiliate({
           userId: userId,
           name: userName,
-          email: email
+          email: email,
+          role: userRole
         });
+        console.log(`[Affiliate] Created affiliate for ${email} (${userRole}): ${affiliate.affiliateCode}`);
       }
 
       // Get dashboard data
       const dashboardData = await affiliateService.getAffiliateDashboard(affiliate.id);
-      res.json(dashboardData);
+      
+      // Add user info to response
+      res.json({
+        ...dashboardData,
+        affiliate: {
+          ...dashboardData.affiliate,
+          referralLink: affiliate.referralLink,
+          name: userName,
+          email: email,
+          affiliateCode: affiliate.affiliateCode,
+          role: userRole,
+          commissionRate: affiliate.commissionRate
+        }
+      });
     } catch (error) {
       console.error('Affiliate dashboard error:', error);
       res.status(500).json({ error: 'Failed to load dashboard' });
@@ -1554,6 +1601,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Partner stats error:', error);
       res.status(500).json({ error: 'Failed to get partner stats' });
+    }
+  });
+
+  // Quick endpoint to get just the affiliate link for a user
+  // This is used for easy sharing without loading the full dashboard
+  app.get('/api/affiliate/my-link', async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      let userId: string;
+      let userName: string;
+      let userRole: string = 'USER';
+      
+      // SUPER ADMIN ACCOUNTS
+      if (email === 'lalabalavu.jon@gmail.com') {
+        userId = 'super-admin-1';
+        userName = 'Jon Lalabalavu';
+        userRole = 'SUPER_ADMIN';
+      } else if (email === 'sephdee@hotmail.com') {
+        userId = 'super-admin-2';
+        userName = 'Jon Lalabalavu';
+        userRole = 'SUPER_ADMIN';
+      } else {
+        const specialUser = userManagement.getSpecialUser(email);
+        if (specialUser) {
+          userId = email;
+          userName = specialUser.name;
+          userRole = specialUser.role;
+        } else {
+          userId = email;
+          userName = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+        }
+      }
+
+      // Ensure user has an affiliate account
+      const affiliate = await affiliateService.ensureUserHasAffiliate({
+        userId,
+        name: userName,
+        email,
+        role: userRole
+      });
+
+      res.json({
+        success: true,
+        affiliateCode: affiliate.affiliateCode,
+        referralLink: affiliate.referralLink,
+        commissionRate: affiliate.commissionRate,
+        isActive: affiliate.isActive
+      });
+    } catch (error) {
+      console.error('Get affiliate link error:', error);
+      res.status(500).json({ error: 'Failed to get affiliate link' });
     }
   });
 
