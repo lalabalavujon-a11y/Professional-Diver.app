@@ -101,6 +101,22 @@ export async function autoSeedIfEmpty(): Promise<void> {
       isPublished: true,
     }).returning();
 
+    // Underwater Welding Track (Track 9)
+    const [weldingTrack] = await db.insert(tracks).values({
+      title: "Underwater Welding Certification",
+      slug: "underwater-welding",
+      summary: "Professional underwater welding training covering wet welding techniques, dry hyperbaric welding, electrode selection, weld inspection, safety protocols, and AWS D3.6 standards compliance.",
+      isPublished: true,
+    }).returning();
+
+    // Hyperbaric Operations Track (Track 10)
+    const [hyperbaricTrack] = await db.insert(tracks).values({
+      title: "Hyperbaric Chamber Operations",
+      slug: "hyperbaric-operations",
+      summary: "Comprehensive hyperbaric chamber operations training including treatment protocols, emergency procedures, equipment maintenance, patient care, and PVHO safety standards.",
+      isPublished: true,
+    }).returning();
+
     // Add one lesson per track for initial content
     await db.insert(lessons).values([
       {
@@ -264,12 +280,136 @@ Client Representatives ensure diving operations meet safety, quality, and contra
 3. Decision making
 4. Regulatory knowledge`,
       },
+      {
+        trackId: weldingTrack.id,
+        title: "Wet Welding Fundamentals",
+        order: 1,
+        content: `# Wet Welding Fundamentals
+
+Underwater wet welding is a critical skill for commercial divers in marine construction and repair.
+
+## Welding Techniques
+- Shielded Metal Arc Welding (SMAW)
+- Electrode selection for underwater use
+- Arc striking and maintenance
+- Weld pool control in water
+
+## Safety Considerations
+1. Electrical hazards
+2. Visibility management
+3. Gas bubble hazards
+4. Emergency procedures`,
+      },
+      {
+        trackId: hyperbaricTrack.id,
+        title: "Hyperbaric Chamber Operations",
+        order: 1,
+        content: `# Hyperbaric Chamber Operations
+
+Hyperbaric chambers are essential for treating diving injuries and conducting saturation operations.
+
+## Chamber Types
+- Monoplace chambers
+- Multiplace chambers
+- Deck decompression chambers
+- Saturation systems
+
+## Treatment Protocols
+1. US Navy Treatment Tables
+2. Emergency procedures
+3. Patient monitoring
+4. Equipment maintenance`,
+      },
     ]);
+
+    // Create quizzes (exams) for each track
+    const allTracks = [
+      { track: ndtTrack, title: "NDT Certification Exam" },
+      { track: medicTrack, title: "Diver Medic Certification Exam" },
+      { track: supervisorTrack, title: "Dive Supervisor Certification Exam" },
+      { track: airDiverTrack, title: "Air Diver Certification Exam" },
+      { track: satDiverTrack, title: "Saturation Diver Certification Exam" },
+      { track: alstTrack, title: "ALST Certification Exam" },
+      { track: lstTrack, title: "LST Certification Exam" },
+      { track: clientRepTrack, title: "Client Representative Certification Exam" },
+      { track: weldingTrack, title: "Underwater Welding Certification Exam" },
+      { track: hyperbaricTrack, title: "Hyperbaric Operations Certification Exam" },
+    ];
+
+    // Get the lessons we just created
+    const allLessons = await db.select().from(lessons);
+    
+    for (const { track, title } of allTracks) {
+      const trackLesson = allLessons.find(l => l.trackId === track.id);
+      if (!trackLesson) continue;
+      
+      const [quiz] = await db.insert(quizzes).values({
+        lessonId: trackLesson.id,
+        title: title,
+        timeLimit: 60, // 60 minutes
+      }).returning();
+
+      // Add 5 questions to each exam
+      await db.insert(questions).values([
+        {
+          quizId: quiz.id,
+          prompt: `What is the primary safety consideration in ${track.title.toLowerCase()} operations?`,
+          a: "Speed of completion",
+          b: "Cost minimization", 
+          c: "Risk assessment and hazard mitigation",
+          d: "Equipment aesthetics",
+          answer: "c",
+          order: 1,
+        },
+        {
+          quizId: quiz.id,
+          prompt: `What documentation is required for ${track.title.toLowerCase()} work?`,
+          a: "No documentation needed",
+          b: "Comprehensive logs, certifications, and inspection reports",
+          c: "Only verbal confirmation",
+          d: "Social media posts",
+          answer: "b",
+          order: 2,
+        },
+        {
+          quizId: quiz.id,
+          prompt: `What is the emergency response priority in ${track.title.toLowerCase()}?`,
+          a: "Complete the job first",
+          b: "Notify management before taking action",
+          c: "Ensure personnel safety, then stabilize the situation",
+          d: "Document everything before responding",
+          answer: "c",
+          order: 3,
+        },
+        {
+          quizId: quiz.id,
+          prompt: `What certification is required for ${track.title.toLowerCase()}?`,
+          a: "No certification needed",
+          b: "Valid professional certification from recognized authority",
+          c: "Self-certification is sufficient",
+          d: "Only online certificates",
+          answer: "b",
+          order: 4,
+        },
+        {
+          quizId: quiz.id,
+          prompt: `What is the best practice for equipment maintenance in ${track.title.toLowerCase()}?`,
+          a: "Maintain only when equipment fails",
+          b: "Regular scheduled maintenance and pre-use inspections",
+          c: "Maintenance is not important",
+          d: "Only clean equipment once per year",
+          answer: "b",
+          order: 5,
+        },
+      ]);
+    }
 
     const trackCount = await db.select().from(tracks).then(r => r.length);
     const lessonCount = await db.select().from(lessons).then(r => r.length);
+    const quizCount = await db.select().from(quizzes).then(r => r.length);
+    const questionCount = await db.select().from(questions).then(r => r.length);
     
-    console.log(`✅ Auto-seed complete: ${trackCount} tracks, ${lessonCount} lessons created`);
+    console.log(`✅ Auto-seed complete: ${trackCount} tracks, ${lessonCount} lessons, ${quizCount} exams, ${questionCount} questions created`);
     
   } catch (error) {
     console.error('⚠️ Auto-seed failed (non-fatal):', error);
