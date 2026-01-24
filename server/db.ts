@@ -43,6 +43,22 @@ if (env !== 'development' && hasDatabaseUrl) {
   db = drizzleSQLite(sqlite, { schema: sqliteSchema });
   // Store reference to SQLite instance for table creation
   (db as any).sqlite = sqlite;
+  (db as any).execute = async (query: string, params: unknown[] = []) => {
+    const normalizedQuery = query.replace(/\$(\d+)/g, '?');
+    const expectsRows = /^\s*(select|pragma|with|explain)\b/i.test(normalizedQuery)
+      || /\breturning\b/i.test(normalizedQuery);
+    const statement = sqlite.prepare(normalizedQuery);
+
+    if (expectsRows) {
+      return statement.all(params);
+    }
+
+    const result = statement.run(params);
+    return {
+      changes: result.changes,
+      lastInsertRowid: result.lastInsertRowid,
+    };
+  };
 }
 
 export { db };
