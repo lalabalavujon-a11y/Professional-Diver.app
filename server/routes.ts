@@ -59,6 +59,7 @@ import {
   getReviewQueue,
 } from "./api/content-generation";
 import { registerOpenAIVoiceWsRoutes } from "./voice/openai-live-ws";
+import featureUpdateRoutes from "./routes/feature-update-routes";
 
 // In-memory store for user profile data (for demo purposes)
 const userProfileStore = new Map<string, any>();
@@ -176,6 +177,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Sponsor routes
   registerSponsorRoutes(app);
+
+  // Feature Update Log and Smart Build routes
+  app.use("/api/admin", featureUpdateRoutes);
 
   // Serve uploaded files statically with CORS headers for PDF files
   const path = await import('path');

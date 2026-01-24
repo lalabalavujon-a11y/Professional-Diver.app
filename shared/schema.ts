@@ -1176,6 +1176,123 @@ export const insertGlobalFeatureFlagSchema = createInsertSchema(globalFeatureFla
   updatedAt: true,
 });
 
+// ============================================
+// FEATURE UPDATE LOG - Track all feature deployments
+// ============================================
+export const featureUpdateStatusEnum = pgEnum("feature_update_status", ["PLANNED", "IN_PROGRESS", "TESTING", "DEPLOYED", "ROLLED_BACK"]);
+export const featureUpdateCategoryEnum = pgEnum("feature_update_category", ["FEATURE", "BUGFIX", "ENHANCEMENT", "SECURITY", "PERFORMANCE", "UI_UX"]);
+
+export const featureUpdateLog = pgTable("feature_update_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: featureUpdateCategoryEnum("category").default("FEATURE").notNull(),
+  status: featureUpdateStatusEnum("status").default("DEPLOYED").notNull(),
+  version: text("version"), // e.g., "1.0.3"
+  commitHash: text("commit_hash"),
+  pullRequestUrl: text("pull_request_url"),
+  affectedComponents: json("affected_components").default([]), // Array of component names
+  technicalDetails: text("technical_details"),
+  breakingChanges: boolean("breaking_changes").default(false).notNull(),
+  deployedBy: varchar("deployed_by").references(() => users.id),
+  plannedAt: timestamp("planned_at"),
+  startedAt: timestamp("started_at"),
+  testedAt: timestamp("tested_at"),
+  deployedAt: timestamp("deployed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertFeatureUpdateLogSchema = createInsertSchema(featureUpdateLog).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// SMART BUILD SYSTEM - Strategic App Building
+// ============================================
+export const smartBuildPhaseEnum = pgEnum("smart_build_phase", ["PLANNING", "EXECUTION", "TESTING", "COMPLETE", "ON_HOLD"]);
+export const smartBuildPriorityEnum = pgEnum("smart_build_priority", ["CRITICAL", "HIGH", "MEDIUM", "LOW"]);
+
+export const smartBuildProjects = pgTable("smart_build_projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  targetPlatform: text("target_platform").notNull(), // web, mobile, desktop, api
+  currentPhase: smartBuildPhaseEnum("current_phase").default("PLANNING").notNull(),
+  overallProgress: integer("overall_progress").default(0).notNull(), // 0-100
+  estimatedCost: integer("estimated_cost"), // in cents
+  actualCost: integer("actual_cost"), // in cents
+  costSavings: integer("cost_savings"), // calculated savings
+  startDate: timestamp("start_date"),
+  targetDate: timestamp("target_date"),
+  completedDate: timestamp("completed_date"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const smartBuildFeatures = pgTable("smart_build_features", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => smartBuildProjects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  priority: smartBuildPriorityEnum("priority").default("MEDIUM").notNull(),
+  phase: smartBuildPhaseEnum("phase").default("PLANNING").notNull(),
+  order: integer("order").default(0).notNull(),
+  // PLAN phase
+  planDetails: text("plan_details"),
+  planApprovedAt: timestamp("plan_approved_at"),
+  planApprovedBy: varchar("plan_approved_by").references(() => users.id),
+  // EXECUTE phase
+  executionNotes: text("execution_notes"),
+  codeChanges: json("code_changes").default([]), // Array of file paths changed
+  executionStartedAt: timestamp("execution_started_at"),
+  executionCompletedAt: timestamp("execution_completed_at"),
+  // TEST phase
+  testCases: json("test_cases").default([]), // Array of test descriptions
+  testResults: json("test_results").default([]), // Array of test results
+  testPassRate: integer("test_pass_rate"), // 0-100
+  testStartedAt: timestamp("test_started_at"),
+  testCompletedAt: timestamp("test_completed_at"),
+  // Metrics
+  estimatedHours: integer("estimated_hours"),
+  actualHours: integer("actual_hours"),
+  costEstimate: integer("cost_estimate"), // in cents
+  actualCost: integer("actual_cost"), // in cents
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const smartBuildLogs = pgTable("smart_build_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").references(() => smartBuildProjects.id, { onDelete: "cascade" }),
+  featureId: varchar("feature_id").references(() => smartBuildFeatures.id, { onDelete: "cascade" }),
+  action: text("action").notNull(), // PLAN_CREATED, EXECUTION_STARTED, TEST_PASSED, etc.
+  details: text("details"),
+  metadata: json("metadata").default({}),
+  performedBy: varchar("performed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSmartBuildProjectSchema = createInsertSchema(smartBuildProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSmartBuildFeatureSchema = createInsertSchema(smartBuildFeatures).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSmartBuildLogSchema = createInsertSchema(smartBuildLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -1254,3 +1371,15 @@ export type UserFeatureOverride = typeof userFeatureOverrides.$inferSelect;
 export type InsertUserFeatureOverride = z.infer<typeof insertUserFeatureOverrideSchema>;
 export type GlobalFeatureFlag = typeof globalFeatureFlags.$inferSelect;
 export type InsertGlobalFeatureFlag = z.infer<typeof insertGlobalFeatureFlagSchema>;
+
+// Feature Update Log Types
+export type FeatureUpdateLog = typeof featureUpdateLog.$inferSelect;
+export type InsertFeatureUpdateLog = z.infer<typeof insertFeatureUpdateLogSchema>;
+
+// Smart Build Types
+export type SmartBuildProject = typeof smartBuildProjects.$inferSelect;
+export type InsertSmartBuildProject = z.infer<typeof insertSmartBuildProjectSchema>;
+export type SmartBuildFeature = typeof smartBuildFeatures.$inferSelect;
+export type InsertSmartBuildFeature = z.infer<typeof insertSmartBuildFeatureSchema>;
+export type SmartBuildLog = typeof smartBuildLogs.$inferSelect;
+export type InsertSmartBuildLog = z.infer<typeof insertSmartBuildLogSchema>;

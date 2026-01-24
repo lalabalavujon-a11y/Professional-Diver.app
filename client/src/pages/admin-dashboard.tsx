@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import RoleBasedNavigation from "@/components/role-based-navigation";
 // TrialCountdown removed - Super Admin never sees trial messages
 import UserManagementContainer from "@/components/user-management-container";
@@ -9,6 +9,9 @@ import { LoadingSpinner } from "@/components/ui/loading-states";
 import { EmptyState } from "@/components/ui/empty-states";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FeatureUpdateLog } from "@/components/admin/feature-update-log";
+import { SmartBuildTracker } from "@/components/admin/smart-build-tracker";
 import { 
   Users, 
   FileText, 
@@ -21,6 +24,8 @@ import {
   Building2,
   RefreshCw,
   Upload,
+  GitCommit,
+  Brain,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -538,6 +543,34 @@ export default function AdminDashboard() {
         {canAccessUserManagement && (
           <PageSection className="mt-6">
             <UserManagementContainer />
+          </PageSection>
+        )}
+
+        {/* Development Tools Section - SUPER_ADMIN only */}
+        {isSuperAdmin && (
+          <PageSection
+            title="Development Tools"
+            description="Feature tracking, Smart Build methodology, and deployment monitoring"
+            className="mt-6"
+          >
+            <Tabs defaultValue="updates" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="updates" className="flex items-center gap-2">
+                  <GitCommit className="h-4 w-4" />
+                  Feature Updates
+                </TabsTrigger>
+                <TabsTrigger value="smartbuild" className="flex items-center gap-2">
+                  <Brain className="h-4 w-4" />
+                  Smart Build
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="updates">
+                <FeatureUpdateLog />
+              </TabsContent>
+              <TabsContent value="smartbuild">
+                <SmartBuildTracker />
+              </TabsContent>
+            </Tabs>
           </PageSection>
         )}
         </main>

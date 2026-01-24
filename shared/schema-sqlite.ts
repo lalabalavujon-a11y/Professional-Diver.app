@@ -1005,6 +1005,113 @@ export const insertDocumentationVersionSchema = createInsertSchema(documentation
   createdAt: true,
 });
 
+// ============================================
+// FEATURE UPDATE LOG - Track all feature deployments
+// ============================================
+export const featureUpdateLog = sqliteTable("feature_update_log", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").default("FEATURE").notNull(), // FEATURE, BUGFIX, ENHANCEMENT, SECURITY, PERFORMANCE, UI_UX
+  status: text("status").default("DEPLOYED").notNull(), // PLANNED, IN_PROGRESS, TESTING, DEPLOYED, ROLLED_BACK
+  version: text("version"),
+  commitHash: text("commit_hash"),
+  pullRequestUrl: text("pull_request_url"),
+  affectedComponents: text("affected_components", { mode: "json" }).default("[]"),
+  technicalDetails: text("technical_details"),
+  breakingChanges: integer("breaking_changes", { mode: "boolean" }).default(false).notNull(),
+  deployedBy: text("deployed_by").references(() => users.id),
+  plannedAt: integer("planned_at", { mode: "timestamp" }),
+  startedAt: integer("started_at", { mode: "timestamp" }),
+  testedAt: integer("tested_at", { mode: "timestamp" }),
+  deployedAt: integer("deployed_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const insertFeatureUpdateLogSchema = createInsertSchema(featureUpdateLog).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// SMART BUILD SYSTEM - Strategic App Building
+// ============================================
+export const smartBuildProjects = sqliteTable("smart_build_projects", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  targetPlatform: text("target_platform").notNull(),
+  currentPhase: text("current_phase").default("PLANNING").notNull(), // PLANNING, EXECUTION, TESTING, COMPLETE, ON_HOLD
+  overallProgress: integer("overall_progress").default(0).notNull(),
+  estimatedCost: integer("estimated_cost"),
+  actualCost: integer("actual_cost"),
+  costSavings: integer("cost_savings"),
+  startDate: integer("start_date", { mode: "timestamp" }),
+  targetDate: integer("target_date", { mode: "timestamp" }),
+  completedDate: integer("completed_date", { mode: "timestamp" }),
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const smartBuildFeatures = sqliteTable("smart_build_features", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  projectId: text("project_id").notNull().references(() => smartBuildProjects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  priority: text("priority").default("MEDIUM").notNull(), // CRITICAL, HIGH, MEDIUM, LOW
+  phase: text("phase").default("PLANNING").notNull(),
+  order: integer("order").default(0).notNull(),
+  planDetails: text("plan_details"),
+  planApprovedAt: integer("plan_approved_at", { mode: "timestamp" }),
+  planApprovedBy: text("plan_approved_by").references(() => users.id),
+  executionNotes: text("execution_notes"),
+  codeChanges: text("code_changes", { mode: "json" }).default("[]"),
+  executionStartedAt: integer("execution_started_at", { mode: "timestamp" }),
+  executionCompletedAt: integer("execution_completed_at", { mode: "timestamp" }),
+  testCases: text("test_cases", { mode: "json" }).default("[]"),
+  testResults: text("test_results", { mode: "json" }).default("[]"),
+  testPassRate: integer("test_pass_rate"),
+  testStartedAt: integer("test_started_at", { mode: "timestamp" }),
+  testCompletedAt: integer("test_completed_at", { mode: "timestamp" }),
+  estimatedHours: integer("estimated_hours"),
+  actualHours: integer("actual_hours"),
+  costEstimate: integer("cost_estimate"),
+  actualCost: integer("actual_cost"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const smartBuildLogs = sqliteTable("smart_build_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  projectId: text("project_id").references(() => smartBuildProjects.id, { onDelete: "cascade" }),
+  featureId: text("feature_id").references(() => smartBuildFeatures.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  details: text("details"),
+  metadata: text("metadata", { mode: "json" }).default("{}"),
+  performedBy: text("performed_by").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const insertSmartBuildProjectSchema = createInsertSchema(smartBuildProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSmartBuildFeatureSchema = createInsertSchema(smartBuildFeatures).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSmartBuildLogSchema = createInsertSchema(smartBuildLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -1076,3 +1183,15 @@ export type GptAccessToken = typeof gptAccessTokens.$inferSelect;
 export type InsertGptAccessToken = z.infer<typeof insertGptAccessTokenSchema>;
 export type ContentGenerationLog = typeof contentGenerationLogs.$inferSelect;
 export type InsertContentGenerationLog = typeof contentGenerationLogs.$inferInsert;
+
+// Feature Update Log Types
+export type FeatureUpdateLog = typeof featureUpdateLog.$inferSelect;
+export type InsertFeatureUpdateLog = z.infer<typeof insertFeatureUpdateLogSchema>;
+
+// Smart Build Types
+export type SmartBuildProject = typeof smartBuildProjects.$inferSelect;
+export type InsertSmartBuildProject = z.infer<typeof insertSmartBuildProjectSchema>;
+export type SmartBuildFeature = typeof smartBuildFeatures.$inferSelect;
+export type InsertSmartBuildFeature = z.infer<typeof insertSmartBuildFeatureSchema>;
+export type SmartBuildLog = typeof smartBuildLogs.$inferSelect;
+export type InsertSmartBuildLog = z.infer<typeof insertSmartBuildLogSchema>;
