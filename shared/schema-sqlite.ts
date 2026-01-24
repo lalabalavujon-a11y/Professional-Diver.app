@@ -1009,7 +1009,7 @@ export const insertDocumentationVersionSchema = createInsertSchema(documentation
 // FEATURE UPDATE LOG - Track all feature deployments
 // ============================================
 export const featureUpdateLog = sqliteTable("feature_update_log", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text("id").primaryKey().$defaultFn(generateId),
   title: text("title").notNull(),
   description: text("description").notNull(),
   category: text("category").default("FEATURE").notNull(), // FEATURE, BUGFIX, ENHANCEMENT, SECURITY, PERFORMANCE, UI_UX
@@ -1039,7 +1039,7 @@ export const insertFeatureUpdateLogSchema = createInsertSchema(featureUpdateLog)
 // SMART BUILD SYSTEM - Strategic App Building
 // ============================================
 export const smartBuildProjects = sqliteTable("smart_build_projects", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text("id").primaryKey().$defaultFn(generateId),
   name: text("name").notNull(),
   description: text("description").notNull(),
   targetPlatform: text("target_platform").notNull(),
@@ -1057,7 +1057,7 @@ export const smartBuildProjects = sqliteTable("smart_build_projects", {
 });
 
 export const smartBuildFeatures = sqliteTable("smart_build_features", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text("id").primaryKey().$defaultFn(generateId),
   projectId: text("project_id").notNull().references(() => smartBuildProjects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description").notNull(),
@@ -1085,7 +1085,7 @@ export const smartBuildFeatures = sqliteTable("smart_build_features", {
 });
 
 export const smartBuildLogs = sqliteTable("smart_build_logs", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text("id").primaryKey().$defaultFn(generateId),
   projectId: text("project_id").references(() => smartBuildProjects.id, { onDelete: "cascade" }),
   featureId: text("feature_id").references(() => smartBuildFeatures.id, { onDelete: "cascade" }),
   action: text("action").notNull(),

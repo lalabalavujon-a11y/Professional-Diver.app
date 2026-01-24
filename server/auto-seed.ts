@@ -4,12 +4,37 @@
  */
 
 import { db } from './db.js';
-import { tracks, lessons, quizzes, questions } from '../shared/schema.js';
 
 export async function autoSeedIfEmpty(): Promise<void> {
   try {
+    // Dynamically import schema based on environment
+    const isProduction = process.env.NODE_ENV !== 'development' && !!process.env.DATABASE_URL;
+    
+    let tracks, lessons, quizzes, questions;
+    
+    if (isProduction) {
+      const schema = await import('../shared/schema.js');
+      tracks = schema.tracks;
+      lessons = schema.lessons;
+      quizzes = schema.quizzes;
+      questions = schema.questions;
+    } else {
+      const schema = await import('../shared/schema-sqlite.js');
+      tracks = schema.tracks;
+      lessons = schema.lessons;
+      quizzes = schema.quizzes;
+      questions = schema.questions;
+    }
+    
     // Check if any tracks exist
-    const existingTracks = await db.select().from(tracks).limit(1);
+    let existingTracks;
+    try {
+      existingTracks = await db.select().from(tracks).limit(1);
+    } catch (tableError: any) {
+      // Table might not exist yet - this is okay, we'll try to create data anyway
+      console.log('⚠️ Could not check existing tracks (table may not exist yet):', tableError.message);
+      existingTracks = [];
+    }
     
     if (existingTracks.length > 0) {
       console.log('✅ Database already has content, skipping auto-seed');
