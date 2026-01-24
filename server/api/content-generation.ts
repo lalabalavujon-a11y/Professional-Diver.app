@@ -6,11 +6,7 @@ import { validateLesson } from '../services/content-validator';
 import { generateLessonPDF } from '../services/gamma-api';
 import { generateLessonPodcast } from '../services/podcast-generator';
 import { eq, desc } from 'drizzle-orm';
-import ContentSyncService from '../services/content-sync-service';
-
-const contentSync = ContentSyncService.getInstance();
-
-// Lazy initialization - only create when needed and handle missing API key gracefully
+import contentSync from '../services/content-sync-service';// Lazy initialization - only create when needed and handle missing API key gracefully
 let generator: ContentGeneratorService | null = null;
 
 function getGenerator(): ContentGeneratorService {
