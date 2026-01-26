@@ -1,5 +1,6 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import * as subtlsModule from "subtls";
 import ws from "ws";
 import { existsSync, mkdirSync } from 'fs';
 import { createRequire } from "module";
@@ -10,7 +11,9 @@ import * as sponsorSqliteSchema from "@shared/sponsor-schema-sqlite";
 
 neonConfig.webSocketConstructor = ws;
 if (process.env.DATABASE_SSL !== 'false') {
+  const subtls = (subtlsModule as any).default ?? (subtlsModule as any);
   neonConfig.forceDisablePgSSL = false;
+  neonConfig.subtls = subtls;
 }
 
 // Support both local SQLite development and production PostgreSQL
