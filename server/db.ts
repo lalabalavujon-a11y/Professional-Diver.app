@@ -9,6 +9,9 @@ import * as sponsorSchema from "@shared/sponsor-schema";
 import * as sponsorSqliteSchema from "@shared/sponsor-schema-sqlite";
 
 neonConfig.webSocketConstructor = ws;
+if (process.env.DATABASE_SSL !== 'false') {
+  neonConfig.forceDisablePgSSL = false;
+}
 
 // Support both local SQLite development and production PostgreSQL
 let db: any;
