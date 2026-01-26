@@ -1,6 +1,5 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
-import * as subtlsModule from "subtls";
 import ws from "ws";
 import { existsSync, mkdirSync } from 'fs';
 import { createRequire } from "module";
@@ -11,9 +10,7 @@ import * as sponsorSqliteSchema from "@shared/sponsor-schema-sqlite";
 
 neonConfig.webSocketConstructor = ws;
 if (process.env.DATABASE_SSL !== 'false') {
-  const subtls = (subtlsModule as any).default ?? (subtlsModule as any);
-  neonConfig.forceDisablePgSSL = false;
-  neonConfig.subtls = subtls;
+  neonConfig.forceDisablePgSSL = true;
 }
 
 // Support both local SQLite development and production PostgreSQL
@@ -32,6 +29,9 @@ if (usePostgres) {
   const connectionString = databaseUrl
     ? (() => {
         const shouldRequireSsl = process.env.DATABASE_SSL !== 'false';
+        if (neonConfig.forceDisablePgSSL) {
+          return databaseUrl;
+        }
         if (!shouldRequireSsl) {
           return databaseUrl;
         }
@@ -53,7 +53,11 @@ if (usePostgres) {
     : undefined;
   const pool = new Pool({
     connectionString,
-    ssl: process.env.DATABASE_SSL === 'false' ? undefined : { rejectUnauthorized: false },
+    ssl: neonConfig.forceDisablePgSSL
+      ? undefined
+      : process.env.DATABASE_SSL === 'false'
+        ? undefined
+        : { rejectUnauthorized: false },
   });
   db = drizzle({ client: pool, schema });
 } else {
