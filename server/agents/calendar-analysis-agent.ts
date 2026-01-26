@@ -8,9 +8,8 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { unifiedCalendarService } from '../services/unified-calendar-service';
 import { calendarConflictResolver } from '../services/calendar-conflict-resolver';
 import { langSmithCalendarTracker } from './langsmith-calendar-tracker';
-import { db } from '../db';
-import { calendarSyncLogs, calendarConflicts } from '@shared/schema-sqlite';
-import { gte, lte } from 'drizzle-orm';
+import { calendarConflicts, calendarSyncLogs, db } from '../db';
+import { and, gte, lte } from 'drizzle-orm';
 
 export interface DailyAnalysisInsights {
   date: Date;

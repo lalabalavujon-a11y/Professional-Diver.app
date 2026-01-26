@@ -16,12 +16,39 @@ let db: any;
 const env = process.env.NODE_ENV ?? 'development';
 
 const hasDatabaseUrl = !!process.env.DATABASE_URL;
+const usePostgres = hasDatabaseUrl && process.env.USE_SQLITE !== 'true';
+const databaseUrl = process.env.DATABASE_URL;
 const require = createRequire(import.meta.url);
 
-if (env !== 'development' && hasDatabaseUrl) {
+if (usePostgres) {
   // connect to Postgres using process.env.DATABASE_URL
-  console.log('🚀 Using PostgreSQL database for production');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  console.log(`🚀 Using PostgreSQL database (${env})`);
+  const connectionString = databaseUrl
+    ? (() => {
+        const shouldRequireSsl = process.env.DATABASE_SSL !== 'false';
+        if (!shouldRequireSsl) {
+          return databaseUrl;
+        }
+        try {
+          const url = new URL(databaseUrl);
+          if (!url.searchParams.has('sslmode')) {
+            url.searchParams.set('sslmode', 'require');
+          }
+          return url.toString();
+        } catch {
+          console.warn('⚠️ Unable to parse DATABASE_URL; using raw string.');
+          if (databaseUrl.includes('sslmode=')) {
+            return databaseUrl;
+          }
+          const separator = databaseUrl.includes('?') ? '&' : '?';
+          return `${databaseUrl}${separator}sslmode=require`;
+        }
+      })()
+    : undefined;
+  const pool = new Pool({
+    connectionString,
+    ssl: process.env.DATABASE_SSL === 'false' ? undefined : { rejectUnauthorized: false },
+  });
   db = drizzle({ client: pool, schema });
 } else {
   // Use SQLite file in a local path that always exists
@@ -45,4 +72,11 @@ if (env !== 'development' && hasDatabaseUrl) {
   (db as any).sqlite = sqlite;
 }
 
-export { db };
+const calendarSyncLogs = usePostgres
+  ? schema.calendarSyncLogs
+  : sqliteSchema.calendarSyncLogs;
+const calendarConflicts = usePostgres
+  ? schema.calendarConflicts
+  : sqliteSchema.calendarConflicts;
+
+export { calendarSyncLogs, calendarConflicts, db };
