@@ -1,0 +1,6 @@
+android/
+ios/
+**/.gradle/
+attached_assets/
+Combined-Services-Group-Setup/
+super-debug-agent/
