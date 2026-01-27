@@ -176,6 +176,12 @@ export default function RoleBasedNavigation() {
   const isSuperAdmin = effectiveRole === 'SUPER_ADMIN' || (isKnownSuperAdmin && !currentUser);
   const isPaidUser = currentUser?.subscriptionType !== 'TRIAL' && currentUser?.subscriptionType !== undefined;
   
+  // Check if user has operations access (LIFETIME subscription or ADMIN/SUPER_ADMIN role)
+  const hasOperationsAccess = currentUser?.subscriptionType === 'LIFETIME' || 
+    currentUser?.role === 'ADMIN' || 
+    currentUser?.role === 'SUPER_ADMIN' ||
+    isSuperAdmin;
+  
   // Debug logging
   useEffect(() => {
     if (currentUser) {
@@ -449,8 +455,8 @@ export default function RoleBasedNavigation() {
                   </SidebarMenuItem>
                 )}
 
-                {/* Operations Section - Only visible if Enterprise features are enabled */}
-                {enterpriseFeaturesEnabled && (
+                {/* Operations Section - Visible if user has operations access OR Enterprise features are enabled */}
+                {(hasOperationsAccess || enterpriseFeaturesEnabled) && (
                   <SidebarMenuItem>
                     <Collapsible className="group/collapsible">
                       <CollapsibleTrigger asChild>
