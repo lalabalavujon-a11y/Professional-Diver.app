@@ -4,6 +4,18 @@ import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
 import { affiliates, referrals, affiliateClicks, commissionPayments } from "@shared/affiliate-schema";
 import type { Affiliate, Referral, AffiliateClick, InsertAffiliate, InsertReferral, InsertAffiliateClick } from "@shared/affiliate-schema";
 import { stripeConnectService } from "./stripe-connect-service";
+import { users } from "@shared/schema";
+
+// Role-based commission rates
+// All users get 50% commission as standard, but can be customized per role
+export const ROLE_COMMISSION_RATES: Record<string, number> = {
+  USER: 50,          // Standard 50% commission
+  ADMIN: 50,         // Admin gets 50% commission
+  SUPER_ADMIN: 50,   // Super Admin gets 50% commission
+  LIFETIME: 50,      // Lifetime users get 50% commission
+  AFFILIATE: 50,     // Dedicated affiliates get 50% commission
+  ENTERPRISE: 50,    // Enterprise users get 50% commission
+};
 
 // Affiliate service for managing partner/referral program (Database-backed)
 export class AffiliateService {
@@ -12,15 +24,32 @@ export class AffiliateService {
     return `PD${nanoid(8).toUpperCase()}`;
   }
 
-  // Create affiliate account
-  async createAffiliate(userData: { userId: string; name: string; email: string }): Promise<Affiliate> {
+  // Get commission rate based on user role
+  getCommissionRateForRole(role: string): number {
+    return ROLE_COMMISSION_RATES[role] || 50;
+  }
+
+  // Create affiliate account with role-based commission
+  async createAffiliate(userData: { 
+    userId: string; 
+    name: string; 
+    email: string; 
+    role?: string;
+  }): Promise<Affiliate> {
+    // Check if affiliate already exists for this user
+    const existing = await this.getAffiliateByUserId(userData.userId);
+    if (existing) {
+      return existing;
+    }
+
     const affiliateCode = this.generateAffiliateCode();
     const referralLink = `https://professional-diver.diverwell.app/?ref=${affiliateCode}`;
+    const commissionRate = this.getCommissionRateForRole(userData.role || 'USER');
     
     const [newAffiliate] = await db.insert(affiliates).values({
       userId: userData.userId,
       affiliateCode,
-      commissionRate: 50, // 50% commission
+      commissionRate,
       totalReferrals: 0,
       totalEarnings: 0,
       monthlyEarnings: 0,
@@ -30,7 +59,37 @@ export class AffiliateService {
       stripeConnectOnboardingStatus: "NOT_STARTED",
     }).returning();
 
+    // Also update the user record with the affiliate code
+    try {
+      await db.update(users)
+        .set({ 
+          affiliateCode,
+          commissionRate,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userData.userId));
+    } catch (error) {
+      console.log('Note: Could not update user affiliate code (may be SQLite mode):', error);
+    }
+
     return newAffiliate;
+  }
+
+  // Ensure user has an affiliate account - creates one if not exists
+  async ensureUserHasAffiliate(userData: { 
+    userId: string; 
+    name: string; 
+    email: string;
+    role?: string;
+  }): Promise<Affiliate> {
+    let affiliate = await this.getAffiliateByUserId(userData.userId);
+    
+    if (!affiliate) {
+      affiliate = await this.createAffiliate(userData);
+      console.log(`[Affiliate] Created new affiliate account for user ${userData.email}:`, affiliate.affiliateCode);
+    }
+    
+    return affiliate;
   }
 
   // Track affiliate click
