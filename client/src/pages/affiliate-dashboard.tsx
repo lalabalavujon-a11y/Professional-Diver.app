@@ -427,29 +427,65 @@ export default function AffiliateDashboard() {
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Commission Structure</CardTitle>
+            <p className="text-sm text-slate-600 mt-1">
+              Earn 50% commission on all subscription plans - including our new Enterprise tier!
+            </p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <h4 className="font-semibold text-slate-900">Subscription Plans</h4>
+                <h4 className="font-semibold text-slate-900">All Subscription Plans</h4>
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
                     <div>
-                      <div className="font-medium">Monthly Plan</div>
-                      <div className="text-sm text-slate-600">$25/month</div>
+                      <div className="font-medium text-blue-900">Individual Diver (Monthly)</div>
+                      <div className="text-sm text-blue-600">$25/month</div>
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-green-600">$12.50</div>
                       <div className="text-sm text-slate-600">50% commission</div>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
                     <div>
-                      <div className="font-medium">Annual Plan</div>
-                      <div className="text-sm text-slate-600">$250/year</div>
+                      <div className="font-medium text-blue-900">Individual Diver (Annual)</div>
+                      <div className="text-sm text-blue-600">$250/year</div>
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-green-600">$125.00</div>
+                      <div className="text-sm text-slate-600">50% commission</div>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg border border-purple-100">
+                    <div>
+                      <div className="font-medium text-purple-900">Dive Company</div>
+                      <div className="text-sm text-purple-600">$49.99/month or $499/year</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-green-600">$25 - $249.50</div>
+                      <div className="text-sm text-slate-600">50% commission</div>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-100">
+                    <div>
+                      <div className="font-medium text-orange-900">Service Provider</div>
+                      <div className="text-sm text-orange-600">$79.99/month or $799/year</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-green-600">$40 - $399.50</div>
+                      <div className="text-sm text-slate-600">50% commission</div>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg border border-yellow-200">
+                    <div>
+                      <div className="font-medium text-amber-900 flex items-center gap-2">
+                        Enterprise 
+                        <Badge className="bg-yellow-500 text-white text-xs">NEW</Badge>
+                      </div>
+                      <div className="text-sm text-amber-600">$250/month or $2,500/year</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-green-600 text-lg">$125 - $1,250</div>
                       <div className="text-sm text-slate-600">50% commission</div>
                     </div>
                   </div>
@@ -465,6 +501,14 @@ export default function AffiliateDashboard() {
                   <p>• Recurring commissions for active subscriptions</p>
                   <p>• Real-time tracking and transparent reporting</p>
                   <p>• Stripe Connect offers fastest, automatic payouts</p>
+                </div>
+
+                <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                  <h5 className="font-semibold text-green-900 mb-2">Enterprise Referral Bonus</h5>
+                  <p className="text-sm text-green-700">
+                    Referring Enterprise customers earns you up to <strong>$1,250 per annual subscription</strong>! 
+                    This is our highest commission tier - perfect for partners with corporate connections.
+                  </p>
                 </div>
               </div>
             </div>

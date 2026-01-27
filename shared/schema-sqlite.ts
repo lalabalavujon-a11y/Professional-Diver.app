@@ -13,9 +13,9 @@ export const users = sqliteTable("users", {
   name: text("name"),
   role: text("role", { enum: ["USER", "ADMIN", "SUPER_ADMIN", "LIFETIME", "AFFILIATE", "ENTERPRISE"] }).default("USER").notNull(),
   subscriptionType: text("subscription_type", { enum: ["TRIAL", "MONTHLY", "ANNUAL", "LIFETIME"] }).default("TRIAL").notNull(),
-  subscriptionTier: text("subscription_tier", { enum: ["DIVER", "COMPANY", "SERVICE_PROVIDER"] }), // New: DIVER, COMPANY, SERVICE_PROVIDER
+  subscriptionTier: text("subscription_tier", { enum: ["DIVER", "COMPANY", "SERVICE_PROVIDER", "ENTERPRISE"] }), // New: DIVER, COMPANY, SERVICE_PROVIDER, ENTERPRISE
   entityType: text("entity_type", { enum: ["INDIVIDUAL", "COMPANY", "SERVICE_PROVIDER"] }).default("INDIVIDUAL").notNull(), // INDIVIDUAL, COMPANY, SERVICE_PROVIDER
-  networkAccessTier: text("network_access_tier", { enum: ["DIVER", "COMPANY", "SERVICE_PROVIDER"] }), // Network platform access tier (synced with subscriptionTier)
+  networkAccessTier: text("network_access_tier", { enum: ["DIVER", "COMPANY", "SERVICE_PROVIDER", "ENTERPRISE"] }), // Network platform access tier (synced with subscriptionTier)
   platformAccess: text("platform_access", { mode: "json" }).default({ training: true, network: false }), // JSON: { training: boolean, network: boolean }
   trialExpiresAt: integer("trial_expires_at", { mode: "timestamp" }),
   subscriptionStatus: text("subscription_status", { enum: ["ACTIVE", "PAUSED", "CANCELLED"] }).default("ACTIVE").notNull(),

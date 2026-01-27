@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { CheckCircle, Clock, BookOpen, Brain, BarChart3, Mic, ChevronRight, Star, Users, Trophy, Shield } from "lucide-react";
+import { CheckCircle, Clock, BookOpen, Brain, BarChart3, Mic, ChevronRight, Star, Users, Trophy, Shield, Building2, Crown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Footer from "@/components/footer";
@@ -190,36 +190,53 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Early Bird Beta Banner */}
+      <section className="px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-r from-yellow-50 via-amber-50 to-orange-50 border-y border-yellow-200">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 mb-3">
+            <Star className="w-6 h-6 text-yellow-600 fill-yellow-400" />
+            <span className="text-lg font-bold text-yellow-800">Early Bird Beta Pricing</span>
+            <Star className="w-6 h-6 text-yellow-600 fill-yellow-400" />
+          </div>
+          <p className="text-yellow-800 max-w-2xl mx-auto">
+            Lock in these special beta rates now before prices increase! Current subscribers keep their pricing forever.
+          </p>
+        </div>
+      </section>
+
       {/* Pricing Plans */}
       <section className="px-4 sm:px-6 lg:px-8 py-16 bg-slate-50">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-slate-900 mb-4">Choose Your Plan</h2>
             <p className="text-lg text-slate-600">Professional diving education that fits your learning schedule</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Monthly Plan */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Individual Diver Plan */}
             <Card className="border-2 border-slate-200 hover:border-blue-300 transition-all shadow-lg">
-              <CardHeader className="text-center pb-6">
-                <CardTitle className="text-2xl font-bold text-slate-900">Monthly Subscription</CardTitle>
-                <div className="text-4xl font-bold text-blue-600 mt-4">$25/Month</div>
-                <p className="text-slate-600 mt-2">Monthly billing • Full platform access • Cancel anytime</p>
+              <CardHeader className="text-center pb-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <Users className="w-6 h-6 text-blue-600" />
+                </div>
+                <CardTitle className="text-xl font-bold text-slate-900">Individual Diver</CardTitle>
+                <div className="text-3xl font-bold text-blue-600 mt-2">$25/Month</div>
+                <p className="text-slate-600 text-sm mt-1">or $250/year (Save $50)</p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <ul className="space-y-3">
+                <ul className="space-y-2">
                   {[
-                    "Multiple Choice + Written Exams",
-                    "Voice Dictation Technology", 
-                    "500+ Professional Questions",
-                    "AI Explanations & Tutors",
-                    "All Commercial Diving Levels",
-                    "Progress Analytics",
-                    "Spaced Repetition Learning"
+                    "All training courses & tracks",
+                    "AI-powered Diver Well tutors",
+                    "Professional exams & quizzes",
+                    "Voice dictation technology",
+                    "Progress analytics",
+                    "Mobile app access",
+                    "Job search & alerts"
                   ].map((feature, index) => (
-                    <li key={index} className="flex items-center space-x-3">
-                      <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      <span className="text-slate-700">{feature}</span>
+                    <li key={index} className="flex items-center space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm text-slate-700">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -229,54 +246,132 @@ export default function Landing() {
                   rel="noopener noreferrer"
                   className="block"
                 >
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold" data-testid="button-subscribe-monthly">
-                    Subscribe Monthly
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold" data-testid="button-subscribe-monthly">
+                    Get Started
                   </Button>
                 </a>
               </CardContent>
             </Card>
 
-            {/* Yearly Plan */}
-            <Card className="border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-white relative shadow-xl">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                  BEST VALUE
+            {/* Company Plan */}
+            <Card className="border-2 border-purple-200 hover:border-purple-400 transition-all shadow-lg bg-gradient-to-br from-purple-50 to-white">
+              <CardHeader className="text-center pb-4">
+                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <BarChart3 className="w-6 h-6 text-purple-600" />
                 </div>
-              </div>
-              <CardHeader className="text-center pb-6 pt-8">
-                <CardTitle className="text-2xl font-bold text-slate-900">Yearly Subscription</CardTitle>
-                <div className="text-4xl font-bold text-blue-600 mt-4">$250/Year</div>
-                <p className="text-slate-600 mt-2">Save over 15% • Full platform access • All exam formats included</p>
+                <CardTitle className="text-xl font-bold text-slate-900">Dive Company</CardTitle>
+                <div className="text-3xl font-bold text-purple-600 mt-2">$49.99/Month</div>
+                <p className="text-slate-600 text-sm mt-1">or $499/year (Save $100)</p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <ul className="space-y-3">
+                <ul className="space-y-2">
                   {[
-                    "Multiple Choice + Written Exams",
-                    "Voice Dictation Technology", 
-                    "500+ Professional Questions",
-                    "AI Explanations & Tutors",
-                    "All Commercial Diving Levels",
-                    "Priority Support",
-                    "Advanced Analytics Dashboard"
+                    "Everything in Individual",
+                    "Team management dashboard",
+                    "Bulk user enrollment",
+                    "Team progress tracking",
+                    "Company branding",
+                    "Advanced analytics",
+                    "Unlimited job postings"
                   ].map((feature, index) => (
-                    <li key={index} className="flex items-center space-x-3">
-                      <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      <span className="text-slate-700">{feature}</span>
+                    <li key={index} className="flex items-center space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm text-slate-700">{feature}</span>
                     </li>
                   ))}
                 </ul>
-                <a 
-                  href="https://buy.stripe.com/eVq8wP1eY2gG4KLblSgMw04"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 text-lg font-semibold" data-testid="button-subscribe-yearly">
-                    Subscribe Yearly
+                <a href="mailto:sales@professionaldiver.app" className="block">
+                  <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold">
+                    Contact Sales
                   </Button>
                 </a>
               </CardContent>
             </Card>
+
+            {/* Service Provider Plan */}
+            <Card className="border-2 border-orange-200 hover:border-orange-400 transition-all shadow-lg bg-gradient-to-br from-orange-50 to-white">
+              <CardHeader className="text-center pb-4">
+                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <Trophy className="w-6 h-6 text-orange-600" />
+                </div>
+                <CardTitle className="text-xl font-bold text-slate-900">Service Provider</CardTitle>
+                <div className="text-3xl font-bold text-orange-600 mt-2">$79.99/Month</div>
+                <p className="text-slate-600 text-sm mt-1">or $799/year (Save $160)</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ul className="space-y-2">
+                  {[
+                    "Everything in Company",
+                    "Custom content creation",
+                    "White-label portal",
+                    "API access",
+                    "Priority phone support",
+                    "Premium network listing",
+                    "Lead generation tools"
+                  ].map((feature, index) => (
+                    <li key={index} className="flex items-center space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm text-slate-700">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a href="mailto:sales@professionaldiver.app" className="block">
+                  <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold">
+                    Contact Sales
+                  </Button>
+                </a>
+              </CardContent>
+            </Card>
+
+            {/* Enterprise Plan */}
+            <Card className="border-2 border-yellow-400 hover:border-yellow-500 transition-all shadow-xl bg-gradient-to-br from-yellow-50 via-amber-50 to-white relative">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <div className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                  BEST VALUE
+                </div>
+              </div>
+              <CardHeader className="text-center pb-4 pt-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <Shield className="w-6 h-6 text-white" />
+                </div>
+                <CardTitle className="text-xl font-bold text-slate-900">Enterprise</CardTitle>
+                <div className="text-3xl font-bold text-amber-600 mt-2">$250/Month</div>
+                <p className="text-slate-600 text-sm mt-1">or $2,500/year (Save $500)</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ul className="space-y-2">
+                  {[
+                    "Everything in Service Provider",
+                    "Unlimited team members",
+                    "SSO/SAML integration",
+                    "Dedicated account manager",
+                    "Custom integrations",
+                    "SLA guarantees",
+                    "24/7 priority support"
+                  ].map((feature, index) => (
+                    <li key={index} className="flex items-center space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-sm text-slate-700">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a href="mailto:sales@professionaldiver.app" className="block">
+                  <Button className="w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-slate-900 font-semibold">
+                    Contact Sales
+                  </Button>
+                </a>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* View Full Pricing Link */}
+          <div className="text-center mt-8">
+            <Link href="/pricing">
+              <Button variant="outline" size="lg" className="text-blue-600 border-blue-200 hover:bg-blue-50">
+                View Full Pricing Details
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

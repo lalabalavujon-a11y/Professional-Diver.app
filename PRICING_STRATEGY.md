@@ -14,13 +14,16 @@ This document outlines the unified pricing strategy for both **Professional Dive
 
 ## Tier Structure
 
-### Premium Tier Pricing (Option C)
+### Premium Tier Pricing (Early Bird Beta)
+
+> **Note:** These are Early Bird Beta prices. Subscribers who lock in these rates keep them permanently. Prices will increase after the beta period.
 
 | Tier | Monthly Price | Annual Price | Savings | Training Platform Access | Network Platform Access |
 |------|--------------|--------------|---------|-------------------------|--------------------------|
-| **Diver** | $19.99/month | $199/year | 17% ($40/year) | Full training platform, all courses, AI tutors, exams | Diver profile, job search, basic connections (10/month), view company profiles |
-| **Company** | $49.99/month | $499/year | 17% ($100/year) | Full training + team management, bulk enrollments, progress tracking | Company profile, unlimited job postings, talent search, direct messaging, analytics |
+| **Individual Diver** | $25/month | $250/year | 17% ($50/year) | Full training platform, all courses, AI tutors, exams | Diver profile, job search, basic connections (10/month), view company profiles |
+| **Dive Company** | $49.99/month | $499/year | 17% ($100/year) | Full training + team management, bulk enrollments, progress tracking | Company profile, unlimited job postings, talent search, direct messaging, analytics |
 | **Service Provider** | $79.99/month | $799/year | 17% ($160/year) | Full training + advanced features, custom content, priority support | Premium service provider listing, featured placement, unlimited connections, advanced analytics |
+| **Enterprise** | $250/month | $2,500/year | 17% ($500/year) | Everything in Service Provider + unlimited team members, SSO/SAML, custom integrations, SLA guarantees | Enterprise profile, multi-location support, compliance reporting, direct database access |
 
 ---
 
@@ -213,18 +216,26 @@ This document outlines the unified pricing strategy for both **Professional Dive
 
 ## Enterprise and Bulk Pricing
 
-### Enterprise Plans
+### Enterprise Tier ($250/month or $2,500/year)
 
-For organizations with 50+ users:
+For organizations with 50+ users, our Enterprise tier includes:
 
-- **Custom pricing** based on user count
-- **Volume discounts** available
-- **Dedicated account manager**
-- **Custom integrations**
-- **SLA guarantees**
-- **White-label options**
+- **Unlimited team members** - No per-seat pricing
+- **SSO/SAML integration** - Enterprise-grade authentication
+- **Dedicated account manager** - Personal support contact
+- **Custom integrations** - API access and webhooks
+- **SLA guarantees** - 99.9% uptime commitment
+- **White-label options** - Custom branding available
+- **Compliance reporting** - Audit logs and certifications
+- **Multi-location support** - Manage global teams
+- **24/7 priority support** - Phone, email, and chat
+- **Quarterly business reviews** - Strategic planning sessions
 
-Contact sales for enterprise pricing: sales@professionaldiver.app
+### Enterprise Contact
+
+For custom enterprise solutions beyond standard Enterprise tier:
+- **Email:** sales@professionaldiver.app
+- **Phone:** Available for Enterprise customers
 
 ### Bulk Enrollment Discounts
 

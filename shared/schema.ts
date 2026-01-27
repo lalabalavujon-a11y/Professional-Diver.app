@@ -10,7 +10,7 @@ export const certificationStatusEnum = pgEnum("certification_status", ["NOT_STAR
 export const subscriptionTypeEnum = pgEnum("subscription_type", ["TRIAL", "MONTHLY", "ANNUAL", "LIFETIME"]);
 export const clientStatusEnum = pgEnum("client_status", ["ACTIVE", "PAUSED", "CANCELLED"]);
 export const entityTypeEnum = pgEnum("entity_type", ["INDIVIDUAL", "COMPANY", "SERVICE_PROVIDER"]);
-export const subscriptionTierEnum = pgEnum("subscription_tier", ["DIVER", "COMPANY", "SERVICE_PROVIDER"]);
+export const subscriptionTierEnum = pgEnum("subscription_tier", ["DIVER", "COMPANY", "SERVICE_PROVIDER", "ENTERPRISE"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
