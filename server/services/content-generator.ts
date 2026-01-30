@@ -41,14 +41,21 @@ export class ContentGeneratorService {
   private openai: OpenAI | null = null;
 
   constructor() {
-    if (!process.env.OPENAI_API_KEY) {
+    const apiKey = process.env.OPENAI_API_KEY?.trim();
+    if (!apiKey) {
       // The service can still be constructed, but any generate() call will throw.
       console.warn('⚠️ OPENAI_API_KEY missing. Content generation will fail until provided.');
+      this.openai = null;
     } else {
-      // Only create OpenAI client if API key is present
-      this.openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
+      // Only create OpenAI client if API key is present and valid
+      try {
+        this.openai = new OpenAI({
+          apiKey: apiKey,
+        });
+      } catch (error) {
+        console.error('⚠️ Failed to initialize OpenAI client:', error);
+        this.openai = null;
+      }
     }
   }
 

@@ -116,6 +116,9 @@ export default function TidesWidget({ timezone, latitude, longitude }: TidesWidg
   const displayData = tideData || fallbackData;
   const showError = isError && !tideData;
   
+  // Type guard to check if data has todayTides (full TideData vs fallback)
+  const hasTodayTides = (x: any): x is TideData => Array.isArray(x?.todayTides);
+  
   // Format current level based on units preference
   // API returns currentLevel in meters, or we use fallback value
   const currentLevelMeters = displayData.currentLevel ?? 1.0;
@@ -158,10 +161,10 @@ export default function TidesWidget({ timezone, latitude, longitude }: TidesWidg
                   )}
                 </div>
                 <div className="text-xs text-slate-600 mt-1">
-                  {displayData.todayTides && displayData.todayTides.length >= 4 ? (
+                  {hasTodayTides(displayData) && displayData.todayTides.length >= 4 ? (
                     // Show all 4 tide events for today (2 highs, 2 lows)
                     <div className="space-y-0.5">
-                      {displayData.todayTides.map((tide, idx) => (
+                      {displayData.todayTides.map((tide: TideEvent, idx: number) => (
                         <div key={idx} className="flex items-center justify-between">
                           <span className={tide.type === 'high' ? 'text-blue-600 font-medium' : 'text-slate-600'}>
                             {tide.type === 'high' ? 'High' : 'Low'}:

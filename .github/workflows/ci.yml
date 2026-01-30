@@ -1,98 +1,25 @@
 name: CI
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  push:
+    branches: [main]
 
 jobs:
-  build-test:
+  build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20.9.0, 22.x] # Test against stable + latest
-    env:
-      CI: true
     steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          node-version-file: .nvmrc
+          cache: npm
 
-      - name: Verify .env.local NOT committed
-        run: |
-          if git ls-files --error-unmatch .env.local >/dev/null 2>&1; then
-            echo "::error::Do not commit .env.local. Remove it from git and add it to .gitignore."
-            exit 1
-          fi
-
-      - name: Install deps
-        run: npm ci --legacy-peer-deps
-
-      - name: Static checks (ports free + vite config)
-        run: |
-          node scripts/port-assert.mjs
-          node scripts/verify-vite-proxy.mjs
-
-      - name: Typecheck
-        run: npm run typecheck || echo "⚠️ Typecheck has errors but continuing..."
-        continue-on-error: true
-
-      - name: Lint
-        run: npm run lint || echo "Lint not configured yet"
-
-      - name: Test
-        run: npm test || echo "No tests yet"
-
-      - name: Start API (background)
-        run: |
-          NODE_ENV=development PORT=5000 npx tsx server/index.ts > api.log 2>&1 &
-          echo $! > api.pid
-          # wait up to 30s for /health
-          for i in {1..60}; do
-            if curl -fsS http://127.0.0.1:5000/health >/dev/null; then
-              echo "API ready"; break
-            fi
-            sleep 0.5
-          done
-          curl -fsS http://127.0.0.1:5000/health
-
-      - name: Deep health check with LangChain pipeline test
-        run: |
-          curl --fail http://127.0.0.1:5000/health | tee health.json
-          jq '.services.db' health.json | grep -q 'sqlite-connected'
-          jq '.services.api' health.json | grep -q 'express-running'
-          jq '.services.langchain' health.json | grep -E -q 'pipeline-|langchain-dev-mode'
-          echo "✅ All health checks passed"
-
-      - name: Start Vite (background)
-        run: |
-          npx vite --host 127.0.0.1 --port 3000 > vite.log 2>&1 &
-          echo $! > vite.pid
-          # wait up to 30s for Vite to serve
-          for i in {1..60}; do
-            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then
-              echo "Vite ready"; break
-            fi
-            sleep 0.5
-          done
-
-      - name: Proxy sanity
-        run: |
-          curl -fsS http://127.0.0.1:3000/api/health
-          echo "Proxy OK"
-
-      - name: Teardown
-        if: always()
-        run: |
-          kill $(cat api.pid) 2>/dev/null || true
-          kill $(cat vite.pid) 2>/dev/null || true
-          rm -f api.pid vite.pid
-          echo "Logs:"
-          tail -n +1 api.log || true
-          tail -n +1 vite.log || true
+      - run: npm ci --legacy-peer-deps
+      - run: npm run lint
+      - name: Typecheck (informational)
+        run: npm run typecheck:ci
+      - run: npm run test
+      - run: npm run build

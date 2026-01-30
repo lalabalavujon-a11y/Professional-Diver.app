@@ -128,11 +128,11 @@ export class TempDatabaseStorage {
     pdfUrl?: string | null;
     notebookLmUrl?: string | null;
   }>) {
-    try {
-      const updateFields: any = {
-        updatedAt: new Date(),
-      };
+    let updateFields: Record<string, any> = {
+      updatedAt: new Date(),
+    };
 
+    try {
       if (data.trackId !== undefined) updateFields.trackId = data.trackId;
       if (data.title !== undefined) updateFields.title = data.title;
       if (data.order !== undefined) updateFields.order = data.order;

@@ -208,7 +208,7 @@ export async function findLessonBySlug(
 
     // Find the best match
     // Prefer exact matches or close matches
-    const bestMatch = results.find(lesson => {
+    const bestMatch = results.find((lesson: Lesson) => {
       const normalizedDbTitle = normalizeForMatching(lesson.title);
       return normalizedDbTitle === normalizedLessonTitle || 
              normalizedDbTitle.includes(normalizedLessonTitle) ||
