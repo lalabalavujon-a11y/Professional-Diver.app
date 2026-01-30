@@ -8,11 +8,12 @@ on:
 
 jobs:
   build:
+    name: build-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@4c00a6cdd97ec674de92232894827718a92dbe36
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@58edfd2b5783c61e3d44fae63f2b55f6bc1ecc86
         with:
           node-version-file: .nvmrc
           cache: npm
