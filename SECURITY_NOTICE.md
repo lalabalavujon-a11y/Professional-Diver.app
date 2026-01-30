@@ -30,7 +30,7 @@ git show 152454e:.env.local
 
 ### 2. Rotate Database Password (URGENT)
 
-**The database password `***REDACTED***@` is exposed. Rotate immediately:**
+**The database password is exposed. Rotate immediately:**
 
 #### Supabase Database Password
 
