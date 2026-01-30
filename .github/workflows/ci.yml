@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches: [main]
@@ -11,9 +14,9 @@ jobs:
     name: build-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@4c00a6cdd97ec674de92232894827718a92dbe36
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - uses: actions/setup-node@58edfd2b5783c61e3d44fae63f2b55f6bc1ecc86
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .nvmrc
           cache: npm
