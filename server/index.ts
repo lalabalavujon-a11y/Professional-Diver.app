@@ -19,11 +19,14 @@ app.use((req, res, next) => {
     'http://localhost:3001',
   ];
   
-  // Allow requests from allowed origins or any origin in development
-  if (origin && (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development')) {
+  // Allow Cloudflare Pages preview deployments (dynamic branch-based URLs)
+  const isCloudflarePreview = origin && origin.includes('.pages.dev');
+  
+  // Allow requests from allowed origins, Cloudflare previews, or any origin in development
+  if (origin && (allowedOrigins.includes(origin) || isCloudflarePreview || process.env.NODE_ENV === 'development')) {
     res.header('Access-Control-Allow-Origin', origin);
   } else if (process.env.NODE_ENV === 'development') {
-  res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Origin', '*');
   }
   
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');

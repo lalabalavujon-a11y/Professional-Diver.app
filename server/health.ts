@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "./db";
+import { sql } from "drizzle-orm";
 import { LangChainConfig } from "./langchain-config";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
@@ -36,13 +37,11 @@ router.get("/", async (req, res) => {
 
   // Database connectivity check
   try {
+    // Use Drizzle's execute() method for raw SQL (works for both SQLite and PostgreSQL)
+    await db.execute(sql`SELECT 1`);
     if (process.env.NODE_ENV === 'development') {
-      // SQLite check
-      await db.get("SELECT 1");
       health.services.db = "sqlite-connected";
     } else {
-      // PostgreSQL check
-      await db.get("SELECT 1");
       health.services.db = "postgresql-connected";
     }
   } catch (error) {

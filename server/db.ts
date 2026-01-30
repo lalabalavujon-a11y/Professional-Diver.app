@@ -18,9 +18,11 @@ const env = process.env.NODE_ENV ?? 'development';
 const hasDatabaseUrl = !!process.env.DATABASE_URL;
 const require = createRequire(import.meta.url);
 
-if (env !== 'development' && hasDatabaseUrl) {
+// Prioritize DATABASE_URL: if it exists, use PostgreSQL (production or staging)
+// Only use SQLite if DATABASE_URL is missing AND we're in development
+if (hasDatabaseUrl) {
   // connect to Postgres using process.env.DATABASE_URL
-  console.log('🚀 Using PostgreSQL database for production');
+  console.log('🚀 Using PostgreSQL database');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   db = drizzle({ client: pool, schema });
 } else {
