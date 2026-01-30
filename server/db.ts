@@ -23,7 +23,13 @@ const require = createRequire(import.meta.url);
 if (hasDatabaseUrl) {
   // connect to Postgres using process.env.DATABASE_URL
   console.log('🚀 Using PostgreSQL database');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  // Ensure SSL is enabled for Neon/Supabase connections
+  const connectionString = process.env.DATABASE_URL || '';
+  // Add SSL parameter if not already present (Neon requires SSL)
+  const sslConnectionString = connectionString.includes('sslmode=') 
+    ? connectionString 
+    : connectionString + (connectionString.includes('?') ? '&' : '?') + 'sslmode=require';
+  const pool = new Pool({ connectionString: sslConnectionString });
   db = drizzle({ client: pool, schema });
 } else {
   // Use SQLite file in a local path that always exists
