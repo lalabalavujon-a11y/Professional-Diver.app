@@ -1,12 +1,10 @@
-import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Phone, Mail, MessageSquare, Calendar, HelpCircle, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 import CallingButton from "@/components/calling-button";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { CALENDLY_BOOKING_URL } from "@/lib/links";
 import {
   Accordion,
   AccordionContent,
@@ -20,31 +18,10 @@ interface LearningPathContactPanelProps {
 
 export default function LearningPathContactPanel({ className }: LearningPathContactPanelProps) {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const [isBookingConsultation, setIsBookingConsultation] = useState(false);
-
-  const handleBookConsultation = async () => {
-    setIsBookingConsultation(true);
-    try {
-      const response = await apiRequest("POST", "/api/learning-path/consultation", {
-        email: localStorage.getItem('userEmail') || '',
-        name: localStorage.getItem('userName') || 'User',
-        preferredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        message: "Interested in learning path consultation",
-      });
-
-      toast({
-        title: "Consultation Requested",
-        description: "We'll contact you within 24 hours to schedule your consultation.",
-      });
-    } catch (error) {
-      toast({
-        title: "Request Failed",
-        description: "Unable to book consultation. Please try calling us directly.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsBookingConsultation(false);
+  const handleBookConsultation = () => {
+    const bookingWindow = window.open(CALENDLY_BOOKING_URL, "_blank", "noopener,noreferrer");
+    if (!bookingWindow) {
+      window.location.href = CALENDLY_BOOKING_URL;
     }
   };
 
@@ -119,10 +96,9 @@ export default function LearningPathContactPanel({ className }: LearningPathCont
             size="sm"
             className="w-full bg-blue-600 hover:bg-blue-700"
             onClick={handleBookConsultation}
-            disabled={isBookingConsultation}
           >
             <Calendar className="w-4 h-4 mr-2" />
-            {isBookingConsultation ? "Booking..." : "Book Free Consultation"}
+            Book Free Consultation
           </Button>
         </div>
 

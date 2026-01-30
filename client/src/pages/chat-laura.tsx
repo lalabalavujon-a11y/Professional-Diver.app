@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, ArrowLeft, Headphones, Settings, User, HelpCircle, BarChart3, Shield, Brain, Zap, Activity, Database, Users, TrendingUp, Volume2, VolumeX, Play, Pause, Mic, MicOff } from "lucide-react";
 import { Link } from "wouter";
 import diverWellLogo from "@assets/DIVER_WELL_TRAINING-500x500-rbg-preview_1756088331820.png";
+import { CALENDLY_BOOKING_URL } from "@/lib/links";
 
 interface Message {
   id: string;
@@ -272,7 +273,7 @@ export default function ChatLaura() {
     // Admin consultation booking
     if (input.includes('admin') || input.includes('consultation') || input.includes('book') || input.includes('schedule') || 
         input.includes('speak to') || input.includes('meeting') || input.includes('call')) {
-      return "I can absolutely help you schedule a consultation with our admin team! For direct admin support, complex account issues, or business consultations, I can arrange a personal meeting. Please provide your preferred date/time and the nature of your inquiry, and I'll coordinate with our admin team to schedule your consultation. You can also reach out directly to support@diverwell.app for immediate admin assistance.";
+      return `I can absolutely help you schedule a consultation with our admin team! For direct admin support, complex account issues, or business consultations, you can book a time here: ${CALENDLY_BOOKING_URL}. If you'd rather, share your preferred date/time and the nature of your inquiry, and I'll coordinate with our admin team to schedule your consultation. You can also reach out directly to support@diverwell.app for immediate admin assistance.`;
     }
 
     // Default response with sales elements and admin consultation offer
