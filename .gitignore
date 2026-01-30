@@ -5,6 +5,7 @@ server/public
 vite.config.ts.*
 *.tar.gz.env
 .env
-.env.local# Trigger rebuild
+.env.local
+# Trigger rebuild
 # Trigger Cloudflare Pages redeploy
 .env.bak*
