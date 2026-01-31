@@ -23,7 +23,7 @@ jobs:
 
       - run: npm ci --legacy-peer-deps
       - name: Lint (informational)
-        run: npm run lint || true
+        run: npm run lint || echo "lint failed (ignored)"
       - name: Typecheck (informational)
         run: npm run typecheck:ci
       - run: npm run test
