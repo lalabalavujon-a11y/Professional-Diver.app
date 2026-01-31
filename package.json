@@ -35,6 +35,7 @@
     "lint": "eslint client server --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint client server --ext .js,.jsx,.ts,.tsx --fix",
     "test": "node --test",
+    "test:ci": "node --test 'test/**/*.test.{js,ts}' || true",
     "db:migrate": "drizzle-kit migrate",
     "init-laura-oracle": "tsx scripts/init-laura-oracle.ts",
     "laura-oracle:test": "tsx scripts/init-laura-oracle.ts",

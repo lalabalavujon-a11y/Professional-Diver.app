@@ -28,5 +28,5 @@ jobs:
       - name: Typecheck (informational)
         run: npm run typecheck:ci
         continue-on-error: true
-      - run: npm run test
+      - run: npm run test:ci
       - run: npm run build

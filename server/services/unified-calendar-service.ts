@@ -263,6 +263,12 @@ export class UnifiedCalendarService {
     endDate: Date
   ): Promise<UnifiedCalendarEvent[]> {
     try {
+      // Guard: db.execute is not available in SQLite (better-sqlite3)
+      if (typeof (db as any).execute !== 'function') {
+        console.warn('db.execute not available; skipping Calendly fetch (SQLite mode)');
+        return [];
+      }
+
       // Query clients that have Calendly bookings in the date range
       const results = await db.execute(`
         SELECT 
@@ -278,7 +284,9 @@ export class UnifiedCalendarService {
         endDate.toISOString(),
       ]);
 
-      return results.rows.map((client: any) => {
+      // Handle both PostgreSQL (results.rows) and direct array results
+      const rows = Array.isArray(results) ? results : (results.rows || []);
+      return rows.map((client: any) => {
         const bookingTime = new Date(client.last_booking_time);
         const endTime = new Date(bookingTime.getTime() + 60 * 60 * 1000); // Default 1 hour duration
 

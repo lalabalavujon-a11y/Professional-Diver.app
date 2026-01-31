@@ -32,14 +32,20 @@ export interface DailyAnalysisInsights {
 }
 
 export class CalendarAnalysisAgent {
-  private llm: ChatOpenAI;
+  private llm: ChatOpenAI | null;
 
   constructor() {
-    this.llm = new ChatOpenAI({
-      modelName: 'gpt-4o',
-      temperature: 0.5,
-      maxTokens: 2000,
-    });
+    // Guard: Only initialize LLM if OPENAI_API_KEY is available
+    if (process.env.OPENAI_API_KEY) {
+      this.llm = new ChatOpenAI({
+        modelName: 'gpt-4o',
+        temperature: 0.5,
+        maxTokens: 2000,
+      });
+    } else {
+      console.warn('OPENAI_API_KEY not set; AI insights will be disabled');
+      this.llm = null;
+    }
   }
 
   /**
@@ -65,33 +71,53 @@ export class CalendarAnalysisAgent {
       // Detect conflicts
       const conflicts = await calendarConflictResolver.detectConflicts(events);
 
-      // Get sync logs
-      const syncLogs = await db
-        .select()
-        .from(calendarSyncLogs)
-        .where(
-          and(
-            gte(calendarSyncLogs.createdAt, startDate),
-            lte(calendarSyncLogs.createdAt, endDate)
-          )
-        );
+      // Get sync logs (gracefully handle missing tables)
+      let syncLogs: any[] = [];
+      try {
+        syncLogs = await db
+          .select()
+          .from(calendarSyncLogs)
+          .where(
+            and(
+              gte(calendarSyncLogs.createdAt, startDate),
+              lte(calendarSyncLogs.createdAt, endDate)
+            )
+          );
+      } catch (error: any) {
+        if (error?.message?.includes('no such table') || error?.message?.includes('does not exist')) {
+          console.warn('Calendar sync logs table not found; skipping sync log analysis');
+        } else {
+          throw error;
+        }
+      }
 
-      // Get conflict history
-      const conflictHistory = await db
-        .select()
-        .from(calendarConflicts)
-        .where(
-          and(
-            gte(calendarConflicts.detectedAt, startDate),
-            lte(calendarConflicts.detectedAt, endDate)
-          )
-        );
+      // Get conflict history (gracefully handle missing tables)
+      let conflictHistory: any[] = [];
+      try {
+        conflictHistory = await db
+          .select()
+          .from(calendarConflicts)
+          .where(
+            and(
+              gte(calendarConflicts.detectedAt, startDate),
+              lte(calendarConflicts.detectedAt, endDate)
+            )
+          );
+      } catch (error: any) {
+        if (error?.message?.includes('no such table') || error?.message?.includes('does not exist')) {
+          console.warn('Calendar conflicts table not found; skipping conflict history analysis');
+        } else {
+          throw error;
+        }
+      }
 
       // Analyze patterns
       const patterns = this.analyzePatterns(events, conflicts, syncLogs, conflictHistory);
 
-      // Generate AI-powered insights
-      const aiInsights = await this.generateAIInsights(events, conflicts, patterns);
+      // Generate AI-powered insights (skip if LLM not available)
+      const aiInsights = this.llm 
+        ? await this.generateAIInsights(events, conflicts, patterns)
+        : { recommendations: [], strategies: [] };
 
       const insights: DailyAnalysisInsights = {
         date: analysisDate,
