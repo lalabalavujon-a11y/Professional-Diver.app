@@ -37,12 +37,29 @@ router.get("/", async (req, res) => {
 
   // Database connectivity check
   try {
-    // Use Drizzle's execute() method for raw SQL (works for both SQLite and PostgreSQL)
-    await db.execute(sql`SELECT 1`);
-    if (process.env.NODE_ENV === 'development') {
-      health.services.db = "sqlite-connected";
+    // Check if DATABASE_URL is set to determine database type
+    const hasDatabaseUrl = !!process.env.DATABASE_URL;
+    const isPostgres = hasDatabaseUrl;
+    
+    // Use a method that works with both SQLite and PostgreSQL
+    if (typeof (db as any).execute === 'function') {
+      // PostgreSQL/Neon - use execute()
+      await db.execute(sql`SELECT 1`);
     } else {
+      // SQLite - use a simple query that works with better-sqlite3
+      const sqliteDb = (db as any).sqlite || db;
+      if (sqliteDb && typeof sqliteDb.prepare === 'function') {
+        sqliteDb.prepare('SELECT 1').get();
+      } else {
+        // Fallback: try execute with sql template
+        await db.execute(sql`SELECT 1`);
+      }
+    }
+    
+    if (isPostgres) {
       health.services.db = "postgresql-connected";
+    } else {
+      health.services.db = "sqlite-connected";
     }
   } catch (error) {
     health.services.db = `database-error: ${error instanceof Error ? error.message : 'unknown'}`;
