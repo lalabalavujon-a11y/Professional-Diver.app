@@ -38,7 +38,10 @@
       "extends": [
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended"
-      ]
+      ],
+      "rules": {
+        "no-undef": "off"
+      }
     },
     {
       "files": ["*.js", "*.jsx"],
