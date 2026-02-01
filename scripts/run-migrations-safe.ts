@@ -51,8 +51,18 @@ try {
     process.exit(1);
   }
 } catch (error) {
-  console.error('❌ Database connectivity test failed:', error instanceof Error ? error.message : 'unknown');
+  console.error('❌ Database connectivity test failed');
+  if (error instanceof Error) {
+    console.error('   Error message:', error.message);
+    console.error('   Error name:', error.name);
+    if (error.stack) {
+      console.error('   Stack trace:', error.stack.split('\n').slice(0, 3).join('\n'));
+    }
+  } else {
+    console.error('   Error details:', JSON.stringify(error, null, 2));
+  }
   console.error('⏭️  Skipping migrations to prevent restart loop');
+  console.error('💡 Check: DATABASE_URL format, password, network access, IPv4 compatibility');
   process.exit(1);
 }
 
