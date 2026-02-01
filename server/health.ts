@@ -36,33 +36,50 @@ router.get("/", async (req, res) => {
   };
 
   // Database connectivity check
+  // Primary signal: DATABASE_URL presence and format
+  const databaseUrl = process.env.DATABASE_URL || '';
+  const isPostgres = databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
+  const isSqlite = !isPostgres && (databaseUrl.includes('.sqlite') || databaseUrl.includes('.db') || !databaseUrl);
+  
+  let dbDriver: string = 'unknown';
+  let dbOk: boolean = false;
+  
   try {
-    // Check if DATABASE_URL is set to determine database type
-    const hasDatabaseUrl = !!process.env.DATABASE_URL;
-    const isPostgres = hasDatabaseUrl;
-    
-    // Use a method that works with both SQLite and PostgreSQL
+    // Attempt a trivial query to verify connectivity
     if (typeof (db as any).execute === 'function') {
       // PostgreSQL/Neon - use execute()
       await db.execute(sql`SELECT 1`);
+      dbDriver = 'postgres';
+      dbOk = true;
     } else {
       // SQLite - use a simple query that works with better-sqlite3
       const sqliteDb = (db as any).sqlite || db;
       if (sqliteDb && typeof sqliteDb.prepare === 'function') {
         sqliteDb.prepare('SELECT 1').get();
+        dbDriver = 'sqlite';
+        dbOk = true;
       } else {
         // Fallback: try execute with sql template
         await db.execute(sql`SELECT 1`);
+        dbDriver = isPostgres ? 'postgres' : 'sqlite';
+        dbOk = true;
       }
     }
-    
-    if (isPostgres) {
-      health.services.db = "postgresql-connected";
-    } else {
-      health.services.db = "sqlite-connected";
-    }
   } catch (error) {
-    health.services.db = `database-error: ${error instanceof Error ? error.message : 'unknown'}`;
+    dbOk = false;
+    // Infer driver from DATABASE_URL if query failed
+    if (isPostgres) {
+      dbDriver = 'postgres';
+    } else if (isSqlite) {
+      dbDriver = 'sqlite';
+    }
+  }
+  
+  // Report database status
+  if (dbOk) {
+    health.services.db = `${dbDriver}-connected`;
+  } else {
+    health.services.db = `${dbDriver}-error`;
   }
 
   // LangSmith connectivity check

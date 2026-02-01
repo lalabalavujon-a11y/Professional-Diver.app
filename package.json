@@ -16,7 +16,7 @@
     "dev:all": "npm-run-all -p dev:api dev:web",
     "build": "vite build",
     "start": "cross-env NODE_ENV=production HOST=0.0.0.0 tsx server/index.ts",
-    "start:with-migrations": "npm run db:migrate && npm run start",
+    "start:with-migrations": "tsx scripts/run-migrations-safe.ts && npm run start",
     "check": "tsc",
     "db:push": "CI=true drizzle-kit push --force",
     "db:migrate:rls": "tsx scripts/run-rls-migration.ts",

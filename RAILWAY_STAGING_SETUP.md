@@ -56,12 +56,21 @@ or
 
 Migrations are now **automatically run** on every deploy thanks to the `start:with-migrations` script.
 
-The `railway.json` has been updated to run:
-```bash
-npm run db:migrate && npm run start
-```
+**Important:** The migration script includes safety guards:
+- Only runs if `DATABASE_URL` is set and points to PostgreSQL
+- Tests database connectivity before running migrations
+- Skips migrations on SQLite or when DB is unreachable (prevents restart loops)
+- Can be disabled by setting `RUN_MIGRATIONS_ON_START=false`
 
-This ensures the database schema is up-to-date on every deployment.
+**⚠️ Railway UI vs railway.json:**
+
+Railway typically uses the **service settings in the UI** (not `railway.json`). After merging, verify in Railway UI:
+
+1. Go to Railway → `professional-diver-api-staging` → Settings
+2. Check **Start Command** is set to: `npm run start:with-migrations`
+3. If it still says `npm run start`, update it manually in the UI
+
+The `railway.json` file is mainly used with Railway CLI, so the UI settings take precedence.
 
 ## Step 4: Verify Health Endpoint
 
@@ -114,8 +123,16 @@ curl https://staging-api.professionaldiver.app/health
 ### Migration errors?
 
 - Drizzle migrations are idempotent (safe to run multiple times)
+- The migration script tests connectivity first - if DB is unreachable, migrations are skipped to prevent restart loops
 - If migrations fail, check Railway logs for specific error messages
 - Ensure `DATABASE_URL` is set correctly before migrations run
+- To disable migrations on start: set `RUN_MIGRATIONS_ON_START=false` in Railway variables
+
+### Multiple replicas / concurrent migrations?
+
+- If you scale beyond 1 replica, be aware that multiple instances may attempt migrations simultaneously
+- Drizzle migrations typically handle this with transaction locks, but monitor for race conditions
+- Consider running migrations as a separate one-off command before scaling if needed
 
 ## Quick Checklist
 
