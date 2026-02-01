@@ -1,5 +1,10 @@
 import { defineConfig } from "drizzle-kit";
 
+// SSL configuration: always enable SSL, toggle certificate verification
+// staging/dev: rejectUnauthorized=false (accepts self-signed certificates)
+// production: set DB_SSL_REJECT_UNAUTHORIZED=true for strict validation
+const rejectUnauthorized = process.env.DB_SSL_REJECT_UNAUTHORIZED === "true";
+
 export default defineConfig({
   out: "./migrations",
   schema: process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL ? "./shared/schema-sqlite.ts" : "./shared/schema.ts",
@@ -8,11 +13,7 @@ export default defineConfig({
     url: "./local-dev.db",
   } : {
     url: process.env.DATABASE_URL || "",
-    // SSL configuration for pg driver (used by drizzle-kit migrate)
-    // For staging/dev: accept self-signed certificates
-    // For production: can be controlled via DB_SSL_REJECT_UNAUTHORIZED env var
-    ssl: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true' 
-      ? { rejectUnauthorized: true }  // Strict SSL validation for production
-      : { rejectUnauthorized: false }  // Accept self-signed certificates for staging/dev
+    // Always enable SSL, control certificate verification via env var
+    ssl: { rejectUnauthorized },
   },
 });
