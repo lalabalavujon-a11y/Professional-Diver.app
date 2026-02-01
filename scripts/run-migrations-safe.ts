@@ -183,17 +183,33 @@ if (!isPostgres) {
 console.log('🔌 Testing database connectivity...');
 try {
   // Import db to test connection
+  console.log('   Importing database module...');
   const { db } = await import('../server/db.js');
   const { sql } = await import('drizzle-orm');
   
+  console.log('   Checking database connection method...');
   if (typeof (db as any).execute === 'function') {
+    console.log('   Executing test query...');
     await db.execute(sql`SELECT 1`);
     console.log('✅ Database is reachable');
   } else {
-    console.log('⚠️  Database connection method not available');
+    console.error('⚠️  Database connection method not available');
+    console.error('   db.execute type:', typeof (db as any).execute);
     process.exit(1);
   }
 } catch (error) {
+  // Capture error with full details before formatting
+  console.error('   Error caught during connectivity test');
+  if (error) {
+    console.error('   Error type:', typeof error);
+    console.error('   Error constructor:', error?.constructor?.name);
+    if (error instanceof Error) {
+      console.error('   Is Error instance: true');
+    } else {
+      console.error('   Is Error instance: false');
+      console.error('   Error value:', String(error));
+    }
+  }
   const details = formatConnError(error);
   const hints = inferHints(error);
 
