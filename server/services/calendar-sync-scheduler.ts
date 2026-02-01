@@ -241,6 +241,12 @@ export class CalendarSyncScheduler {
       cron.schedule(`*/${intervalMinutes} * * * *`, async () => {
         console.log(`[Calendar Sync] Starting periodic sync at ${new Date().toISOString()}`);
         
+        // Guard: db.execute is not available in SQLite (better-sqlite3)
+        if (typeof (db as any).execute !== 'function') {
+          console.warn('[Calendar Sync] db.execute not available; skipping sync (SQLite mode)');
+          return;
+        }
+
         // Get all users with connected calendars
         const usersWithCalendars = await db.execute(`
           SELECT DISTINCT user_id 
@@ -248,7 +254,9 @@ export class CalendarSyncScheduler {
           WHERE sync_enabled = 1
         `);
 
-        for (const row of usersWithCalendars.rows as any[]) {
+        // Handle both PostgreSQL (results.rows) and direct array results
+        const rows = Array.isArray(usersWithCalendars) ? usersWithCalendars : (usersWithCalendars.rows || []);
+        for (const row of rows as any[]) {
           try {
             await this.syncUserCalendars(row.user_id);
           } catch (error) {
@@ -264,6 +272,12 @@ export class CalendarSyncScheduler {
       setInterval(async () => {
         console.log(`[Calendar Sync] Starting periodic sync at ${new Date().toISOString()}`);
         
+        // Guard: db.execute is not available in SQLite (better-sqlite3)
+        if (typeof (db as any).execute !== 'function') {
+          console.warn('[Calendar Sync] db.execute not available; skipping sync (SQLite mode)');
+          return;
+        }
+
         // Get all users with connected calendars
         const usersWithCalendars = await db.execute(`
           SELECT DISTINCT user_id 
@@ -271,7 +285,9 @@ export class CalendarSyncScheduler {
           WHERE sync_enabled = 1
         `);
 
-        for (const row of usersWithCalendars.rows as any[]) {
+        // Handle both PostgreSQL (results.rows) and direct array results
+        const rows = Array.isArray(usersWithCalendars) ? usersWithCalendars : (usersWithCalendars.rows || []);
+        for (const row of rows as any[]) {
           try {
             await this.syncUserCalendars(row.user_id);
           } catch (error) {

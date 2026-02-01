@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "./db";
+import { sql } from "drizzle-orm";
 import { LangChainConfig } from "./langchain-config";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
@@ -35,18 +36,50 @@ router.get("/", async (req, res) => {
   };
 
   // Database connectivity check
+  // Primary signal: DATABASE_URL presence and format
+  const databaseUrl = process.env.DATABASE_URL || '';
+  const isPostgres = databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
+  const isSqlite = !isPostgres && (databaseUrl.includes('.sqlite') || databaseUrl.includes('.db') || !databaseUrl);
+  
+  let dbDriver: string = 'unknown';
+  let dbOk: boolean = false;
+  
   try {
-    if (process.env.NODE_ENV === 'development') {
-      // SQLite check
-      await db.get("SELECT 1");
-      health.services.db = "sqlite-connected";
+    // Attempt a trivial query to verify connectivity
+    if (typeof (db as any).execute === 'function') {
+      // PostgreSQL/Neon - use execute()
+      await db.execute(sql`SELECT 1`);
+      dbDriver = 'postgres';
+      dbOk = true;
     } else {
-      // PostgreSQL check
-      await db.get("SELECT 1");
-      health.services.db = "postgresql-connected";
+      // SQLite - use a simple query that works with better-sqlite3
+      const sqliteDb = (db as any).sqlite || db;
+      if (sqliteDb && typeof sqliteDb.prepare === 'function') {
+        sqliteDb.prepare('SELECT 1').get();
+        dbDriver = 'sqlite';
+        dbOk = true;
+      } else {
+        // Fallback: try execute with sql template
+        await db.execute(sql`SELECT 1`);
+        dbDriver = isPostgres ? 'postgres' : 'sqlite';
+        dbOk = true;
+      }
     }
   } catch (error) {
-    health.services.db = `database-error: ${error instanceof Error ? error.message : 'unknown'}`;
+    dbOk = false;
+    // Infer driver from DATABASE_URL if query failed
+    if (isPostgres) {
+      dbDriver = 'postgres';
+    } else if (isSqlite) {
+      dbDriver = 'sqlite';
+    }
+  }
+  
+  // Report database status
+  if (dbOk) {
+    health.services.db = `${dbDriver}-connected`;
+  } else {
+    health.services.db = `${dbDriver}-error`;
   }
 
   // LangSmith connectivity check

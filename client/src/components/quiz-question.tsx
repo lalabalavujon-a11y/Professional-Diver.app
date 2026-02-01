@@ -79,7 +79,8 @@ export default function QuizQuestion({
               <label 
                 key={option.key}
                 className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                  isEmpty ? 'opacity-50 cursor-not-allowed' : '',
+                  isEmpty ? 'opacity-50 cursor-not-allowed' : ''
+                } ${
                   selectedAnswer === option.key
                     ? "border-primary-200 bg-primary-50"
                     : "border-gray-200 hover:bg-gray-50"

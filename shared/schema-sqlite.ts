@@ -1005,6 +1005,12 @@ export const insertDocumentationVersionSchema = createInsertSchema(documentation
   createdAt: true,
 });
 
+export const insertGptAccessTokenSchema = createInsertSchema(gptAccessTokens).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -1074,5 +1080,4 @@ export type DocumentationVersion = typeof documentationVersions.$inferSelect;
 export type InsertDocumentationVersion = z.infer<typeof insertDocumentationVersionSchema>;
 export type GptAccessToken = typeof gptAccessTokens.$inferSelect;
 export type InsertGptAccessToken = z.infer<typeof insertGptAccessTokenSchema>;
-export type ContentGenerationLog = typeof contentGenerationLogs.$inferSelect;
-export type InsertContentGenerationLog = typeof contentGenerationLogs.$inferInsert;
+// Note: contentGenerationLogs exists only in Postgres schema (shared/schema.ts), not SQLite

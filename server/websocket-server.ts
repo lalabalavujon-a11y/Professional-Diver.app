@@ -122,8 +122,8 @@ export function emitGenerationProgress(progress: GenerationProgress) {
 
   if (clientSet && clientSet.size > 0) {
     const message = JSON.stringify({
-      type: 'generation-progress',
       ...progress,
+      type: 'generation-progress',
     });
 
     // Send to all clients subscribed to this generation
@@ -141,8 +141,8 @@ export function emitGenerationProgress(progress: GenerationProgress) {
   } else {
     // Broadcast to all clients if no specific subscription (fallback)
     const message = JSON.stringify({
-      type: 'generation-progress',
       ...progress,
+      type: 'generation-progress',
     });
 
     wss.clients.forEach((ws) => {

@@ -5,3 +5,9 @@ build/
 coverage/
 *.min.js
 *.bundle.js
+Combined-Services-Group-Setup/
+attached_assets/
+android/
+ios/
+*.bundle.js
+*.chunk.js

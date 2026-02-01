@@ -262,9 +262,10 @@ export default function EquipmentImportExport({ open, onOpenChange, onSuccess }:
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const data = new Uint8Array(arrayBuffer);
           const workbook = new ExcelJS.Workbook();
-          await workbook.xlsx.load(data);
+          await workbook.xlsx.load(data.buffer);
           
           const worksheet = workbook.worksheets[0];
           if (!worksheet) {

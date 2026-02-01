@@ -29,7 +29,7 @@ jobs:
       uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@19b2f06db2b6f5108140aeb04014ef02b648f789
       with:
         languages: ${{ matrix.language }}
         # If you wish to specify custom queries, you can do so here or in a config file.
@@ -38,12 +38,12 @@ jobs:
         # queries: security-extended,security-and-quality
 
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
+      uses: github/codeql-action/autobuild@19b2f06db2b6f5108140aeb04014ef02b648f789
       with:
         working-directory: ./
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@19b2f06db2b6f5108140aeb04014ef02b648f789
       with:
         category: "/language:${{matrix.language}}"
         # This repo has GitHub CodeQL Default Setup enabled, which rejects uploads from
